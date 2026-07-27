@@ -113,6 +113,17 @@ button,select,input{font-family:inherit}
 .rk .bar3{width:70px;height:6px;background:#eef2f7;border-radius:4px;overflow:hidden;flex:none}
 .rk .bar3 i{display:block;height:100%;background:#03C75A}
 .rk .v{font-size:12px;font-weight:800;width:54px;text-align:right;font-variant-numeric:tabular-nums}
+.wxbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.wxload{grid-column:1/-1;background:#fff;border-radius:12px;padding:12px;text-align:center;color:#8b9aab;font-size:12px;font-weight:700;box-shadow:0 1px 5px rgba(22,50,79,.06)}
+.wx{background:#fff;border-radius:12px;padding:9px 10px;box-shadow:0 1px 5px rgba(22,50,79,.06);display:flex;flex-direction:column;align-items:center;gap:1px;border-top:3px solid #7dd1a0}
+.wx.r2{border-top-color:#e0a03a}.wx.r3{border-top-color:#e04b45}
+.wx .wt{font-size:22px;line-height:1}
+.wx .wn{font-size:11px;font-weight:800;color:#5f7086}
+.wx .wd b{font-size:15px;font-weight:800;color:#16202c}
+.wx .wd span{font-size:11px;color:#9aa8b8}
+.wx .wr{font-size:11px;font-weight:800;color:#5f7086}
+.wx.r2 .wr{color:#c98a1a}.wx.r3 .wr{color:#e04b45}
+@media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:10px}
 .kpi{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 5px rgba(22,50,79,.06)}
 .kpi span{font-size:10.5px;color:#8b9aab;font-weight:800;display:block}
@@ -322,6 +333,27 @@ let OPEN=LS('_op',{});
 let ORDERS=[],DATES=[];
 let EXP={};
 function toggleExp(k){EXP[k]=!EXP[k];render()}
+/* ===== 날씨 (Open-Meteo · 무료·키불필요) ===== */
+const WX_SPOTS=[['인천·서울',37.45,126.70],['수원·경기',37.26,127.03],['대전·충청',36.35,127.38],['원주·강원',37.34,127.92]];
+let WX=null;
+function wxIcon(c){if(c===0)return'☀️';if(c<=3)return'⛅';if(c<=48)return'🌫️';if(c<=67)return'🌧️';if(c<=77)return'🌨️';if(c<=82)return'🌦️';if(c<=86)return'🌨️';return'⛈️'}
+function wxRainClass(p){return p>=60?'r3':p>=30?'r2':'r1'}
+async function loadWx(){
+ try{
+  const rs=await Promise.all(WX_SPOTS.map(sp=>fetch('https://api.open-meteo.com/v1/forecast?latitude='+sp[1]+'&longitude='+sp[2]+'&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Asia%2FSeoul&forecast_days=1').then(r=>r.json())));
+  WX=rs.map((d,i)=>({nm:WX_SPOTS[i][0],t:Math.round(d.current.temperature_2m),
+   hi:Math.round(d.daily.temperature_2m_max[0]),lo:Math.round(d.daily.temperature_2m_min[0]),
+   rain:d.daily.precipitation_probability_max[0]||0,code:d.daily.weather_code[0]}));
+  render();
+ }catch(e){WX='err';render()}
+}
+function wxHTML(){
+ if(WX==='err')return '';
+ if(!WX)return '<div class="wxbar"><div class="wxload">☁️ 날씨 불러오는 중…</div></div>';
+ return '<div class="wxbar">'+WX.map(w=>'<div class="wx '+wxRainClass(w.rain)+'"><div class="wt">'+wxIcon(w.code)+'</div>'
+  +'<div class="wn">'+w.nm+'</div><div class="wd"><b>'+w.hi+'°</b><span>/'+w.lo+'°</span></div>'
+  +'<div class="wr">☔ '+w.rain+'%</div></div>').join('')+'</div>';
+}
 
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_dov',DRVOV);S('_l',LEARN);S('_do',DOVR);S('_cu',CUSTOM);
@@ -584,7 +616,7 @@ function tabBoard(today){
  const dn=car.filter(o=>ST[o.i]==='done').length;
  const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
  const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
- let h='<div class="kpis">'
+ let h=wxHTML()+'<div class="kpis">'
  +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
  +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
  +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
@@ -852,4 +884,5 @@ document.getElementById('capB').innerHTML=CAP_DEF.map(function(c){
  +'oninput="CAPS[\''+c.id+'\']=+this.value||1;save();render()"></td></tr>'}).join('');
 render();
 syncInit();
+loadWx();
 </script></body></html>
