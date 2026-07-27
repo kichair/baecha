@@ -647,9 +647,7 @@ function tabBoard(today){
   +ROUTES.map(r=>secHTML(r.id,r.nm,r.cl,r.zone,by[r.id],true)).join('')+'</div>';
  if(by.x.length)h+='<div class="hd2">📦 제외 — 택배·상차·차량입고·퀵 <span class="n">'+by.x.length+'</span></div>'
   +secHTML('x','제외','#a9b6c4','기사님이 가지 않는 건',by.x,false);
- const other=ORDERS.filter(o=>o.d!==SEL&&ST[o.i]!=='del');
- if(other.length)h+='<div class="hd2">📅 다른 날짜 <span class="n">'+other.length+'</span></div>'
-  +secHTML('ot','다른 날짜','#c48a2a','',other,false);
+
  return h}
 function tabMine(today){
  const known=DRVS.filter(d=>d[0]===ME).length>0;
