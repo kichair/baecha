@@ -551,6 +551,10 @@ function setupHTML(){const a=Object.keys(ADDR).length;
  +'<button class="btn" onclick="f2.click()">📇 거래처정보 불러오기</button>'
  +'<button class="btn" onclick="f1.value=\'\';f1.click()">📁 명세서 불러오기</button></div></div>'}
 function capFactor(id){return id==='t35'?1.2:1}
+const DRIVE_MIN={r1:20,r2:30,r3:40,r4:45,r5:50,r6:45,r7:65,rw:110,rc:95,t35:60,etc:40};
+function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h?(h+'시간'+(mm?' '+mm+'분':'')):(mm+'분')}
+function estRoute(id,list){if(!list.length)return 0;const d=DRIVE_MIN[id]||40;return 30+list.length*12+d*2}
+function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||40)>mx)mx=DRIVE_MIN[r]||40});return 30+stops*12+mx*2}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
 function setDrv(i,v){const o=ORDERS[i];if(v)DRVOV[o.key]=v;else delete DRVOV[o.key];save();render();toast(v?v+' 기사에게 배정':'동선 기사 따름')}
 function secHTML(id,nm,cl,zone,list,dvs){
@@ -569,7 +573,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  +[1,2,3,4].map(v=>'<option value="'+v+'"'+(n===v?' selected':'')+'>'+v+'대</option>').join('')+'</select>'
  +'<button class="btn s" onclick="openPick(\''+id+'\')" style="flex:0 0 40px;padding:8px 0">＋</button></div>'
  +'<div class="load '+(p>100?'o':p>85?'w':'')+'"><i style="width:'+Math.min(p,100)+'%"></i></div>'
- +'<div style="display:flex;justify-content:space-between;padding:0 12px 8px;font-size:11.5px;font-weight:700"><span style="color:#5f7086">의자 '+qty+'개</span><span style="color:'+(p>100?'#e04b45':p>85?'#c98a1a':'#03C75A')+'">적재 '+p.toFixed(0)+'%'+(p>100?' ⚠초과':'')+'</span></div>'}
+ +'<div style="display:flex;justify-content:space-between;padding:0 12px 8px;font-size:11.5px;font-weight:700"><span style="color:#5f7086">의자 '+qty+'개'+(list.length?' · ⏱ 약 '+fmtDur(estRoute(id,list)):'')+'</span><span style="color:'+(p>100?'#e04b45':p>85?'#c98a1a':'#03C75A')+'">적재 '+p.toFixed(0)+'%'+(p>100?' ⚠초과':'')+'</span></div>'}
  if(op)h+='<div class="body" data-d="'+id+'">'+(list.length?list.map(o=>EXP[o.key]?('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o)):ccard(o)).join(''):'<div class="empty">비어 있음</div>')+'</div>';
  return h+'</div>'}
 function tabBoard(today){
@@ -602,7 +606,7 @@ function tabBoard(today){
    return '<div class="rk"><div class="no" style="background:#0f5f37;color:#fff">'+d.slice(0,1)+'</div>'
    +'<div class="nm">'+d+'<span>'+a.rts.join(' · ')+'</span></div>'
    +'<div class="bar3"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
-   +'<div class="v" style="width:96px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div></div>'}).join('');
+   +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span><br><span style="color:#8b9aab;font-weight:600">⏱ 약 '+fmtDur(estDriver(Object.keys(a.rset),a.tot))+'</span></div></div>'}).join('');
   h+='</div>';
  }
  if(by._.length)h+='<div class="hd2">⚠️ 배차 필요 <span class="n">'+by._.length+'</span></div>'
