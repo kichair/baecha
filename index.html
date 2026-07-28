@@ -356,7 +356,7 @@ let RAW=LS('_raw',null);
 if(!RAW||RAWV<BUILD_TS){RAW=SEED_LINES.slice();RAWV=BUILD_TS}
 let FEE=Object.assign({},SEED_FEE,LSU('_fe',{}));
 let CAPS=LSU('_c',null)||Object.fromEntries(CAP_DEF.map(c=>[c.id,c.c]));
-let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{});
+let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{}),DRV2=LSU('_dv2',{});
 let CUSTOM=LSU('_cu',[]);
 let SEQ=LSU('_sq',{});
 let DRVS=LSU('_dv',null)||[['김덕겸','010-2913-1805'],['배진성',''],
@@ -405,7 +405,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_fe',FEE);
+ SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_fe',FEE);SU('_dv2',DRV2);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -417,13 +417,14 @@ let SB=null,SB_ON=false,pushT=null,applying=false;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;
+ o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
 function applySnap(o){applying=true;try{
  if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];
  if(o['_dov'])DRVOV=o['_dov'];if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
+ if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_dv'])DRVS=o['_dv'];if(o['_c'])CAPS=o['_c'];
  if(o['_raw']&&(o['_rawv']||0)>RAWV){RAW=o['_raw'];RAWV=o['_rawv']||RAWV;if(o['_fe'])FEE=o['_fe']}
  if(o['_ad'])ADDR=Object.assign({},ADDR_DB,BUILTIN.A,o['_ad']);
@@ -435,7 +436,7 @@ function applySnap(o){applying=true;try{
 function namesSnap(){
  const m={};const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='x');
  DRVS.forEach(d=>{const n=d[0];
-  const list=today.filter(o=>effDrv(o)===n).slice().sort(bySeq);
+  const list=today.filter(o=>hasDrv(o,n)).slice().sort(bySeq);
   if(list.length)m[n]=list.map((o,i)=>(i+1)+o.n).join('·')});
  return {d:SEL,m:m}}
 function syncPush(){if(!SB_ON||applying)return;clearTimeout(pushT);
@@ -630,7 +631,7 @@ function card(o,big){
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
   +'<div class="hd"><div class="nm">'+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?'택배분':'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
-  +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="setDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRVOV[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select></div>'+adr
+  +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="setDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRVOV[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select></div>'+adr
   +(o.memo?'<div class="memo">▸ '+o.memo+'</div>':'')
   +'<ul class="items">'+items+'</ul>'+acts+'</div></div>'}
 function ring(pct,a,b){const R=38,C=2*Math.PI*R;
@@ -672,6 +673,8 @@ function estRoute(id,list){if(!list.length)return 0;const d=DRIVE_MIN[id]||40;re
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||40)>mx)mx=DRIVE_MIN[r]||40});return 30+stops*12+mx*2}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
 function setDrv(i,v){const o=ORDERS[i];if(v)DRVOV[o.key]=v;else delete DRVOV[o.key];save();render();toast(v?v+' 기사에게 배정':'동선 기사 따름')}
+function setDrv2(i,v){const o=ORDERS[i];if(v)DRV2[o.key]=v;else delete DRV2[o.key];save();render();toast(v?'분할: '+v+' 기사 추가':'분할 해제')}
+function hasDrv(o,n){return effDrv(o)===n||DRV2[o.key]===n}
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
  const qty=list.reduce((a,o)=>a+o.qty,0);
@@ -753,14 +756,14 @@ function tabMine(today){
  const known=DRVS.filter(d=>d[0]===ME).length>0;
  if(!ME||!known){
   const rows=DRVS.map(function(d){const n=d[0],p=d[1];
-   const list=today.filter(o=>effDrv(o)===n);
+   const list=today.filter(o=>hasDrv(o,n));
    const dn=list.filter(o=>ST[o.i]==='done').length;
    const pc=list.length?dn/list.length*100:0;
    return '<div class="dcard" onclick="ME=\''+n+'\';save();render()"><b>'+n+'</b><span>'+(p||'&nbsp;')+'</span>'
     +'<div class="mini"><i style="width:'+pc+'%"></i></div>'
     +'<div class="st">'+(list.length?dn+'/'+list.length+'곳 완료':'오늘 배차 없음')+'</div></div>'}).join('');
   return '<div class="hd2">👤 기사님을 선택하세요</div><div class="grid">'+rows+'</div>'}
- const mine=today.filter(o=>effDrv(o)===ME);
+ const mine=today.filter(o=>hasDrv(o,ME));
  const dn=mine.filter(o=>ST[o.i]==='done').length,tot=mine.length;
  const pc=tot?dn/tot*100:0,left=tot-dn;
  const L=mine.filter(o=>ST[o.i]!=='done').reduce((a,o)=>a+o.load,0);
@@ -806,7 +809,7 @@ function tabRoute(today){
  return h}
 function tabStat(today){
  const rows=DRVS.map(function(d){const n=d[0];
-  const list=today.filter(o=>effDrv(o)===n);
+  const list=today.filter(o=>hasDrv(o,n));
   const rs=list.map(o=>ASSIGN[o.i]);
   return {n:n,tot:list.length,dn:list.filter(o=>ST[o.i]==='done').length,
    q:list.reduce((a,o)=>a+o.qty,0),
