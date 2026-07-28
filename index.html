@@ -109,6 +109,7 @@ button,select,input{font-family:inherit}
 .rk .no{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:800;background:#eef2f7;color:#5f7086;flex:none}
 .rk .no.g1{background:#ffe9a8;color:#8a6100}.rk .no.g2{background:#e6ecf2}.rk .no.g3{background:#f5ddc9;color:#8a5a2f}
 .rk .nm{flex:1;font-weight:800;font-size:13.5px;min-width:0}
+.durb{display:inline-block;background:#e6f8ef;color:#03874a;font-size:12px;font-weight:800;padding:1px 8px;border-radius:12px;margin-left:4px;vertical-align:1px}
 .rk .nm span{display:block;font-size:11px;color:#8b9aab;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rk .bar3{width:70px;height:6px;background:#eef2f7;border-radius:4px;overflow:hidden;flex:none}
 .rk .bar3 i{display:block;height:100%;background:#03C75A}
@@ -636,9 +637,9 @@ function tabBoard(today){
   h+='<div class="hd2">🧑‍✈️ 기사별 물량·적재</div><div class="rank">';
   h+=drvs.map(d=>{const a=drvAgg[d],p=a.cap?a.L/a.cap*100:0;
    return '<div class="rk"><div class="no" style="background:#0f5f37;color:#fff">'+d.slice(0,1)+'</div>'
-   +'<div class="nm">'+d+'<span>'+a.rts.join(' · ')+'</span></div>'
+   +'<div class="nm">'+d+' <span class="durb">⏱ '+fmtDur(estDriver(Object.keys(a.rset),a.tot))+'</span><span>'+a.rts.join(' · ')+'</span></div>'
    +'<div class="bar3"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
-   +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span><br><span style="color:#8b9aab;font-weight:600">⏱ 약 '+fmtDur(estDriver(Object.keys(a.rset),a.tot))+'</span></div></div>'}).join('');
+   +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div></div>'}).join('');
   h+='</div>';
  }
  if(by._.length)h+='<div class="hd2">⚠️ 배차 필요 <span class="n">'+by._.length+'</span></div>'
