@@ -159,7 +159,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .frm{display:grid;grid-template-columns:80px 1fr;gap:8px 10px;align-items:center;font-size:12.5px}
 .frm input,.frm select{padding:8px 9px;border:1px solid #dde5ee;border-radius:8px;font-size:13px;width:100%}
 .irow,.drow{display:grid;gap:6px;margin-bottom:6px}
-.irow{grid-template-columns:1fr 72px 32px}
+.irow{grid-template-columns:1fr 92px 64px 32px}
 .drow{grid-template-columns:1fr 132px 32px}
 .irow input,.drow input{padding:8px;border:1px solid #dde5ee;border-radius:8px;font-size:13px}
 .tip{background:#f2f7fc;border-left:3px solid #2F7FE8;padding:9px 12px;font-size:12px;color:#44566c;line-height:1.7;margin-bottom:12px;border-radius:0 8px 8px 0}
@@ -204,7 +204,8 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
  <div class="sp"></div>
  <input type="file" id="f1" accept=".xls,.xlsx,.xlsm,.csv" hidden onchange="onOrders(this.files[0])">
  <button class="btn g" onclick="f1.value='';f1.click()">📁 명세서</button>
- <span id="syncdot" style="width:9px;height:9px;border-radius:50%;background:#c3ceda;display:inline-block" title="실시간 공유 상태"></span><button class="btn g" onclick="menu.showModal()">⋯</button>
+ <span id="syncdot" style="width:9px;height:9px;border-radius:50%;background:#c3ceda;display:inline-block" title="실시간 공유 상태"></span><button class="btn g" onclick="openAdd()">＋추가</button>
+ <button class="btn g" onclick="menu.showModal()">⋯</button>
 </div>
 
 <div class="tabs">
@@ -239,10 +240,15 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 <div class="db"><div class="tip">기사님은 동선에 고정되지 않습니다. 여기선 명단만 두고, 그날 담당은 각 동선에서 고르세요.</div>
 <div id="drows"></div><button class="btn" onclick="drow('','')">＋ 기사 추가</button></div></dialog>
 
-<dialog id="add"><div class="dh"><h3>배송건 추가</h3><button class="btn g" onclick="add.close()">닫기</button></div>
-<div class="db"><div class="frm"><label>거래처명</label><input id="aN">
-<label>적요</label><input id="aM" placeholder="예) 관악구 직납"><label>동선</label><select id="aT"></select></div>
-<div style="margin:12px 0 6px;font-weight:800;font-size:12.5px">품목</div><div id="aI"></div>
+<dialog id="add"><div class="dh"><h3>새 거래 추가</h3><button class="btn g" onclick="add.close()">닫기</button></div>
+<div class="db"><div class="frm">
+<label>일자</label><input type="date" id="aD">
+<label>거래처명</label><input id="aN" list="custlist" placeholder="입력하면 자동완성" oninput="aNsug()" autocomplete="off">
+<label></label><div id="aAddr" style="font-size:11.5px;color:#03874a;font-weight:700;min-height:15px"></div>
+<label>적요</label><input id="aM" placeholder="예) 관악구 직납, 오전일찍">
+<label>동선</label><select id="aT"></select></div>
+<datalist id="custlist"></datalist>
+<div style="margin:12px 0 6px;font-weight:800;font-size:12.5px">품목 (의자명 · 색상 · 수량)</div><div id="aI"></div>
 <button class="btn s" onclick="irow()">＋ 줄 추가</button>
 <div style="margin-top:14px;text-align:right"><button class="btn" onclick="doAdd()">추가</button></div></div></dialog>
 
@@ -846,10 +852,24 @@ function syncD(){DRVS=[].slice.call(document.getElementById('drows').querySelect
 function openDrv(){const dr=document.getElementById('drows');dr.innerHTML='';
  DRVS.forEach(function(d){drow(d[0],d[1])});document.getElementById('drv').showModal()}
 function irow(){const d=document.createElement('div');d.className='irow';
- d.innerHTML='<input placeholder="품목명 (예: 흑로대)"><input type="number" placeholder="수량">'
+ d.innerHTML='<input placeholder="의자명 (예: 흑로대)"><input placeholder="색상 (예: 검정)"><input type="number" placeholder="수량">'
  +'<button class="btn s" onclick="this.parentNode.remove()">✕</button>';
  document.getElementById('aI').appendChild(d)}
+function aNsug(){
+ const q=document.getElementById('aN').value.trim();
+ const dl=document.getElementById('custlist');const ad=document.getElementById('aAddr');
+ if(ADDR[q]!=null){ad.textContent='📍 '+ADDR[q];
+  const g=guess({n:q,memo:'',ex:null});
+  if(g&&g!=='_'&&g!=='x')document.getElementById('aT').value=g;}
+ else ad.textContent='';
+ if(q.length<2){dl.innerHTML='';return}
+ let h='',c=0;
+ for(const n in ADDR){if(n.includes(q)){h+='<option value="'+n.replace(/"/g,'&quot;')+'">';if(++c>=20)break}}
+ dl.innerHTML=h}
 function openAdd(){document.getElementById('aN').value='';document.getElementById('aM').value='';
+ const _tm=new Date(Date.now()+86400000);
+ document.getElementById('aD').value=_tm.getFullYear()+'-'+String(_tm.getMonth()+1).padStart(2,'0')+'-'+String(_tm.getDate()).padStart(2,'0');
+ document.getElementById('aAddr').textContent='';document.getElementById('custlist').innerHTML='';
  document.getElementById('aI').innerHTML='';irow();
  document.getElementById('aT').innerHTML=[['_','배차 필요']].concat(ROUTES.map(r=>[r.id,r.nm])).concat([['x','제외']])
   .map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('');
@@ -857,15 +877,16 @@ function openAdd(){document.getElementById('aN').value='';document.getElementByI
 function doAdd(){const n=document.getElementById('aN').value.trim();
  if(!n)return alert('거래처명을 입력하세요');
  const m=document.getElementById('aM').value.trim();
+ const dd=document.getElementById('aD').value||SEL;
  const items=[].slice.call(document.getElementById('aI').querySelectorAll('.irow')).map(function(r){
   const a=r.querySelectorAll('input');
-  return{n:n,p:a[0].value.trim(),s:'',q:+a[1].value||0,m:m,d:SEL}}).filter(x=>x.p&&x.q>0);
+  return{n:n,p:a[0].value.trim(),s:a[1].value.trim(),q:+a[2].value||0,m:m,d:dd}}).filter(x=>x.p&&x.q>0);
  if(!items.length)return alert('품목과 수량을 입력하세요');
- CUSTOM.push({n:n,items:items,memo:m,d:SEL});
+ CUSTOM.push({n:n,items:items,memo:m,d:dd});
  const t=document.getElementById('aT').value;
  document.getElementById('add').close();save();build();
- for(let i=0;i<ORDERS.length;i++)if(ORDERS[i].cu&&ORDERS[i].n===n&&ORDERS[i].d===SEL)ASSIGN[ORDERS[i].i]=t;
- save();render();toast('추가했습니다')}
+ for(let i=0;i<ORDERS.length;i++)if(ORDERS[i].cu&&ORDERS[i].n===n&&ORDERS[i].d===dd)ASSIGN[ORDERS[i].i]=t==='_'?guess(ORDERS[i]):t;
+ save();render();toast(dd.slice(5)+' 에 추가했습니다')}
 
 /* ============ 파일 ============ */
 function withXLSX(cb){if(window.XLSX)return cb();
