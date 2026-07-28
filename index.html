@@ -393,8 +393,8 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
  localStorage.setItem(KEY+'_sel',SEL);localStorage.setItem(KEY+'_tab',TAB);localStorage.setItem(KEY+'_me',ME);syncPush()}
 /* ===== 실시간 공유 (Supabase) — 주소·키 넣으면 자동 활성화 ===== */
-const SB_URL=localStorage.getItem('SB_URL')||'';
-const SB_KEY=localStorage.getItem('SB_KEY')||'';
+const SB_URL=localStorage.getItem('SB_URL')||'https://eirnudzaysvvqfjzhwni.supabase.co';
+const SB_KEY=localStorage.getItem('SB_KEY')||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
 let SB=null,SB_ON=false,pushT=null,applying=false;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel'];
 function snap(){const o={};
