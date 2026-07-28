@@ -197,8 +197,11 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
  .tabs button em{font-size:16px}
  .bdg{position:static;transform:none}
  .wrap{padding:14px;max-width:1560px;margin:0 auto}
- #secs{display:grid;grid-template-columns:repeat(auto-fill,minmax(322px,1fr));gap:12px;align-items:start}
- .sec{margin:0}
+ #secs{display:block}
+ .sec{margin:0 0 12px}
+ .sec .body{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:8px;align-items:start}
+ .sec .body>.subcar,.sec .body>.empty{grid-column:1/-1}
+ .cardw{min-width:0}
 }
 @media print{.tabs,.top,.acts,.dv,#toast{display:none}body{padding:0}.sec{break-inside:avoid;box-shadow:none;border:1px solid #ccc}}
 </style></head><body>
@@ -678,7 +681,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  +'<div class="load '+(p>100?'o':p>85?'w':'')+'"><i style="width:'+Math.min(p,100)+'%"></i></div>'
  +'<div style="display:flex;justify-content:space-between;padding:0 12px 8px;font-size:11.5px;font-weight:700"><span style="color:#5f7086">의자 '+qty+'개'+(list.length?' · ⏱ 약 '+fmtDur(estRoute(id,list)):'')+'</span><span style="color:'+(p>100?'#e04b45':p>85?'#c98a1a':'#03C75A')+'">적재 '+p.toFixed(0)+'%'+(p>100?' ⚠초과':'')+'</span></div>'}
  if(op){let inner;
-  const mk=o=>EXP[o.key]===false?ccard(o):('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o));
+  const mk=o=>'<div class="cardw">'+(EXP[o.key]===false?ccard(o):('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o)))+'</div>';
   if(!list.length)inner='<div class="empty">비어 있음</div>';
   else if(dvs&&n>1){
    const total=list.reduce((a,o)=>a+o.load,0),target=total/n;
@@ -705,20 +708,26 @@ function tabBoard(today){
  +'<div class="kpi '+(by._.length?'al':'')+'"><span>미배정</span><b>'+by._.length+'곳</b></div>'
  +'<div class="kpi '+(nodrv?'al':'')+'"><span>기사 미지정</span><b>'+nodrv+'</b></div>'
  +'<div class="kpi '+(over?'al':'')+'"><span>적재초과</span><b>'+over+'</b></div></div>';
- // 기사별 요약 (동선에 지정된 기사 기준으로 합산)
+ // 기사별 요약 (기사×동선 회차별 — 한 기사가 하루 2~3동선 가능)
  const drvAgg={};
- car.forEach(o=>{const drv=effDrv(o);if(!drv)return;
-  const a=drvAgg[drv]||(drvAgg[drv]={q:0,L:0,rset:{},dn:0,tot:0});
-  a.q+=o.qty;a.L+=o.load;a.tot++;if(ST[o.i]==='done')a.dn++;
-  a.rset[ASSIGN[o.i]]=1;});
- Object.values(drvAgg).forEach(a=>{a.cap=Object.keys(a.rset).reduce((x,rid)=>x+(CAR[rid+'_n']||1)*capFactor(rid),0)||1;
-  a.rts=Object.keys(a.rset).map(rid=>(RID[rid]||{nm:rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,''));});
- const drvs=Object.keys(drvAgg);
- if(drvs.length){
+ car.forEach(o=>{const drv=effDrv(o);if(!drv)return;const rid=ASSIGN[o.i];
+  const k=drv+'§'+rid;
+  const a=drvAgg[k]||(drvAgg[k]={d:drv,rid:rid,q:0,L:0,dn:0,tot:0});
+  a.q+=o.qty;a.L+=o.load;a.tot++;if(ST[o.i]==='done')a.dn++;});
+ const rows=Object.values(drvAgg);
+ rows.forEach(a=>{a.cap=(CAR[a.rid+'_n']||1)*capFactor(a.rid)||1;
+  a.rnm=(RID[a.rid]||{nm:a.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
+  a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);});
+ const dord=[];rows.forEach(a=>{if(dord.indexOf(a.d)<0)dord.push(a.d)});
+ rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
+ const dcnt={},dseen={};rows.forEach(a=>dcnt[a.d]=(dcnt[a.d]||0)+1);
+ if(rows.length){
   h+='<div class="hd2">🧑‍✈️ 기사별 물량·적재</div><div class="rank">';
-  h+=drvs.map(d=>{const a=drvAgg[d],p=a.cap?a.L/a.cap*100:0;
-   return '<div class="rk"><div class="no" style="background:#0f5f37;color:#fff">'+d.slice(0,1)+'</div>'
-   +'<div class="nm">'+d+' <span class="durb">⏱ '+fmtDur(estDriver(Object.keys(a.rset),a.tot))+'</span><span>'+a.rts.join(' · ')+'</span></div>'
+  h+=rows.map(a=>{const p=a.cap?a.L/a.cap*100:0;
+   dseen[a.d]=(dseen[a.d]||0)+1;
+   const lbl=dcnt[a.d]>1?a.d+dseen[a.d]:a.d;
+   return '<div class="rk"><div class="no" style="background:#0f5f37;color:#fff">'+a.d.slice(0,1)+(dcnt[a.d]>1?'<sub style="font-size:9px">'+dseen[a.d]+'</sub>':'')+'</div>'
+   +'<div class="nm">'+lbl+' <span class="durb">⏱ '+fmtDur(estDriver([a.rid],a.tot))+'</span><span>'+a.rnm+'</span></div>'
    +'<div class="bar3"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
    +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div></div>'}).join('');
   h+='</div>';
@@ -797,6 +806,42 @@ function tabStat(today){
    +'<div class="v">'+p.toFixed(0)+'%</div></div>'}).join('');
  return h+(rt||'<div class="empty">없음</div>')+'</div>'}
 
+/* ===== 기사 위치 공유 (폰 GPS → Supabase) ===== */
+let GPSW=null,GPSLAST=0,LMAP=null,LMK={},POSC={},POSSUB=false;
+function gpsToggle(){
+ if(GPSW!=null){navigator.geolocation.clearWatch(GPSW);GPSW=null;localStorage.setItem('kiu_gps','0');toast('위치 공유 중지');render();return}
+ if(!ME)return alert('먼저 [내 배송]에서 기사님을 선택하세요');
+ if(!SB_ON)return alert('실시간 연결(초록 점)이 켜진 뒤 사용 가능합니다');
+ if(!navigator.geolocation)return alert('이 기기는 위치를 지원하지 않습니다');
+ GPSW=navigator.geolocation.watchPosition(function(p){
+  const now=Date.now();if(now-GPSLAST<10000)return;GPSLAST=now;
+  SB.from('pos').upsert({driver:ME,lat:p.coords.latitude,lng:p.coords.longitude,at:new Date().toISOString()}).then(function(){});
+ },function(e){toast('위치 오류: '+e.message)},{enableHighAccuracy:true,maximumAge:5000});
+ localStorage.setItem('kiu_gps','1');toast('📍 위치 공유 시작 — 화면을 켜두세요');render()}
+function ensureLeaflet(){return new Promise(function(res){
+ if(window.L)return res(true);
+ const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(c);
+ const sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+ sc.onload=function(){res(true)};sc.onerror=function(){res(false)};document.head.appendChild(sc)})}
+async function initMap(){
+ const el=document.getElementById('gmap');if(!el)return;
+ if(!(await ensureLeaflet())){el.innerHTML='<div style="padding:30px;text-align:center;color:#8b9aab">지도 로드 실패</div>';return}
+ if(LMAP){try{LMAP.remove()}catch(e){}LMAP=null}LMK={};
+ LMAP=L.map(el).setView([37.42,126.9],9);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(LMAP);
+ if(SB){const r=await SB.from('pos').select('*');(r.data||[]).forEach(function(x){POSC[x.driver]=x});
+  if(!POSSUB){POSSUB=true;
+   SB.channel('pos').on('postgres_changes',{event:'*',schema:'public',table:'pos'},function(p){
+    if(p.new&&p.new.driver){POSC[p.new.driver]=p.new;drawPos()}}).subscribe()}}
+ drawPos()}
+function drawPos(){if(!LMAP||!window.L)return;
+ Object.values(POSC).forEach(function(r){
+  if(r.lat==null)return;
+  const old=Date.now()-new Date(r.at).getTime()>600000;
+  const html='<div style="background:'+(old?'#9aa8b8':'#03C75A')+';color:#fff;padding:2px 8px;border-radius:12px;font-weight:800;font-size:11px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.35)">'+r.driver+(old?' (끊김)':'')+'</div>';
+  const ic=L.divIcon({html:html,className:'',iconAnchor:[20,10]});
+  if(LMK[r.driver])LMK[r.driver].setLatLng([r.lat,r.lng]).setIcon(ic);
+  else LMK[r.driver]=L.marker([r.lat,r.lng],{icon:ic}).addTo(LMAP)})}
 /* ============ 드래그 · 스와이프 ============ */
 let drag=null;
 function bind(){
