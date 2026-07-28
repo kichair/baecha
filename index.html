@@ -109,7 +109,7 @@ button,select,input{font-family:inherit}
 .rk .no{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:800;background:#eef2f7;color:#5f7086;flex:none}
 .rk .no.g1{background:#ffe9a8;color:#8a6100}.rk .no.g2{background:#e6ecf2}.rk .no.g3{background:#f5ddc9;color:#8a5a2f}
 .rk .nm{flex:1;font-weight:800;font-size:13.5px;min-width:0}
-.durb{display:inline-block;background:#e6f8ef;color:#03874a;font-size:12px;font-weight:800;padding:1px 8px;border-radius:12px;margin-left:4px;vertical-align:1px}
+.rk .nm span.durb{display:inline-block;width:auto;background:#e6f8ef;color:#03874a;font-size:12px;font-weight:800;padding:1px 9px;border-radius:12px;margin:1px 0 1px 4px;white-space:nowrap}
 .rk .nm span{display:block;font-size:11px;color:#8b9aab;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rk .bar3{width:70px;height:6px;background:#eef2f7;border-radius:4px;overflow:hidden;flex:none}
 .rk .bar3 i{display:block;height:100%;background:#03C75A}
@@ -283,7 +283,7 @@ const CAP_DEF=[
  {id:'sml', l:'그 외 소(小)',k:['小','소('],c:110},
  {id:'panel',l:'상판·도어(판재)',k:['상판만','도어만'],c:120},
  {id:'drawer',l:'이동서랍·펜서랍',k:['이동서랍','펜서랍','3단이동'],c:60},
- {id:'furn', l:'가구 장류(옷장·문장·서가·락카)',k:['옷장','올문장','도어장','도장','분리장','양면장','서가장','서가','오픈장','수납장','신발장','락카장','하문장'],c:18},
+ {id:'furn', l:'가구 장류(옷장·문장·서가·락카)',k:['옷장','올문장','도어장','도장','분리장','양면장','서가장','서가','오픈장','수납장','신발장','락카장','하문장'],c:40},
  {id:'desk2',l:'책상',k:['책상'],c:8},
  {id:'tbl',  l:'테이블',k:['테이블'],c:30},
  {id:'etc', l:'기타',k:[],c:60}];
@@ -410,14 +410,22 @@ function openShare(){
 
 /* ============ 계산 ============ */
 function capOf(n){
- // 사이즈 명시 시 바닥면적 기준 (1톤 적재함 1600×4000)
- const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})/);
- if(sz){const W=+sz[1],D=+sz[2];
-  if(W>=300&&D>=200){let cap=Math.max(3,Math.round(6400000/(W*D)));
-   if(/상판|도어만|테이블|서랍/.test(n))cap*=3; // 판재·소형은 겹쳐 적재
-   return{c:Math.min(cap,300),l:'사이즈 '+W+'×'+D}}}
+ // 사이즈 명시 시: 바닥면적(1톤 장축 1600×4000=6.4㎡) × 단수(적재높이 2100 기준)
+ const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})(?:\s*[*xX×]\s*(\d{3,4}))?/);
+ if(sz){const W=+sz[1],D=+sz[2],H=sz[3]?+sz[3]:0;
+  if(W>=300&&D>=200){
+   // 격자 배열: 가로·세로 실제로 몇 개 들어가는지 (두 방향 중 큰 쪽)
+   const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/D),Math.floor(1600/D)*Math.floor(4000/W));
+   let ly;
+   if(H>=200)ly=Math.max(1,Math.min(3,Math.floor(2100/H)));      // 높이로 단수 결정
+   else if(/상판|도어만/.test(n))ly=6;                             // 판재는 눕혀 다량
+   else if(/테이블|서랍/.test(n))ly=3;
+   else if(/장|옷장|서가|락카/.test(n))ly=2;                        // 높이 미상 장류: 2단 가정
+   else ly=1;
+   const cap=Math.min(per*ly,300);
+   return{c:cap,l:'사이즈 '+W+'×'+D+(H?'×'+H:'')+' · '+ly+'단'}}}
  const sw=n.match(/W(\d{3,4})/);
- if(sw){const W=+sw[1];return{c:Math.max(3,Math.round(6400000/(W*600))),l:'사이즈 W'+sw[1]}}
+ if(sw){const W=+sw[1];const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/600),Math.floor(1600/600)*Math.floor(4000/W));return{c:per,l:'사이즈 W'+sw[1]+' · 1단'}}
  for(const c of CAP_DEF)for(const k of c.k)if(n.indexOf(k)>=0)return{c:CAPS[c.id]||60,l:c.l};
  return{c:CAPS.etc||60,l:'기타'}}
 const loadOf=o=>o.items.reduce((s,it)=>s+it.q/(capOf(it.p).c||60),0);
