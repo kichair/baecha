@@ -218,6 +218,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 
 <div class="tabs">
  <button id="tb0" onclick="go(0)"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
+ <button id="tb3" onclick="go(3)"><em>🛣️</em>동선별</button>
  <button id="tb1" onclick="go(1)"><em>🚚</em>내 배송</button>
  <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
 </div>
@@ -639,13 +640,13 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2].forEach(i=>document.getElementById('tb'+i).className=(TAB===i?'on':''));
+ [0,1,2,3].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
  const un=today.filter(o=>ASSIGN[o.i]==='_').length;
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):tabStat(today);
  bind();save();if(TAB===2)initMap()}
 function setupHTML(){const a=Object.keys(ADDR).length;
  return '<div class="setup"><div class="em">🚚</div><h2>시작해볼까요</h2>'
@@ -773,6 +774,27 @@ function tabMine(today){
  if(done.length)h+='<div class="hd2">✅ 완료 <span class="n">'+done.length+'</span></div>'+done.map(o=>card(o,1)).join('');
  if(!tot)h+='<div class="setup"><div class="em">🌤️</div><h2>오늘 배차가 없습니다</h2>'
   +'<p>배차 탭에서 동선에 기사님을 지정하면<br>여기에 나타납니다.</p></div>';
+ return h}
+let RSEL='';
+function tabRoute(today){
+ const by={};ROUTES.forEach(r=>by[r.id]=[]);
+ today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
+ Object.values(by).forEach(l=>l.sort(bySeq));
+ const r=ROUTES.filter(x=>x.id===RSEL)[0];
+ if(!r){
+  const rows=ROUTES.map(function(x){const list=by[x.id];
+   const dn=list.filter(o=>ST[o.i]==='done').length;
+   const pc=list.length?dn/list.length*100:0;
+   const dv=(CARD[SEL]||{})[x.id]||'';
+   return '<div class="dcard" onclick="RSEL=\''+x.id+'\';render()">'
+    +'<b><span style="display:inline-flex;width:20px;height:20px;border-radius:6px;background:'+x.cl+';color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px">'+x.nm.slice(0,2)+'</span>'+x.nm+'</b>'
+    +'<span>'+(dv||x.zone)+'</span>'
+    +'<div class="mini"><i style="width:'+pc+'%"></i></div>'
+    +'<div class="st">'+(list.length?dn+'/'+list.length+'곳 완료 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'오늘 배차 없음')+'</div></div>'}).join('');
+  return '<div class="hd2">🛣️ 동선을 선택하세요</div><div class="grid">'+rows+'</div>'}
+ const list=by[r.id];
+ let h='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn s" onclick="RSEL=\'\';render()">동선 바꾸기</button></div>';
+ h+='<div id="secs">'+secHTML(r.id,r.nm,r.cl,r.zone,list,true)+'</div>';
  return h}
 function tabStat(today){
  const rows=DRVS.map(function(d){const n=d[0];
