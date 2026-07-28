@@ -29,6 +29,9 @@ button,select,input{font-family:inherit}
 .hero .info{flex:1;min-width:0}
 .hero .info h2{font-size:17px;font-weight:800;margin-bottom:3px;letter-spacing:-.4px}
 .hero .info p{font-size:12px;color:#6b7c90;line-height:1.55}
+.namesline{background:#fff;border:1px solid #ebeef1;border-radius:12px;padding:9px 12px;margin-bottom:8px;font-size:12px;font-weight:700;color:#3c4a5a;line-height:1.9}
+.namesline b{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#03C75A;color:#fff;font-size:9.5px;margin-right:3px;vertical-align:-2px}
+.namesline .sep{color:#c3ceda;margin:0 6px}
 .cheer{margin-top:7px;font-size:12.5px;font-weight:800;color:#03C75A;background:#e6f8ef;padding:5px 10px;border-radius:9px;display:inline-block}
 .sw{position:relative;border-radius:13px;overflow:hidden;margin-bottom:9px;touch-action:pan-y}
 .sw .bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(90deg,#e0a03a 50%,#03C75A 50%)}
@@ -132,6 +135,7 @@ button,select,input{font-family:inherit}
 .wx .wr{font-size:11px;font-weight:800;color:#5f7086}
 .wx.r2 .wr{color:#c98a1a}.wx.r3 .wr{color:#e04b45}
 @media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
+.gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:10px}
 .kpi{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 5px rgba(22,50,79,.06)}
 .kpi span{font-size:10.5px;color:#8b9aab;font-weight:800;display:block}
@@ -310,8 +314,8 @@ const ROUTES=[
   k:['부천','구로','독산','영등포','대림동','대림','가산','신월','오류','금천','강서','양천','가양','화곡']},
  {id:'r3',nm:'3. 김포·일산·파주',cl:'#2F7FE8',days:[1,2,3,4,5],zone:'김포 일산 맥 오류동 파주',
   k:['김포','일산','고양','파주','덕양','덕은']},
- {id:'r4',nm:'4. 영등포·사당·강남',cl:'#c4635a',days:[1,2,3,4,5],zone:'영등포 당산동 사당 강남 과천',
-  k:['사당','강남','과천','당산','서초','방배','논현','역삼','대치','양재','도곡','석촌','청담','신사','동작','문정','관악','봉천','신림','금천직','반포']},
+ {id:'r4',nm:'4. 영등포·사당·강남',cl:'#c4635a',days:[1,2,3,4,5],zone:'당산쪽영등포 사당 강남 과천',
+  k:['사당','강남','과천','당산','영등포','문래','양평동','서초','방배','논현','역삼','대치','양재','도곡','석촌','청담','신사','동작','문정','관악','봉천','신림','반포']},
  {id:'r5',nm:'5. 마포·을지·중곡',cl:'#8e5aa8',days:[1,2,3,4,5],zone:'마포 을지 왕십리 중곡 / 의정부 포천 양주',
   k:['마포','을지','왕십리','중곡','의정부','포천','양주','광진','능동','묵동','자양','황학','용두','동대문','성동','중랑','종로','중구','용산','서대문','세검정','성북','노원','도봉','강북']},
  {id:'r6',nm:'6. 시흥·시화·화성',cl:'#03C75A',days:[1,2,3,4,5],zone:'시흥 시화 안산 봉담 화성',
@@ -440,6 +444,7 @@ async function syncInit(){
   SB.channel('board').on('postgres_changes',{event:'*',schema:'public',table:'board'},p=>{
    if(p.new&&p.new.data)applySnap(p.new.data)}).subscribe();
   SB_ON=true;setDot('#03C75A');
+  if(localStorage.getItem('kiu_gps')==='1'&&ME&&GPSW==null)try{gpsToggle()}catch(e){}
  }catch(e){setDot('#e04b45')}}
 function openShare(){
  const u=prompt('Supabase 프로젝트 URL',SB_URL);if(u===null)return;
@@ -581,7 +586,7 @@ function card(o,big){
  const D=destOf(o);
  const tel=TEL[o.n]||'';
  const adr=D?'<div class="addr '+(D.src==='적요'?'dv':'')+'"><span>'+(D.src==='적요'?'🚩':'📍')+'</span>'
-   +'<div class="tx">'+D.t+'</div><div class="go">'
+   +'<div class="tx" onclick="event.stopPropagation();setAddr('+o.i+')" title="눌러서 주소 수정" style="cursor:pointer">'+D.t+' ✏️</div><div class="go">'
    +'<a href="https://map.kakao.com/?q='+encodeURIComponent(D.t)+'" target="_blank" onclick="event.stopPropagation()">🗺️</a>'
    +(tel?'<a href="tel:'+tel.replace(/[^0-9]/g,'')+'" onclick="event.stopPropagation()">📞</a>':'')
    +'</div></div>'
@@ -637,7 +642,7 @@ function render(){
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
  app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):tabStat(today);
- bind();save()}
+ bind();save();if(TAB===2)initMap()}
 function setupHTML(){const a=Object.keys(ADDR).length;
  return '<div class="setup"><div class="em">🚚</div><h2>시작해볼까요</h2>'
  +'<p>거래처정보와 명세서를 넣으면<br>동선별로 자동 배차합니다.</p>'
@@ -737,7 +742,8 @@ function tabMine(today){
  let h='<div class="hero">'+ring(pc,dn+'<span style="font-size:13px;color:#8b9aab">/'+tot+'</span>','완료')
  +'<div class="info"><h2>'+ME+'</h2><p>'+zones+'<br>'+SEL+' · 남은 물량 '+L.toFixed(1)+'대분</p>'
  +'<div class="cheer">'+cheer+'</div></div></div>'
- +'<div style="text-align:right;margin-bottom:8px"><button class="btn s" onclick="ME=\'\';save();render()">기사 바꾸기</button></div>';
+ +(tot?'<div class="namesline">'+mine.slice().sort(bySeq).map(function(o,i){return '<b>'+(i+1)+'</b>'+o.n}).join('<span class="sep">·</span>')+'</div>':'')
+ +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">'+'<button class="btn'+(GPSW!=null?'':' s')+'" onclick="gpsToggle()">'+(GPSW!=null?'📍 위치 공유중':'📍 위치 공유')+'</button>'+'<button class="btn s" onclick="ME=\'\';save();render()">기사 바꾸기</button></div>';
  if(tot&&left===0)h+='<div class="allok pop"><div class="em">🎉</div><b>수고하셨습니다!</b><span>'+tot+'곳 배송 완료</span></div>';
  const todo=mine.filter(o=>ST[o.i]!=='done'&&ST[o.i]!=='hold').sort(bySeq);
  const hold=mine.filter(o=>ST[o.i]==='hold');
@@ -763,6 +769,7 @@ function tabStat(today){
  +'<p>기사 '+rows.length+'명 · '+car.reduce((a,o)=>a+o.qty,0)+'개 · '
  +car.reduce((a,o)=>a+o.load,0).toFixed(1)+'대분</p>'
  +'<div class="cheer">'+(car.length&&dn===car.length?'🎉 오늘 배송 전부 완료!':(car.length-dn)+'곳 진행 중')+'</div></div></div>';
+ h+='<div class="hd2">🗺️ 기사 실시간 위치</div><div id="gmap" class="gmap"></div>';
  h+='<div class="hd2">🏁 기사별 진행</div><div class="rank">';
  h+=rows.length?rows.map(function(r,i){return '<div class="rk"><div class="no '+(i<3?'g'+(i+1):'')+'">'+(i+1)+'</div>'
   +'<div class="nm">'+r.n+'<span>'+r.z+'</span></div>'
