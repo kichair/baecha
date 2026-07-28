@@ -746,6 +746,7 @@ function tabMine(today){
  const dn=mine.filter(o=>ST[o.i]==='done').length,tot=mine.length;
  const pc=tot?dn/tot*100:0,left=tot-dn;
  const L=mine.filter(o=>ST[o.i]!=='done').reduce((a,o)=>a+o.load,0);
+ const rs=mine.map(o=>ASSIGN[o.i]);
  const zones=ROUTES.filter(r=>rs.indexOf(r.id)>=0).map(r=>r.nm).join(' · ')||'배차 없음';
  const cheer=tot===0?'오늘 배차가 없습니다':left===0?'🎉 오늘 배송 전부 끝났습니다!':
   left<=2?'🔥 '+left+'곳만 더!':left<=5?'💪 '+left+'곳 남았습니다':left+'곳 남았습니다';
@@ -767,6 +768,7 @@ function tabMine(today){
 function tabStat(today){
  const rows=DRVS.map(function(d){const n=d[0];
   const list=today.filter(o=>effDrv(o)===n);
+  const rs=list.map(o=>ASSIGN[o.i]);
   return {n:n,tot:list.length,dn:list.filter(o=>ST[o.i]==='done').length,
    q:list.reduce((a,o)=>a+o.qty,0),
    z:ROUTES.filter(r=>rs.indexOf(r.id)>=0).map(r=>r.nm).join(', ')}
