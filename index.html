@@ -52,6 +52,7 @@ button,select,input{font-family:inherit}
 .cmrow .cchk.ok{background:#03C75A;color:#fff}
 .cmsub{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:6px}
 .cmsub .dest{font-size:11px;color:#8b9aab;font-weight:600}
+.subcar{background:#0f5f37;color:#fff;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:9px;margin:4px 0 2px}
 .colbar{text-align:center;font-size:11px;font-weight:800;color:#8b9aab;padding:5px;cursor:pointer;background:#f5f8fb;border-radius:8px;margin-bottom:6px}
 .c .hd{display:flex;gap:8px;align-items:flex-start}
 .c .nm{font-size:15px;font-weight:800;line-height:1.3;flex:1;letter-spacing:-.3px}
@@ -364,7 +365,7 @@ let ME=localStorage.getItem(KEY+'_me')||'';
 let OPEN=LS('_op',{});
 let ORDERS=[],DATES=[];
 let EXP={};
-function toggleExp(k){EXP[k]=!EXP[k];render()}
+function toggleExp(k){EXP[k]=EXP[k]===false?true:false;render()}
 const bySeq=(a,b)=>{const x=SEQ[a.key],y=SEQ[b.key];
  if(x!=null||y!=null)return (x??1e9)-(y??1e9);
  return a.sk<b.sk?-1:a.sk>b.sk?1:0};
@@ -616,7 +617,7 @@ function card(o,big){
  return '<div class="sw" data-i="'+o.i+'"><div class="bg"><span>⏸ 보류</span><span>완료 ✅</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
   +'<div class="hd"><div class="nm">'+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?'택배분':'차량분')+')</span>':'')+'</div>'
-  +'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
+ +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="setDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRVOV[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select></div>'+adr
   +(o.memo?'<div class="memo">▸ '+o.memo+'</div>':'')
   +'<ul class="items">'+items+'</ul>'+acts+'</div></div>'}
@@ -676,8 +677,17 @@ function secHTML(id,nm,cl,zone,list,dvs){
  +'<button class="btn s" onclick="openPick(\''+id+'\')" style="flex:0 0 40px;padding:8px 0">＋</button></div>'
  +'<div class="load '+(p>100?'o':p>85?'w':'')+'"><i style="width:'+Math.min(p,100)+'%"></i></div>'
  +'<div style="display:flex;justify-content:space-between;padding:0 12px 8px;font-size:11.5px;font-weight:700"><span style="color:#5f7086">의자 '+qty+'개'+(list.length?' · ⏱ 약 '+fmtDur(estRoute(id,list)):'')+'</span><span style="color:'+(p>100?'#e04b45':p>85?'#c98a1a':'#03C75A')+'">적재 '+p.toFixed(0)+'%'+(p>100?' ⚠초과':'')+'</span></div>'}
- if(op)h+='<div class="body" data-d="'+id+'">'+(list.length?list.map(o=>EXP[o.key]?('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o)):ccard(o)).join(''):'<div class="empty">비어 있음</div>')+'</div>'
-  +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');
+ if(op){let inner;
+  const mk=o=>EXP[o.key]===false?ccard(o):('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o));
+  if(!list.length)inner='<div class="empty">비어 있음</div>';
+  else if(dvs&&n>1){
+   const total=list.reduce((a,o)=>a+o.load,0),target=total/n;
+   let g=0,acc=0;const gls=Array.from({length:n},()=>[]);
+   list.forEach(o=>{if(g<n-1&&acc>=target*(g+1))g++;acc+=o.load;gls[g].push(o)});
+   inner=gls.map((gl,gi)=>gl.length?('<div class="subcar">🚚 '+(gi+1)+'호차 — 의자 '+gl.reduce((a,o)=>a+o.qty,0)+'개 · 적재 '+Math.round(gl.reduce((a,o)=>a+o.load,0)*100)+'% · ⏱ 약 '+fmtDur(estRoute(id,gl))+'</div>'+gl.map(mk).join('')):'').join('');
+  }else inner=list.map(mk).join('');
+  h+='<div class="body" data-d="'+id+'">'+inner+'</div>'
+  +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
  return h+'</div>'}
 function tabBoard(today){
  const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
