@@ -716,6 +716,36 @@ function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
 let FQ=null;
 function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;render();window.scrollTo(0,0)}
 function hasDrv(o,n){return effDrv(o)===n||DRV2[o.key]===n}
+/* 기사 한 명의 배송 목록을 회차(차량 단위)로 분할 */
+function driverTrips(list){
+ const grp={};
+ list.forEach(o=>{const rid=ASSIGN[o.i];(grp[rid]=grp[rid]||[]).push(o)});
+ const rows=[];
+ Object.keys(grp).forEach(rid=>{
+  const g=grp[rid].slice().sort(bySeq);
+  const cf=capFactor(rid)||1;
+  const tot=g.reduce((a,o)=>a+o.load,0);
+  if(tot<=1.05*cf){rows.push({rid:rid,list:g,L:tot,cont:[]});return}
+  let cur={list:[],L:0,cont:[]};
+  const flush=()=>{if(cur.list.length||cur.cont.length)rows.push({rid:rid,list:cur.list,L:cur.L,cont:cur.cont});cur={list:[],L:0,cont:[]}};
+  g.forEach(o=>{
+   if(cur.L+o.load<=1.05*cf){cur.list.push(o);cur.L+=o.load;return}
+   let rem=o.load,first=true,guard=0;
+   while(rem>0.001&&guard++<20){
+    const space=cf-cur.L;
+    if(space<0.1){flush();continue}
+    const take=Math.min(space,rem);
+    if(first){cur.list.push(o);first=false}else cur.cont.push(o.n);
+    cur.L+=take;rem-=take;
+    if(rem>0.001)flush();
+   }
+  });
+  flush();
+ });
+ const ord=ROUTES.map(x=>x.id);
+ rows.forEach(r=>r.ri=ord.indexOf(r.rid));
+ rows.sort((a,b)=>a.ri-b.ri);
+ return rows}
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
  const qty=list.reduce((a,o)=>a+o.qty,0);
@@ -777,20 +807,27 @@ function tabBoard(today){
   g.list.sort(bySeq);
   const cf=capFactor(g.rid)||1;
   const tot=g.list.reduce((a,o)=>a+o.load,0);
-  if(tot/cf<=1.05){rows.push({d:g.d,rid:g.rid,list:g.list});return}
-  /* 한 차(적재 105%)를 넘지 않게 동선 순서대로 끊어 회차 생성 */
-  const parts=[];let cur=[],acc=0;
-  g.list.forEach(o=>{if(cur.length&&acc+o.load>1.05*cf){parts.push(cur);cur=[];acc=0}cur.push(o);acc+=o.load});
-  if(cur.length)parts.push(cur);
-  parts.forEach(pp=>{
-   if(pp.length===1&&pp[0].load>1.05*cf){
-    const k=Math.ceil(pp[0].load/(1.05*cf));
-    for(let j=0;j<k;j++)rows.push({d:g.d,rid:g.rid,list:pp,frac:k});
-   }else if(pp.length)rows.push({d:g.d,rid:g.rid,list:pp})});
+  const totq=g.list.reduce((a,o)=>a+o.qty,0);
+  if(tot<=1.05*cf){rows.push({d:g.d,rid:g.rid,list:g.list,L:tot,q:totq});return}
+  /* 한 차를 가득(100%) 채워 순서대로 끊고, 큰 거래처는 차 경계에서 이어 싣기 */
+  let cur={list:[],L:0,q:0};
+  const flush=()=>{if(cur.list.length)rows.push({d:g.d,rid:g.rid,list:cur.list,L:cur.L,q:cur.q});cur={list:[],L:0,q:0}};
+  g.list.forEach(o=>{
+   if(cur.L+o.load<=1.05*cf){cur.list.push(o);cur.L+=o.load;cur.q+=o.qty;return}
+   let rem=o.load;
+   let guard=0;
+   while(rem>0.001&&guard++<20){
+    const space=cf-cur.L;
+    if(space<0.1){flush();continue}
+    const take=Math.min(space,rem);
+    cur.list.push(o);cur.L+=take;cur.q+=Math.round(o.qty*take/o.load);
+    rem-=take;
+    if(rem>0.001)flush();
+   }
+  });
+  flush();
  });
  rows.forEach(a=>{
-  const ff=a.frac||1;
-  a.q=Math.round(a.list.reduce((x,o)=>x+o.qty,0)/ff);a.L=a.list.reduce((x,o)=>x+o.load,0)/ff;
   a.tot=a.list.length;a.dn=a.list.filter(o=>ST[o.i]==='done').length;
   a.cap=capFactor(a.rid)||1;
   a.rnm=(RID[a.rid]||{nm:a.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
@@ -847,7 +884,17 @@ function tabMine(today){
  const todo=mine.filter(o=>ST[o.i]!=='done'&&ST[o.i]!=='hold').sort(bySeq);
  const hold=mine.filter(o=>ST[o.i]==='hold');
  const done=mine.filter(o=>ST[o.i]==='done');
- if(todo.length)h+='<div class="hd2">🚚 배송할 곳 <span class="n">'+todo.length+'</span></div>'+todo.map(o=>card(o,1)).join('');
+ if(todo.length){
+  const tr=driverTrips(todo);
+  if(tr.length>1){
+   tr.forEach(function(r,k){
+    const rn=(RID[r.rid]||{nm:r.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
+    h+='<div class="hd2">🚚 '+ME+(k+1)+'차 — '+rn+' <span class="n">'+(r.list.length+r.cont.length)+'</span> <span style="font-weight:700;color:#5f7086;font-size:12px">적재 '+Math.round(r.L/(capFactor(r.rid)||1)*100)+'% · ⏱ '+fmtDur(estRoute(r.rid,r.list))+'</span></div>';
+    if(r.cont.length)h+='<div class="lifo">⤷ 앞 차에서 이어싣기: <b>'+r.cont.join(', ')+'</b></div>';
+    h+=r.list.map(o=>card(o,1)).join('');
+   });
+  }else h+='<div class="hd2">🚚 배송할 곳 <span class="n">'+todo.length+'</span></div>'+todo.map(o=>card(o,1)).join('');
+ }
  if(hold.length)h+='<div class="hd2">⏸ 보류 <span class="n">'+hold.length+'</span></div>'+hold.map(o=>card(o,1)).join('');
  if(done.length)h+='<div class="hd2">✅ 완료 <span class="n">'+done.length+'</span></div>'+done.map(o=>card(o,1)).join('');
  if(!tot)h+='<div class="setup"><div class="em">🌤️</div><h2>오늘 배차가 없습니다</h2>'
