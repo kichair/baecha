@@ -749,7 +749,7 @@ function driverTrips(list){
     const space=cf-cur.L;
     if(space<0.1){flush();continue}
     const take=Math.min(space,rem);
-    if(first){cur.list.push(o);first=false}else cur.cont.push(o.n);
+    cur.list.push(o);if(!first)cur.cont.push(o.n);first=false;
     cur.L+=take;rem-=take;
     if(rem>0.001)flush();
    }
