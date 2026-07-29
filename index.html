@@ -538,6 +538,18 @@ function why(o){
  if(hitRoute(o.n+' '+(o.memo||'')))return '상호';
  return ''}
 const dkey=(n,ex,d)=>n+'§'+ex+'§'+d;
+/* 기사-동선 매일 순환 배정 (배진성=3.5톤 고정 · 김석호/직납 제외) */
+function autoRotate(dateStr){
+ const pool=DRVS.map(d=>d[0]).filter(n=>['배진성','김석호','직납'].indexOf(n)<0);
+ const o={t35:'배진성'};
+ if(!pool.length||!dateStr)return o;
+ const day=Math.floor(new Date(dateStr+'T00:00:00').getTime()/86400000);
+ const off=((day%pool.length)+pool.length)%pool.length;
+ const dow=new Date(dateStr+'T00:00:00').getDay();
+ const rts=['r1','r2','r3','r4','r5','r6','r7'];
+ if(dow===3)rts.push('rw');if(dow===2||dow===4)rts.push('rc');
+ rts.forEach((r,k)=>{o[r]=pool[(k+off)%pool.length]});
+ return o}
 function build(fresh){
  ORDERS=[];const g={};
  RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';const k=dkey(l.n,ex,l.d);
@@ -553,7 +565,7 @@ function build(fresh){
   o.sk=o.urg+'|'+((ADDR[o.n]||'힣힣').slice(0,14))});
  DATES=[];ORDERS.forEach(o=>{if(o.d&&DATES.indexOf(o.d)<0)DATES.push(o.d)});DATES.sort();
  if(!SEL||DATES.indexOf(SEL)<0)SEL=DATES[DATES.length-1]||'';
- if(!CARD[SEL])CARD[SEL]=Object.assign({},DAY_DRV[SEL]||{});
+ if(!CARD[SEL])CARD[SEL]=Object.assign({},DAY_DRV[SEL]||autoRotate(SEL));
  CAR=CARD[SEL];
  const cc={};ORDERS.forEach(o=>{if(o.d===SEL)cc[o.n]=(cc[o.n]||0)+1});
  ORDERS.forEach(o=>o.split=cc[o.n]>1);
