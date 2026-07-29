@@ -571,8 +571,8 @@ function build(fresh){
  ORDERS.forEach(o=>o.split=cc[o.n]>1);
  if(fresh||!ASSIGN){ASSIGN={};ST={};ORDERS.forEach(o=>ASSIGN[o.i]=guess(o))}
  else ORDERS.forEach(o=>{if(ASSIGN[o.i]===undefined)ASSIGN[o.i]=guess(o)});
- /* 삼정퍼니처 물량은 장세훈(삼정 소속) 우선 배차 */
- ORDERS.forEach(o=>{if(o.d>'2026-07-29'&&DRVOV[o.key]==null&&o.items.some(it=>it.s==='[삼정가구]'))DRVOV[o.key]='장세훈'})}
+ /* 삼정퍼니처 전용 물량(전 품목이 삼정)은 장세훈(삼정 소속) 우선 배차 · 의자+삼정 혼합은 동선 기사 */
+ ORDERS.forEach(o=>{if(o.d>'2026-07-29'&&!o.ex&&DRVOV[o.key]==null&&o.items.length&&o.items.every(it=>it.s==='[삼정가구]'))DRVOV[o.key]='장세훈'})}
 function autoAssign(){if(!confirm('거래처정보·주소·적요·학습 이력으로 다시 배정합니다.'))return;
  ORDERS.forEach(o=>ASSIGN[o.i]=guess(o));save();render();toast('자동배정 완료 ✨')}
 
@@ -662,7 +662,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw" data-i="'+o.i+'"><div class="bg"><span>⏸ 보류</span><span>완료 ✅</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?'택배분':'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="setDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRVOV[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select></div>'+adr
   +(o.memo?'<div class="memo">▸ '+o.memo+'</div>':'')
@@ -805,14 +805,14 @@ function tabMine(today){
  const known=DRVS.filter(d=>d[0]===ME).length>0;
  if(!ME||!known){
   const rows=DRVS.map(function(d){const n=d[0],p=d[1];
-   const list=today.filter(o=>hasDrv(o,n));
+   const list=today.filter(o=>hasDrv(o,n)&&ASSIGN[o.i]!=='x');
    const dn=list.filter(o=>ST[o.i]==='done').length;
    const pc=list.length?dn/list.length*100:0;
    return '<div class="dcard" onclick="ME=\''+n+'\';save();render()"><b>'+n+'</b><span>'+(p||'&nbsp;')+'</span>'
     +'<div class="mini"><i style="width:'+pc+'%"></i></div>'
     +'<div class="st">'+(list.length?dn+'/'+list.length+'곳 완료':'오늘 배차 없음')+'</div></div>'}).join('');
   return '<div class="hd2">👤 기사님을 선택하세요</div><div class="grid">'+rows+'</div>'}
- const mine=today.filter(o=>hasDrv(o,ME));
+ const mine=today.filter(o=>hasDrv(o,ME)&&ASSIGN[o.i]!=='x');
  const dn=mine.filter(o=>ST[o.i]==='done').length,tot=mine.length;
  const pc=tot?dn/tot*100:0,left=tot-dn;
  const L=mine.filter(o=>ST[o.i]!=='done').reduce((a,o)=>a+o.load,0);
@@ -859,7 +859,7 @@ function tabRoute(today){
  return h}
 function tabStat(today){
  const rows=DRVS.map(function(d){const n=d[0];
-  const list=today.filter(o=>hasDrv(o,n));
+  const list=today.filter(o=>hasDrv(o,n)&&ASSIGN[o.i]!=='x');
   const rs=list.map(o=>ASSIGN[o.i]);
   return {n:n,tot:list.length,dn:list.filter(o=>ST[o.i]==='done').length,
    q:list.reduce((a,o)=>a+o.qty,0),
