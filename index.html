@@ -657,7 +657,7 @@ function card(o,big){
    :'<button class="done" onclick="event.stopPropagation();act('+o.i+',\'done\',\'✅ 완료\')">✅ 완료</button>')
    +'<button onclick="event.stopPropagation();openMove('+o.i+')">⇄ 동선</button>'
    +'<button onclick="event.stopPropagation();setDate('+o.i+')">📅 '+o.d.slice(5)+'</button>'
-   +(o.cu?'<button onclick="event.stopPropagation();if(confirm(\'삭제할까요?\'))act('+o.i+',\'del\',\'삭제\')">🗑</button>':'')+'</div>'}
+   +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw" data-i="'+o.i+'"><div class="bg"><span>⏸ 보류</span><span>완료 ✅</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
   +'<div class="hd"><div class="nm">'+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?'택배분':'차량분')+')</span>':'')+'</div>'
