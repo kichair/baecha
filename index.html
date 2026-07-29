@@ -570,7 +570,9 @@ function build(fresh){
  const cc={};ORDERS.forEach(o=>{if(o.d===SEL)cc[o.n]=(cc[o.n]||0)+1});
  ORDERS.forEach(o=>o.split=cc[o.n]>1);
  if(fresh||!ASSIGN){ASSIGN={};ST={};ORDERS.forEach(o=>ASSIGN[o.i]=guess(o))}
- else ORDERS.forEach(o=>{if(ASSIGN[o.i]===undefined)ASSIGN[o.i]=guess(o)})}
+ else ORDERS.forEach(o=>{if(ASSIGN[o.i]===undefined)ASSIGN[o.i]=guess(o)});
+ /* 삼정퍼니처 물량은 장세훈(삼정 소속) 우선 배차 */
+ ORDERS.forEach(o=>{if(o.d>'2026-07-29'&&DRVOV[o.key]==null&&o.items.some(it=>it.s==='[삼정가구]'))DRVOV[o.key]='장세훈'})}
 function autoAssign(){if(!confirm('거래처정보·주소·적요·학습 이력으로 다시 배정합니다.'))return;
  ORDERS.forEach(o=>ASSIGN[o.i]=guess(o));save();render();toast('자동배정 완료 ✨')}
 
