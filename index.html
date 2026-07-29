@@ -881,14 +881,16 @@ function tabMine(today){
  const zones=ROUTES.filter(r=>rs.indexOf(r.id)>=0).map(r=>r.nm).join(' · ')||'배차 없음';
  const cheer=tot===0?'오늘 배차가 없습니다':left===0?'🎉 오늘 배송 전부 끝났습니다!':
   left<=2?'🔥 '+left+'곳만 더!':left<=5?'💪 '+left+'곳 남았습니다':left+'곳 남았습니다';
+ const trAll=tot?driverTrips(mine.slice()):[];
+ const totMin=trAll.reduce((a,r)=>a+estRoute(r.rid,r.list),0);
  let h='<div class="hero">'+ring(pc,dn+'<span style="font-size:13px;color:#8b9aab">/'+tot+'</span>','완료')
- +'<div class="info"><h2>'+ME+'</h2><p>'+zones+'<br>'+SEL+' · 남은 물량 '+L.toFixed(1)+'대분</p>'
+ +'<div class="info"><h2>'+ME+'</h2><p>'+zones+'<br>'+SEL+' · 남은 물량 '+L.toFixed(1)+'대분'+(tot?' · <b style="color:#0f5f37">⏱ 하루 총 약 '+fmtDur(totMin)+'</b>'+(trAll.length>1?' ('+trAll.length+'회전)':''):'')+'</p>'
  +'<div class="cheer">'+cheer+'</div>'
  +'<button class="bigsw" onclick="ME=\'\';save();render()">👥 기사 바꾸기</button></div></div>'
- +(tot?(function(){const tr=driverTrips(mine.slice());
+ +(tot?(function(){const tr=trAll;
    return tr.map(function(r,k){
     const rn=(RID[r.rid]||{nm:''}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
-    return '<div class="namesline">'+(tr.length>1?'<b class="trlb">'+(k+1)+'차 '+rn+'</b>':'')
+    return '<div class="namesline">'+(tr.length>1?'<b class="trlb">'+(k+1)+'차 '+rn+' · '+fmtDur(estRoute(r.rid,r.list))+'</b>':'')
      +r.list.map(function(o,i){return '<b>'+(i+1)+'</b>'+o.n}).join('<span class="sep">·</span>')
      +(r.cont&&r.cont.length?'<span class="sep">·</span>⤷ '+r.cont.join(', ')+' 이어싣기':'')+'</div>'}).join('')})():'')
  +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">'+'<button class="btn'+(GPSW!=null?'':' s')+'" onclick="gpsToggle()">'+(GPSW!=null?'📍 위치 공유중':'📍 위치 공유')+'</button></div>';
