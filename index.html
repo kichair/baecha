@@ -768,14 +768,27 @@ function tabBoard(today){
  +'<div class="kpi '+(by._.length?'al':'')+'"><span>미배정</span><b>'+by._.length+'곳</b></div>'
  +'<div class="kpi '+(nodrv?'al':'')+'"><span>기사 미지정</span><b>'+nodrv+'</b></div>'
  +'<div class="kpi '+(over?'al':'')+'"><span>적재초과</span><b>'+over+'</b></div></div>';
- // 기사별 요약 (기사×동선 회차별 — 한 기사가 하루 2~3동선 가능)
- const drvAgg={};
+ // 기사별 요약 (기사×동선×회차 — 적재 초과 시 같은 동선도 1·2회차로 분할 표시)
+ const grp={};
  car.forEach(o=>{const drv=effDrv(o);if(!drv)return;const rid=ASSIGN[o.i];
-  const k=drv+'§'+rid;
-  const a=drvAgg[k]||(drvAgg[k]={d:drv,rid:rid,q:0,L:0,dn:0,tot:0});
-  a.q+=o.qty;a.L+=o.load;a.tot++;if(ST[o.i]==='done')a.dn++;});
- const rows=Object.values(drvAgg);
- rows.forEach(a=>{a.cap=(CAR[a.rid+'_n']||1)*capFactor(a.rid)||1;
+  const k=drv+'§'+rid;(grp[k]=grp[k]||{d:drv,rid:rid,list:[]}).list.push(o);});
+ const rows=[];
+ Object.values(grp).forEach(g=>{
+  g.list.sort(bySeq);
+  const cf=capFactor(g.rid)||1;
+  const tot=g.list.reduce((a,o)=>a+o.load,0);
+  let n=1;
+  if(CAR[g.rid]===g.d&&(CAR[g.rid+'_n']||1)>1)n=CAR[g.rid+'_n'];
+  else if(tot/cf>1.05)n=Math.ceil(tot/cf-0.05);
+  if(n<=1){rows.push({d:g.d,rid:g.rid,list:g.list});return}
+  const target=tot/n;let gi=0,acc=0;const parts=Array.from({length:n},()=>[]);
+  g.list.forEach(o=>{if(gi<n-1&&acc>=target*(gi+1))gi++;acc+=o.load;parts[gi].push(o)});
+  parts.forEach(pp=>{if(pp.length)rows.push({d:g.d,rid:g.rid,list:pp})});
+ });
+ rows.forEach(a=>{
+  a.q=a.list.reduce((x,o)=>x+o.qty,0);a.L=a.list.reduce((x,o)=>x+o.load,0);
+  a.tot=a.list.length;a.dn=a.list.filter(o=>ST[o.i]==='done').length;
+  a.cap=capFactor(a.rid)||1;
   a.rnm=(RID[a.rid]||{nm:a.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
   a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);});
  const dord=[];rows.forEach(a=>{if(dord.indexOf(a.d)<0)dord.push(a.d)});
