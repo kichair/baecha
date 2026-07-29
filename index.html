@@ -345,7 +345,7 @@ const ROUTES=[
 const RID=Object.fromEntries(ROUTES.map(r=>[r.id,r]));
 const SH2R={};ROUTES.forEach(r=>(r.sh||[]).forEach(s=>SH2R[s]=r.id));
 
-const EXCL=[['택배','택배'],['차량입고','차량입고'],['상차','상차(용차)'],['퀵','퀵'],['화물','화물'],['찾으러','찾으러옴'],['방문수령','찾으러옴']];
+const EXCL=[['택배','택배'],['차량입고','차량입고'],['상차','상차(용차)'],['퀵','퀵'],['화물','화물'],['찾으러','찾으러옴'],['방문수령','찾으러옴'],['용차','용차'],['입고','입고']];
 function exLine(m,n){const s=m||'';for(let i=0;i<EXCL.length;i++){if(s.indexOf(EXCL[i][0])>=0)return EXCL[i][1]}
  if(/부산/.test(n)&&!/직납|매장/.test(s))return '원거리(화물)';return null}
 
