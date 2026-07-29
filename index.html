@@ -782,10 +782,15 @@ function tabBoard(today){
   const parts=[];let cur=[],acc=0;
   g.list.forEach(o=>{if(cur.length&&acc+o.load>1.05*cf){parts.push(cur);cur=[];acc=0}cur.push(o);acc+=o.load});
   if(cur.length)parts.push(cur);
-  parts.forEach(pp=>{if(pp.length)rows.push({d:g.d,rid:g.rid,list:pp})});
+  parts.forEach(pp=>{
+   if(pp.length===1&&pp[0].load>1.05*cf){
+    const k=Math.ceil(pp[0].load/(1.05*cf));
+    for(let j=0;j<k;j++)rows.push({d:g.d,rid:g.rid,list:pp,frac:k});
+   }else if(pp.length)rows.push({d:g.d,rid:g.rid,list:pp})});
  });
  rows.forEach(a=>{
-  a.q=a.list.reduce((x,o)=>x+o.qty,0);a.L=a.list.reduce((x,o)=>x+o.load,0);
+  const ff=a.frac||1;
+  a.q=Math.round(a.list.reduce((x,o)=>x+o.qty,0)/ff);a.L=a.list.reduce((x,o)=>x+o.load,0)/ff;
   a.tot=a.list.length;a.dn=a.list.filter(o=>ST[o.i]==='done').length;
   a.cap=capFactor(a.rid)||1;
   a.rnm=(RID[a.rid]||{nm:a.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
