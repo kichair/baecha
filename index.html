@@ -137,6 +137,8 @@ button,select,input{font-family:inherit}
 .wx.r2 .wr{color:#c98a1a}.wx.r3 .wr{color:#e04b45}
 @media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
 .gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
+.bigsw{margin-top:10px;padding:12px 20px;border:2px solid #0f5f37;background:#fff;border-radius:12px;font-weight:800;font-size:15px;color:#0f5f37;cursor:pointer}
+.bigsw:active{background:#eaf7ef}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:10px}
 .kpi{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 5px rgba(22,50,79,.06)}
 .kpi span{font-size:10.5px;color:#8b9aab;font-weight:800;display:block}
@@ -523,7 +525,7 @@ function guess(o){
  return hitRoute(ADDR[o.n]||'')||hitRoute(o.n+' '+(o.memo||''))||'_'}
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
- if(LEARN[o.n])return '기억';
+ if(LEARN[o.n])return '매장';
  if(LEARN_RT[o.n])return '실적';
  if(GRP[o.n])return '거래처';
  if(hitRoute(ADDR[o.n]||''))return '주소';
@@ -784,9 +786,10 @@ function tabMine(today){
   left<=2?'🔥 '+left+'곳만 더!':left<=5?'💪 '+left+'곳 남았습니다':left+'곳 남았습니다';
  let h='<div class="hero">'+ring(pc,dn+'<span style="font-size:13px;color:#8b9aab">/'+tot+'</span>','완료')
  +'<div class="info"><h2>'+ME+'</h2><p>'+zones+'<br>'+SEL+' · 남은 물량 '+L.toFixed(1)+'대분</p>'
- +'<div class="cheer">'+cheer+'</div></div></div>'
+ +'<div class="cheer">'+cheer+'</div>'
+ +'<button class="bigsw" onclick="ME=\'\';save();render()">👥 기사 바꾸기</button></div></div>'
  +(tot?'<div class="namesline">'+mine.slice().sort(bySeq).map(function(o,i){return '<b>'+(i+1)+'</b>'+o.n}).join('<span class="sep">·</span>')+'</div>':'')
- +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">'+'<button class="btn'+(GPSW!=null?'':' s')+'" onclick="gpsToggle()">'+(GPSW!=null?'📍 위치 공유중':'📍 위치 공유')+'</button>'+'<button class="btn s" onclick="ME=\'\';save();render()">기사 바꾸기</button></div>';
+ +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">'+'<button class="btn'+(GPSW!=null?'':' s')+'" onclick="gpsToggle()">'+(GPSW!=null?'📍 위치 공유중':'📍 위치 공유')+'</button></div>';
  if(tot&&left===0)h+='<div class="allok pop"><div class="em">🎉</div><b>수고하셨습니다!</b><span>'+tot+'곳 배송 완료</span></div>';
  const todo=mine.filter(o=>ST[o.i]!=='done'&&ST[o.i]!=='hold').sort(bySeq);
  const hold=mine.filter(o=>ST[o.i]==='hold');
