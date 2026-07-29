@@ -44,8 +44,8 @@ button,select,input{font-family:inherit}
 .cmrow{display:flex;align-items:center;gap:8px;cursor:pointer}
 .cmrow .nm{flex:1;font-size:14px;font-weight:800;letter-spacing:-.3px}
 .cmrow .nm small{font-weight:600;color:#9aa8b8;font-size:11px}
-.mvv{display:flex;flex-direction:column;gap:1px;flex:none}
-.mvv b{width:20px;height:15px;border-radius:4px;background:#f2f4f6;color:#6b7684;font-size:9px;display:grid;place-items:center;cursor:pointer;line-height:1}
+.mvv{display:flex;flex-direction:column;gap:4px;flex:none}
+.mvv b{width:36px;height:27px;border-radius:7px;background:#eef2f7;color:#4d5c6e;font-size:14px;display:grid;place-items:center;cursor:pointer;line-height:1}
 .mvv b:active{background:#03C75A;color:#fff}
 .cmrow .pct{font-size:12px;font-weight:800;color:#2F7FE8;font-variant-numeric:tabular-nums}
 .cmrow .cchk{width:22px;height:22px;border-radius:6px;background:#eef2f7;color:#8b9aab;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
@@ -138,7 +138,7 @@ button,select,input{font-family:inherit}
 @media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
 .gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
 .dlist{display:flex;flex-direction:column;gap:8px}
-.drow{width:auto;cursor:pointer}
+.dvrow{width:auto;cursor:pointer}
 .drowtop{display:flex;gap:10px;align-items:baseline}
 .drowtop b{font-size:15.5px}
 .drowtop span{color:#8b9aab;font-size:12px}
@@ -880,12 +880,14 @@ function tabMine(today){
    const pc=list.length?dn/list.length*100:0;
    const tr=list.length?driverTrips(list):[];
    const totMin=tr.reduce(function(a,r){return a+estRoute(r.rid,r.list)},0);
-   const tinfo=list.length?('⏱ 총 '+fmtDur(totMin)+(tr.length>1?' <span class="tsub">'+tr.map(function(r,k){return (k+1)+'차 '+fmtDur(estRoute(r.rid,r.list))}).join(' · ')+'</span>':'')):'오늘 배차 없음';
-   return '<div class="dcard drow" onclick="ME=\''+n+'\';save();render()">'
-    +'<div class="drowtop"><b>'+n+'</b><span>'+(p||'&nbsp;')+'</span>'
-    +'<span class="st" style="margin-left:auto">'+(list.length?dn+'/'+list.length+'곳 완료':'')+'</span></div>'
-    +'<div class="mini"><i style="width:'+pc+'%"></i></div>'
-    +'<div class="ttime">'+tinfo+'</div></div>'}).join('');
+   const tinfo=list.length?('⏱ 총 '+fmtDur(totMin)+(tr.length>1?' &nbsp;<span style="display:inline;font-weight:700;color:#5f7086;font-size:12.5px">'+tr.map(function(r,k){return (k+1)+'차 '+fmtDur(estRoute(r.rid,r.list))}).join(' · ')+'</span>':'')):'오늘 배차 없음';
+   return '<div class="dcard dvrow" onclick="ME=\''+n+'\';save();render()">'
+    +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
+    +'<b style="display:inline;font-size:16px">'+n+'</b>'
+    +'<span style="display:inline;margin-top:0;font-size:12px;color:#8b9aab">'+(p||'')+'</span>'
+    +'<span style="display:inline;margin-left:auto;margin-top:0;font-size:12.5px;font-weight:800;color:#5f7086">'+(list.length?dn+'/'+list.length+'곳 완료':'')+'</span></div>'
+    +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
+    +'<div style="margin-top:7px;font-size:14px;font-weight:800;color:#0f5f37">'+tinfo+'</div></div>'}).join('');
   return '<div class="hd2">👤 기사님을 선택하세요</div><div class="dlist">'+rows+'</div>'}
  const mine=today.filter(o=>hasDrv(o,ME)&&ASSIGN[o.i]!=='x');
  const dn=mine.filter(o=>ST[o.i]==='done').length,tot=mine.length;
