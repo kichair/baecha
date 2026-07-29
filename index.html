@@ -845,7 +845,7 @@ function tabBoard(today){
   h+=rows.map((a,ri2)=>{const p=a.cap?a.L/a.cap*100:0;
    dseen[a.d]=(dseen[a.d]||0)+1;
    const lbl=dcnt[a.d]>1?a.d+dseen[a.d]:a.d;
-   const det=TROPEN[ri2]?'<div class="trdet">'+a.list.map((o,j)=>'<span><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i></span>').join('')+'</div>':'';
+   const det=TROPEN[ri2]?'<div class="trdet">'+a.list.map((o,j)=>'<span onclick="event.stopPropagation();srchGo('+o.i+')" title="품목·주소 보기" style="cursor:pointer"><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i></span>').join('')+'</div>':'';
    return '<div class="rk" onclick="trToggle('+ri2+')" style="cursor:pointer;flex-wrap:wrap">'
    +'<div class="no" style="background:#0f5f37;color:#fff">'+a.d.slice(0,1)+(dcnt[a.d]>1?'<sub style="font-size:9px">'+dseen[a.d]+'</sub>':'')+'</div>'
    +'<div class="nm">'+lbl+' <span class="durb">⏱ '+fmtDur(estDriver([a.rid],a.tot))+'</span><span>'+a.rnm+'</span></div>'
