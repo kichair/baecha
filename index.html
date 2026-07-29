@@ -137,6 +137,10 @@ button,select,input{font-family:inherit}
 .wx.r2 .wr{color:#c98a1a}.wx.r3 .wr{color:#e04b45}
 @media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
 .gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
+.trdet{flex-basis:100%;display:flex;flex-wrap:wrap;gap:5px 10px;padding:8px 4px 2px;border-top:1px dashed #e3e9ef;margin-top:7px}
+.trdet span{font-size:12px;font-weight:700;color:#33475c;background:#f4f7fa;border-radius:8px;padding:4px 8px}
+.trdet span b{color:#0f5f37;margin-right:3px}
+.trdet span i{font-style:normal;color:#8b9aab;font-weight:600}
 .bigsw{margin-top:10px;padding:12px 20px;border:2px solid #0f5f37;background:#fff;border-radius:12px;font-weight:800;font-size:15px;color:#0f5f37;cursor:pointer}
 .bigsw:active{background:#eaf7ef}
 .srchbar{position:relative;background:#fff;border:1.5px solid #dde5ee;border-radius:12px;padding:11px 14px;display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:15px}
@@ -836,14 +840,16 @@ function tabBoard(today){
  rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
  const dcnt={},dseen={};rows.forEach(a=>dcnt[a.d]=(dcnt[a.d]||0)+1);
  if(rows.length){
-  h+='<div class="hd2">🧑‍✈️ 기사별 물량·적재</div><div class="rank">';
-  h+=rows.map(a=>{const p=a.cap?a.L/a.cap*100:0;
+  h+='<div class="hd2">🧑‍✈️ 기사별 물량·적재 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 줄을 누르면 실을 거래처가 보입니다</span></div><div class="rank">';
+  h+=rows.map((a,ri2)=>{const p=a.cap?a.L/a.cap*100:0;
    dseen[a.d]=(dseen[a.d]||0)+1;
    const lbl=dcnt[a.d]>1?a.d+dseen[a.d]:a.d;
-   return '<div class="rk"><div class="no" style="background:#0f5f37;color:#fff">'+a.d.slice(0,1)+(dcnt[a.d]>1?'<sub style="font-size:9px">'+dseen[a.d]+'</sub>':'')+'</div>'
+   const det=TROPEN[ri2]?'<div class="trdet">'+a.list.map((o,j)=>'<span><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i></span>').join('')+'</div>':'';
+   return '<div class="rk" onclick="trToggle('+ri2+')" style="cursor:pointer;flex-wrap:wrap">'
+   +'<div class="no" style="background:#0f5f37;color:#fff">'+a.d.slice(0,1)+(dcnt[a.d]>1?'<sub style="font-size:9px">'+dseen[a.d]+'</sub>':'')+'</div>'
    +'<div class="nm">'+lbl+' <span class="durb">⏱ '+fmtDur(estDriver([a.rid],a.tot))+'</span><span>'+a.rnm+'</span></div>'
    +'<div class="bar3"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
-   +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div></div>'}).join('');
+   +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div>'+det+'</div>'}).join('');
   h+='</div>';
  }
  if(by._.length)h+='<div class="hd2">⚠️ 배차 필요 <span class="n">'+by._.length+'</span></div>'
@@ -900,6 +906,8 @@ function tabMine(today){
  if(!tot)h+='<div class="setup"><div class="em">🌤️</div><h2>오늘 배차가 없습니다</h2>'
   +'<p>배차 탭에서 동선에 기사님을 지정하면<br>여기에 나타납니다.</p></div>';
  return h}
+let TROPEN={};
+function trToggle(i){TROPEN[i]=!TROPEN[i];render()}
 let RSEL='';
 function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
