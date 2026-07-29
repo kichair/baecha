@@ -145,6 +145,8 @@ button,select,input{font-family:inherit}
 .bigsw{margin-top:10px;padding:12px 20px;border:2px solid #0f5f37;background:#fff;border-radius:12px;font-weight:800;font-size:15px;color:#0f5f37;cursor:pointer}
 .bigsw:active{background:#eaf7ef}
 .srchbar{position:relative;background:#fff;border:1.5px solid #dde5ee;border-radius:12px;padding:11px 14px;display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:15px}
+.kpisrch{grid-column:span 2;margin-bottom:0;font-size:17px;border-width:2px;border-color:#bcd8c6}
+.kpisrch input{font-size:16px;font-weight:700}
 .srchbar input{border:none;outline:none;flex:1;font-size:15px;background:transparent}
 #srchres{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #dde5ee;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.14);z-index:60;max-height:340px;overflow:auto}
 .sri{padding:11px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #f1f4f7;align-items:center}
@@ -797,6 +799,7 @@ function tabBoard(today){
  const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
  const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
  let h=wxHTML()+'<div class="kpis">'
+ +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
  +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
  +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
  +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
@@ -855,7 +858,6 @@ function tabBoard(today){
  }
  if(by._.length)h+='<div class="hd2">⚠️ 배차 필요 <span class="n">'+by._.length+'</span></div>'
   +secHTML('_','배차 필요','#e04b45','동선을 정해주세요',by._,false);
- h+='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 카드 위치 찾기" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
  h+='<div class="hd2">🚚 동선별 배차</div><div id="secs">'
   +ROUTES.map(r=>secHTML(r.id,r.nm,r.cl,r.zone,by[r.id],true)).join('')+'</div>';
  if(by.x.length)h+='<div class="hd2">📦 제외 — 택배·상차·차량입고·퀵 <span class="n">'+by.x.length+'</span></div>'
