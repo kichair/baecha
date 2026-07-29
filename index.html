@@ -100,9 +100,9 @@ button,select,input{font-family:inherit}
 .load i{display:block;height:100%;background:#03C75A;border-radius:4px;transition:.3s}
 .load.w i{background:#e0a03a}.load.o i{background:#e04b45}
 .body{padding:0 9px 9px;min-height:8px;counter-reset:bseq}
-.body>.sw{counter-increment:bseq}
-.body>.sw>.c{padding-left:36px}
-.body>.sw>.c::before{content:counter(bseq);position:absolute;left:9px;top:11px;width:20px;height:20px;border-radius:50%;background:#03C75A;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+.body>.sw,.body>.cardw .sw{counter-increment:bseq}
+.body>.sw>.c,.body>.cardw .sw>.c{padding-left:36px}
+.body>.sw>.c::before,.body>.cardw .sw>.c::before{content:counter(bseq);position:absolute;left:9px;top:11px;width:20px;height:20px;border-radius:50%;background:#03C75A;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
 .lifo{margin:0 12px 10px;padding:7px 10px;background:#f2f7f4;border-radius:8px;font-size:11px;font-weight:700;color:#3c6b52;line-height:1.5}
 .body.over{background:#eaf3ff;outline:2px dashed #7fb0ee;outline-offset:-4px;border-radius:10px}
 .empty{padding:16px;text-align:center;color:#a4b1c0;font-size:12px}
