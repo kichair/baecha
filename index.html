@@ -139,6 +139,12 @@ button,select,input{font-family:inherit}
 .gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
 .bigsw{margin-top:10px;padding:12px 20px;border:2px solid #0f5f37;background:#fff;border-radius:12px;font-weight:800;font-size:15px;color:#0f5f37;cursor:pointer}
 .bigsw:active{background:#eaf7ef}
+.srchbar{position:relative;background:#fff;border:1.5px solid #dde5ee;border-radius:12px;padding:11px 14px;display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:15px}
+.srchbar input{border:none;outline:none;flex:1;font-size:15px;background:transparent}
+#srchres{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #dde5ee;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.14);z-index:60;max-height:340px;overflow:auto}
+.sri{padding:11px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #f1f4f7;align-items:center}
+.sri:hover{background:#f4f9f6}
+.sri b{font-size:13.5px}.sri span{color:#5f7086;font-size:12px;white-space:nowrap}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:10px}
 .kpi{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 5px rgba(22,50,79,.06)}
 .kpi span{font-size:10.5px;color:#8b9aab;font-weight:800;display:block}
@@ -687,6 +693,14 @@ function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
 function setDrv(i,v){const o=ORDERS[i];if(v)DRVOV[o.key]=v;else delete DRVOV[o.key];save();render();toast(v?v+' 기사에게 배정':'동선 기사 따름')}
 function setDrv2(i,v){const o=ORDERS[i];if(v)DRV2[o.key]=v;else delete DRV2[o.key];save();render();toast(v?'분할: '+v+' 기사 추가':'분할 해제')}
+function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
+ if(!v){el.innerHTML='';return}
+ const nv=v.replace(/\s/g,'');
+ const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
+ const hits=today.filter(o=>o.n.replace(/\s/g,'').indexOf(nv)>=0).slice(0,12);
+ el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchGo('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
+let FQ=null;
+function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;render();window.scrollTo(0,0)}
 function hasDrv(o,n){return effDrv(o)===n||DRV2[o.key]===n}
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
@@ -718,6 +732,13 @@ function secHTML(id,nm,cl,zone,list,dvs){
   +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
  return h+'</div>'}
 function tabBoard(today){
+ if(FQ!=null){const fo=ORDERS[FQ];
+  if(!fo||fo.d!==SEL||ST[fo.i]==='del')FQ=null;
+  else{
+   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+   h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
+   h+='<button class="bigsw" onclick="FQ=null;render()" style="width:100%;margin-top:6px">← 전체 배차판 보기</button>';
+   return h}}
  const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{(by[ASSIGN[o.i]]||by._).push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
@@ -759,6 +780,7 @@ function tabBoard(today){
  }
  if(by._.length)h+='<div class="hd2">⚠️ 배차 필요 <span class="n">'+by._.length+'</span></div>'
   +secHTML('_','배차 필요','#e04b45','동선을 정해주세요',by._,false);
+ h+='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 카드 위치 찾기" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
  h+='<div class="hd2">🚚 동선별 배차</div><div id="secs">'
   +ROUTES.map(r=>secHTML(r.id,r.nm,r.cl,r.zone,by[r.id],true)).join('')+'</div>';
  if(by.x.length)h+='<div class="hd2">📦 제외 — 택배·상차·차량입고·퀵 <span class="n">'+by.x.length+'</span></div>'
