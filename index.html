@@ -777,12 +777,11 @@ function tabBoard(today){
   g.list.sort(bySeq);
   const cf=capFactor(g.rid)||1;
   const tot=g.list.reduce((a,o)=>a+o.load,0);
-  let n=1;
-  if(CAR[g.rid]===g.d&&(CAR[g.rid+'_n']||1)>1)n=CAR[g.rid+'_n'];
-  else if(tot/cf>1.05)n=Math.ceil(tot/cf-0.05);
-  if(n<=1){rows.push({d:g.d,rid:g.rid,list:g.list});return}
-  const target=tot/n;let gi=0,acc=0;const parts=Array.from({length:n},()=>[]);
-  g.list.forEach(o=>{if(gi<n-1&&acc>=target*(gi+1))gi++;acc+=o.load;parts[gi].push(o)});
+  if(tot/cf<=1.05){rows.push({d:g.d,rid:g.rid,list:g.list});return}
+  /* 한 차(적재 105%)를 넘지 않게 동선 순서대로 끊어 회차 생성 */
+  const parts=[];let cur=[],acc=0;
+  g.list.forEach(o=>{if(cur.length&&acc+o.load>1.05*cf){parts.push(cur);cur=[];acc=0}cur.push(o);acc+=o.load});
+  if(cur.length)parts.push(cur);
   parts.forEach(pp=>{if(pp.length)rows.push({d:g.d,rid:g.rid,list:pp})});
  });
  rows.forEach(a=>{
