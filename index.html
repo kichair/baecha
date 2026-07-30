@@ -727,6 +727,8 @@ function capFactor(id){return id==='t35'?1.2:1}
 const DRIVE_MIN={r1:60,r2:120,r3:130,r4:170,r5:140,r6:130,r7:300,rw:270,rc:300,t35:120,etc:90};
 function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h?(h+'시간'+(mm?' '+mm+'분':'')):(mm+'분')}
 /* 회차 시간 = 상차 25분 + 왕복주행 + 곳당 22분(이동+하차) — 7/29 실측 보정 */
+function tripMins(rows){const cr={};rows.forEach(r=>cr[r.rid]=(cr[r.rid]||0)+1);
+ return rows.map(r=>Math.round(25+r.list.length*22+(DRIVE_MIN[r.rid]||90)/cr[r.rid]))}
 function estRoute(id,list){if(!list.length)return 0;const d=DRIVE_MIN[id]||90;return 25+d+list.length*22}
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||90)>mx)mx=DRIVE_MIN[r]||90});return 25+mx+stops*22}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
@@ -834,13 +836,14 @@ function drvRank(car){
   a.cap=capFactor(a.rid)||1;
   a.rnm=(RID[a.rid]||{nm:a.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
   a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);});
- const dord=[];rows.forEach(a=>{if(dord.indexOf(a.d)<0)dord.push(a.d)});
+ const dord=[];rows.forEach(a=>{if(a.d!=='용차'&&dord.indexOf(a.d)<0)dord.push(a.d)});
  rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
  if(!rows.length)return '';
  let h='<div class="hd2">🧑‍✈️ 기사별 물량·적재 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 칸을 누르면 거래처, 거래처를 누르면 품목</span></div>';
  dord.forEach(d=>{
   const rws=rows.filter(a=>a.d===d);
-  const dtot=rws.reduce((x,a)=>x+estDriver([a.rid],a.tot),0);
+  const tm=tripMins(rws);
+  const dtot=tm.reduce((x,v)=>x+v,0);
   h+='<div class="dgrow">';
   h+='<div class="dghead"><b>'+d+'</b><span>총 ⏱ '+fmtDur(dtot)+'</span><span>'+rws.length+'회차 · 의자 '+rws.reduce((x,a)=>x+a.q,0)+'개</span></div>';
   rws.forEach((a,k)=>{
@@ -848,7 +851,7 @@ function drvRank(car){
    const p=a.cap?a.L/a.cap*100:0;
    const lbl=rws.length>1?d+(k+1):d;
    h+='<div class="dgcell" onclick="trToggle('+idx+')">'
-    +'<div class="dgt"><b>'+lbl+'</b><span class="durb">⏱ '+fmtDur(estDriver([a.rid],a.tot))+'</span></div>'
+    +'<div class="dgt"><b>'+lbl+'</b><span class="durb">⏱ '+fmtDur(tm[k])+'</span></div>'
     +'<div class="dgz">'+a.rnm+'</div>'
     +'<div class="bar3" style="width:100%;margin:7px 0 5px"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
     +'<div class="dgv">의자 '+a.q+'개 · <span style="font-weight:800;color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span> · '+a.tot+'곳</div>'
@@ -899,8 +902,9 @@ function tabMine(today){
    const dn=list.filter(function(o){return ST[o.i]==='done'}).length;
    const pc=list.length?dn/list.length*100:0;
    const tr=list.length?driverTrips(list):[];
-   const totMin=tr.reduce(function(a,r){return a+estRoute(r.rid,r.list)},0);
-   const tinfo=list.length?('⏱ 총 '+fmtDur(totMin)+(tr.length>1?' &nbsp;<span style="display:inline;font-weight:700;color:#5f7086;font-size:12.5px">'+tr.map(function(r,k){return (k+1)+'차 '+fmtDur(estRoute(r.rid,r.list))}).join(' · ')+'</span>':'')):'오늘 배차 없음';
+   const tmm=tripMins(tr);
+   const totMin=tmm.reduce(function(a,v){return a+v},0);
+   const tinfo=n==='용차'?(list.length?list.length+'곳 · 용차 배정분 (시간계산 없음)':'오늘 배차 없음'):(list.length?('⏱ 총 '+fmtDur(totMin)+(tr.length>1?' &nbsp;<span style="display:inline;font-weight:700;color:#5f7086;font-size:12.5px">'+tr.map(function(r,k){return (k+1)+'차 '+fmtDur(tmm[k])}).join(' · ')+'</span>':'')):'오늘 배차 없음');
    return '<div class="dcard dvrow" onclick="ME=\''+n+'\';save();render()">'
     +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
     +'<b style="display:inline;font-size:16px">'+n+'</b>'
@@ -918,7 +922,8 @@ function tabMine(today){
  const cheer=tot===0?'오늘 배차가 없습니다':left===0?'🎉 오늘 배송 전부 끝났습니다!':
   left<=2?'🔥 '+left+'곳만 더!':left<=5?'💪 '+left+'곳 남았습니다':left+'곳 남았습니다';
  const trAll=tot?driverTrips(mine.slice()):[];
- const totMin=trAll.reduce((a,r)=>a+estRoute(r.rid,r.list),0);
+ const trM=tripMins(trAll);
+ const totMin=trM.reduce((a,v)=>a+v,0);
  let h='<div class="hero">'+ring(pc,dn+'<span style="font-size:13px;color:#8b9aab">/'+tot+'</span>','완료')
  +'<div class="info"><h2>'+ME+'</h2><p>'+zones+'<br>'+SEL+' · 남은 물량 '+L.toFixed(1)+'대분'+(tot?' · <b style="color:#0f5f37">⏱ 하루 총 약 '+fmtDur(totMin)+'</b>'+(trAll.length>1?' ('+trAll.length+'회전)':''):'')+'</p>'
  +'<div class="cheer">'+cheer+'</div>'
@@ -926,7 +931,7 @@ function tabMine(today){
  +(tot?(function(){const tr=trAll;
    return tr.map(function(r,k){
     const rn=(RID[r.rid]||{nm:''}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
-    return '<div class="namesline">'+(tr.length>1?'<b class="trlb">'+(k+1)+'차 '+rn+' · '+fmtDur(estRoute(r.rid,r.list))+'</b>':'')
+    return '<div class="namesline">'+(tr.length>1?'<b class="trlb">'+(k+1)+'차 '+rn+' · '+fmtDur(trM[k])+'</b>':'')
      +r.list.map(function(o,i){return '<b>'+(i+1)+'</b>'+o.n}).join('<span class="sep">·</span>')
      +(r.cont&&r.cont.length?'<span class="sep">·</span>⤷ '+r.cont.join(', ')+' 이어싣기':'')+'</div>'}).join('')})():'')
  +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">'+'<button class="btn'+(GPSW!=null?'':' s')+'" onclick="gpsToggle()">'+(GPSW!=null?'📍 위치 공유중':'📍 위치 공유')+'</button></div>';
@@ -939,7 +944,7 @@ function tabMine(today){
   if(tr.length>1){
    tr.forEach(function(r,k){
     const rn=(RID[r.rid]||{nm:r.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
-    h+='<div class="hd2">🚚 '+ME+(k+1)+'차 — '+rn+' <span class="n">'+(r.list.length+r.cont.length)+'</span> <span style="font-weight:700;color:#5f7086;font-size:12px">적재 '+Math.round(r.L/(capFactor(r.rid)||1)*100)+'% · ⏱ '+fmtDur(estRoute(r.rid,r.list))+'</span></div>';
+    h+='<div class="hd2">🚚 '+ME+(k+1)+'차 — '+rn+' <span class="n">'+(r.list.length+r.cont.length)+'</span> <span style="font-weight:700;color:#5f7086;font-size:12px">적재 '+Math.round(r.L/(capFactor(r.rid)||1)*100)+'% · ⏱ '+fmtDur(tripMins(tr)[k])+'</span></div>';
     if(r.cont.length)h+='<div class="lifo">⤷ 앞 차에서 이어싣기: <b>'+r.cont.join(', ')+'</b></div>';
     h+=r.list.map(o=>card(o,1)).join('');
    });
