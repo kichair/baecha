@@ -741,16 +741,16 @@ function setupHTML(){const a=Object.keys(ADDR).length;
  +'<button class="btn" onclick="f1.value=\'\';f1.click()">📁 명세서 불러오기</button></div></div>'}
 function capFactor(id){return id==='t35'?1.2:1}
 /* 7/29 GPS 실측 보정: 회차당 왕복 주행시간(분) */
-const DRIVE_MIN={r1:60,r2:120,r3:130,r4:170,r5:140,r6:130,r7:300,rw:270,rc:300,t35:120,etc:90};
+const DRIVE_MIN={r1:260,r2:300,r3:315,r4:325,r5:325,r6:340,r7:390,rw:450,rc:460,t35:400,etc:120};
 function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h?(h+'시간'+(mm?' '+mm+'분':'')):(mm+'분')}
 /* 회차 시간 = 상차 25분 + 왕복주행 + 곳당 22분(이동+하차) — 7/29 실측 보정 */
-/* 동선 안에서도 실제 가는 최원거리 지역 기준 왕복주행 (7/29 GPS 보정) */
+/* 동선 안에서도 실제 가는 최원거리 지역 기준 왕복주행 — 7/1~29 GPS 실측 중앙값 */
 const ZONE_DRV={
- r7:[[/이천|여주|곤지암|초월|도척/,330],[/용인|오포|광주시|모현|기흥/,270],[/수원|화성|오산|병점|봉담|권선|영통|팔달|장안구/,220],[/안양|군포|의왕|과천/,140]],
- rc:[[/대전|청주|세종|유성|대덕/,380],[/천안|아산|당진|서산|홍성|예산|보령/,330],[/평택|안성|음성|진천|충주/,250]],
- rw:[[/원주|춘천|횡성|만종/,330],[/가평|양평|청평/,270],[/남양주|마석|덕소/,180]],
- r6:[[/화성|발안|남양읍/,180],[/안산|시화|정왕|시흥/,130]],
- t35:[[/대전|청주|천안|아산/,360],[/부산|대구|광주광역|전주|창원/,600],[/수원|화성|안산|시흥/,200]]};
+ r7:[[/용인|오포|광주시|모현|기흥|처인/,440],[/이천|여주|곤지암|초월|도척/,390],[/수원|화성|오산|병점|봉담|권선|영통|팔달|장안구/,365],[/안양|군포|의왕|과천/,330]],
+ rc:[[/대전|청주|세종|유성|대덕|충주/,505],[/천안|아산|당진|서산|홍성|예산|보령|계룡/,460],[/평택|안성|음성|진천/,420]],
+ rw:[[/원주|춘천|횡성|홍천|만종/,450],[/남양주|마석|덕소|포천|의정부|구리/,425],[/가평|양평|청평/,370]],
+ r6:[[/화성|발안|남양읍|봉담/,365],[/안산|시화|정왕|시흥/,340]],
+ t35:[[/부산|대구|광주광역|전주|창원/,600],[/대전|청주|천안|아산/,505],[/수원|화성|안산|시흥/,365]]};
 function driveFor(rid,list){
  const zs=ZONE_DRV[rid];
  if(!zs)return DRIVE_MIN[rid]||90;
@@ -765,9 +765,9 @@ function tripMins(rows){
   const g=grp[rid];
   let mx=0;g.forEach(r=>{const d=driveFor(rid,r.list);if(d>mx)mx=d});
   share[rid]=mx/g.length;});
- return rows.map(r=>Math.round(25+r.list.length*22+share[r.rid]))}
-function estRoute(id,list){if(!list.length)return 0;const d=DRIVE_MIN[id]||90;return 25+d+list.length*22}
-function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||90)>mx)mx=DRIVE_MIN[r]||90});return 25+mx+stops*22}
+ return rows.map(r=>Math.round(25+r.list.length*18+share[r.rid]))}
+function estRoute(id,list){if(!list.length)return 0;const d=DRIVE_MIN[id]||120;return 25+d+list.length*18}
+function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||120)>mx)mx=DRIVE_MIN[r]||120});return 25+mx+stops*18}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
 let PEND={};
 function pendDrv(i,v){PEND[i]=v;render();toast((v||'동선 기사')+' 선택 — 카드를 오른쪽으로 밀면 이동합니다')}
