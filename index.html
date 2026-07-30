@@ -823,6 +823,7 @@ let FQ=null;
 function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=0;render();window.scrollTo(0,0)}
 function hasDrv(o,n){return effDrv(o)===n||DRV2[o.key]===n}
 /* 기사 한 명의 배송 목록을 회차(차량 단위)로 분할 */
+function loadOfFor(o){return (DRV2[o.key]?o.load/2:o.load)}
 function driverTrips(list){
  const grp={};
  list.forEach(o=>{const rid=ASSIGN[o.i];(grp[rid]=grp[rid]||[]).push(o)});
@@ -830,13 +831,13 @@ function driverTrips(list){
  Object.keys(grp).forEach(rid=>{
   const g=grp[rid].slice().sort(bySeq);
   const cf=capFactor(rid)||1;
-  const tot=g.reduce((a,o)=>a+o.load,0);
+  const tot=g.reduce((a,o)=>a+loadOfFor(o),0);
   if(tot<=1.05*cf){rows.push({rid:rid,list:g,L:tot,cont:[]});return}
   let cur={list:[],L:0,cont:[]};
   const flush=()=>{if(cur.list.length||cur.cont.length)rows.push({rid:rid,list:cur.list,L:cur.L,cont:cur.cont});cur={list:[],L:0,cont:[]}};
-  g.forEach(o=>{
-   if(cur.L+o.load<=1.05*cf){cur.list.push(o);cur.L+=o.load;return}
-   let rem=o.load,first=true,guard=0;
+  g.forEach(o=>{const ol=loadOfFor(o);
+   if(cur.L+ol<=1.05*cf){cur.list.push(o);cur.L+=ol;return}
+   let rem=ol,first=true,guard=0;
    while(rem>0.001&&guard++<20){
     const space=cf-cur.L;
     if(space<0.1){flush();continue}
@@ -901,19 +902,19 @@ function drvRows(car){
  Object.values(grp).forEach(g=>{
   g.list.sort(bySeq);
   const cf=capFactor(g.rid)||1;
-  const tot=g.list.reduce((a,o)=>a+o.load,0);
-  const totq=g.list.reduce((a,o)=>a+o.qty,0);
+  const tot=g.list.reduce((a,o)=>a+loadOfFor(o),0);
+  const totq=g.list.reduce((a,o)=>a+(DRV2[o.key]?Math.round(o.qty/2):o.qty),0);
   if(tot<=1.05*cf){rows.push({d:g.d,rid:g.rid,list:g.list,L:tot,q:totq});return}
   let cur={list:[],L:0,q:0};
   const flush=()=>{if(cur.list.length)rows.push({d:g.d,rid:g.rid,list:cur.list,L:cur.L,q:cur.q});cur={list:[],L:0,q:0}};
-  g.list.forEach(o=>{
-   if(cur.L+o.load<=1.05*cf){cur.list.push(o);cur.L+=o.load;cur.q+=o.qty;return}
-   let rem=o.load,first=true,guard=0;
+  g.list.forEach(o=>{const ol=loadOfFor(o),oq=DRV2[o.key]?Math.round(o.qty/2):o.qty;
+   if(cur.L+ol<=1.05*cf){cur.list.push(o);cur.L+=ol;cur.q+=oq;return}
+   let rem=ol,first=true,guard=0;
    while(rem>0.001&&guard++<20){
     const space=cf-cur.L;
     if(space<0.1){flush();continue}
     const take=Math.min(space,rem);
-    cur.list.push(o);cur.L+=take;cur.q+=Math.round(o.qty*take/o.load);
+    cur.list.push(o);cur.L+=take;cur.q+=Math.round(oq*take/ol);
     rem-=take;first=false;
     if(rem>0.001)flush();
    }
