@@ -764,14 +764,28 @@ function driveFor(rid,list){
  list.forEach(o=>{const t=(ADDR[o.n]||'')+' '+o.n+' '+(o.memo||'');
   for(const z of zs){if(z[0].test(t)){if(!best||z[1][0]>best[0])best=z[1];break}}});
  return best||zs[zs.length-1][1]}
+function mergeSame(rows){
+ const out=[];
+ rows.forEach(r=>{
+  const key=Object.keys(r.list.reduce((a,o)=>{a[o.n]=1;return a},{})).join('|');
+  const prev=out[out.length-1];
+  if(prev&&prev._k===key&&key.indexOf('|')<0&&prev.rid===r.rid){
+   prev.loads=(prev.loads||1)+1;prev.L=(prev.L||0)+(r.L||0);prev.q=(prev.q||0)+(r.q||0);
+   if(r.cont)prev.cont=(prev.cont||[]).concat(r.cont);
+  }else{r._k=key;r.loads=1;out.push(r)}});
+ return out}
 function tripMins(rows){
  const grp={};rows.forEach(r=>{(grp[r.rid]=grp[r.rid]||[]).push(r)});
  const share={},per={};
  Object.keys(grp).forEach(rid=>{
   const g=grp[rid];let mx=null,pm=35;
   g.forEach(r=>{const d=driveFor(rid,r.list);if(!mx||d[0]>mx){mx=d[0];pm=d[1]}});
+  /* 같은 동선의 회차는 왕복 주행을 한 번만 나눠 가짐 (대순회/피스톤 왕복 실측 기준) */
   share[rid]=mx/g.length;per[rid]=pm});
- return rows.map(r=>Math.round(25+r.list.length*per[r.rid]+share[r.rid]))}
+ return rows.map(r=>{
+  const uniq={};r.list.forEach(o=>uniq[o.n]=1);
+  const n=Object.keys(uniq).length;   /* 같은 거래처 반복은 1곳으로 */
+  return Math.round(25*(r.loads||1)+n*per[r.rid]+share[r.rid])})}
 function estRoute(id,list){if(!list.length)return 0;const d=driveFor(id,list);return 25+d[0]+list.length*d[1]}
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||107)>mx)mx=DRIVE_MIN[r]||107});return 25+mx+stops*40}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
@@ -837,7 +851,7 @@ function driverTrips(list){
  const ord=ROUTES.map(x=>x.id);
  rows.forEach(r=>r.ri=ord.indexOf(r.rid));
  rows.sort((a,b)=>a.ri-b.ri);
- return rows}
+ return mergeSame(rows)}
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
  const qty=list.reduce((a,o)=>a+o.qty,0);
@@ -913,7 +927,10 @@ function drvRows(car){
   a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);});
  const dord=[];rows.forEach(a=>{if(a.d!=='용차'&&dord.indexOf(a.d)<0)dord.push(a.d)});
  rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
- return {rows:rows,dord:dord}}
+ const byd={};rows.forEach(r=>{(byd[r.d]=byd[r.d]||[]).push(r)});
+ let merged=[];dord.forEach(d=>{merged=merged.concat(mergeSame(byd[d]||[]))});
+ Object.keys(byd).forEach(d=>{if(dord.indexOf(d)<0)merged=merged.concat(byd[d])});
+ return {rows:merged,dord:dord}}
 function drvRank(car){
  const rr=drvRows(car);const rows=rr.rows;const dord=rr.dord;
  if(!rows.length)return '';
@@ -932,7 +949,7 @@ function drvRank(car){
     +'<div class="dgt"><b>'+lbl+'</b><span class="durb">⏱ '+fmtDur(tm[k])+'</span></div>'
     +'<div class="dgz">'+a.rnm+'</div>'
     +'<div class="bar3" style="width:100%;margin:7px 0 5px"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
-    +'<div class="dgv">의자 '+a.q+'개 · <span style="font-weight:800;color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span> · '+a.tot+'곳</div>'
+    +'<div class="dgv">'+((a.loads||1)>1?'<b style="color:#c9761a">×'+a.loads+'대분</b> · ':'')+'의자 '+a.q+'개 · <span style="font-weight:800;color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span> · '+a.tot+'곳</div>'
     +(TROPEN[idx]?'<div class="trdet">'+a.list.map((o,j)=>'<span onclick="event.stopPropagation();srchGo('+o.i+')" style="cursor:pointer"><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i></span>').join('')+'</div>':'')
    +'</div>';
   });
