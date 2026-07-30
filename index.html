@@ -859,7 +859,19 @@ function secHTML(id,nm,cl,zone,list,dvs){
   h+='<div class="body" data-d="'+id+'">'+inner+'</div>'
   +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
  return h+'</div>'}
-function drvRank(car){
+function tripLabels(today){
+ const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ const rr=drvRows(car);
+ const map={};const dcnt={};
+ rr.rows.forEach(a=>{if(a.d!=='용차')dcnt[a.d]=(dcnt[a.d]||0)+1});
+ const dseen={};
+ rr.rows.forEach(a=>{
+  if(a.d==='용차'){a.list.forEach(o=>{if(map[o.i]===undefined)map[o.i]='용차'});return}
+  dseen[a.d]=(dseen[a.d]||0)+1;
+  const lbl=dcnt[a.d]>1?a.d+dseen[a.d]:a.d;
+  a.list.forEach(o=>{if(map[o.i]===undefined)map[o.i]=lbl})});
+ return map}
+function drvRows(car){
  const grp={};
  car.forEach(o=>{const drv=effDrv(o);if(!drv)return;const rid=ASSIGN[o.i];
   const k=drv+'§'+rid;(grp[k]=grp[k]||{d:drv,rid:rid,list:[]}).list.push(o);});
@@ -893,6 +905,9 @@ function drvRank(car){
   a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);});
  const dord=[];rows.forEach(a=>{if(a.d!=='용차'&&dord.indexOf(a.d)<0)dord.push(a.d)});
  rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
+ return {rows:rows,dord:dord}}
+function drvRank(car){
+ const rr=drvRows(car);const rows=rr.rows;const dord=rr.dord;
  if(!rows.length)return '';
  let h='<div class="hd2">🧑‍✈️ 기사별 물량·적재 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 칸을 누르면 거래처, 거래처를 누르면 품목</span></div>';
  dord.forEach(d=>{
@@ -1017,6 +1032,7 @@ function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
+ const tl=tripLabels(today);
  let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 대전성신처럼 줄여 써도 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
  h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
@@ -1035,9 +1051,10 @@ function tabRoute(today){
    +(open&&list.length?'<div class="trdet">'+list.map((o,j)=>{
      const cd=effDrv(o)||'';
      return '<span style="cursor:pointer"><b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b><u onclick="event.stopPropagation();srchGo('+o.i+')" style="text-decoration:none">'+o.n+' <i>'+o.qty+'개</i>'+(ST[o.i]==='done'?' ✅':'')+'</u>'
-      +'<select class="chipdrv" onclick="event.stopPropagation()" onchange="setDrv('+o.i+',this.value)">'
-      +'<option value="">'+(CAR[ASSIGN[o.i]]?CAR[ASSIGN[o.i]]:'미지정')+'</option>'
-      +DRVS.map(d=>'<option value="'+d[0]+'"'+(DRVOV[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>').join('')+'</select></span>'}).join('')+'</div>':'')
+      +'<select class="chipdrv" onclick="event.stopPropagation()" onchange="if(this.value)setDrv('+o.i+',this.value===\'__R\'?\'\':this.value)">'
+      +'<option value="" selected>'+(tl[o.i]||cd||'미지정')+'</option>'
+      +'<option value="__R">동선 기사 따름</option>'
+      +DRVS.map(d=>'<option value="'+d[0]+'">'+d[0]+'</option>').join('')+'</select></span>'}).join('')+'</div>':'')
   +'</div>';
  });
  return h+'</div>'}
