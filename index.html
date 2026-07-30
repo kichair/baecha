@@ -137,6 +137,12 @@ button,select,input{font-family:inherit}
 .wx.r2 .wr{color:#c98a1a}.wx.r3 .wr{color:#e04b45}
 @media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
 .gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
+.dgrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px;align-items:flex-start}
+.dgcell{flex:1;min-width:200px;background:#fff;border:1px solid #ebeef1;border-radius:12px;padding:11px 13px;cursor:pointer;box-shadow:0 1px 5px rgba(22,50,79,.06)}
+.dgcell .dgt{display:flex;gap:8px;align-items:center}
+.dgcell .dgt b{font-size:14.5px}
+.dgcell .dgz{font-size:11px;color:#8b9aab;font-weight:700;margin-top:2px}
+.dgcell .dgv{font-size:12px;color:#33475c;font-weight:700}
 .dlist{display:flex;flex-direction:column;gap:8px}
 .dvrow{width:auto;cursor:pointer}
 .drowtop{display:flex;gap:10px;align-items:baseline}
@@ -242,7 +248,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
  <button id="tb0" onclick="go(0)"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
  <button id="tb3" onclick="go(3)"><em>🛣️</em>동선별</button>
  <button id="tb4" onclick="go(4)"><em>🧑‍✈️</em>기사별</button>
- <button id="tb1" onclick="go(1)"><em>🚚</em>내 배송</button>
+ <button id="tb1" onclick="go(1)"><em>🚚</em>기사별 배송</button>
  <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
 </div>
 
@@ -729,7 +735,7 @@ function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
  const hits=today.filter(o=>o.n.replace(/\s/g,'').indexOf(nv)>=0).slice(0,12);
  el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchGo('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
 let FQ=null;
-function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;render();window.scrollTo(0,0)}
+function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=0;render();window.scrollTo(0,0)}
 function hasDrv(o,n){return effDrv(o)===n||DRV2[o.key]===n}
 /* 기사 한 명의 배송 목록을 회차(차량 단위)로 분할 */
 function driverTrips(list){
@@ -791,8 +797,6 @@ function secHTML(id,nm,cl,zone,list,dvs){
   +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
  return h+'</div>'}
 function drvRank(car){
- let h='';
- // 기사별 요약 (기사×동선×회차 — 적재 초과 시 같은 동선도 1·2회차로 분할 표시)
  const grp={};
  car.forEach(o=>{const drv=effDrv(o);if(!drv)return;const rid=ASSIGN[o.i];
   const k=drv+'§'+rid;(grp[k]=grp[k]||{d:drv,rid:rid,list:[]}).list.push(o);});
@@ -803,19 +807,17 @@ function drvRank(car){
   const tot=g.list.reduce((a,o)=>a+o.load,0);
   const totq=g.list.reduce((a,o)=>a+o.qty,0);
   if(tot<=1.05*cf){rows.push({d:g.d,rid:g.rid,list:g.list,L:tot,q:totq});return}
-  /* 한 차를 가득(100%) 채워 순서대로 끊고, 큰 거래처는 차 경계에서 이어 싣기 */
   let cur={list:[],L:0,q:0};
   const flush=()=>{if(cur.list.length)rows.push({d:g.d,rid:g.rid,list:cur.list,L:cur.L,q:cur.q});cur={list:[],L:0,q:0}};
   g.list.forEach(o=>{
    if(cur.L+o.load<=1.05*cf){cur.list.push(o);cur.L+=o.load;cur.q+=o.qty;return}
-   let rem=o.load;
-   let guard=0;
+   let rem=o.load,first=true,guard=0;
    while(rem>0.001&&guard++<20){
     const space=cf-cur.L;
     if(space<0.1){flush();continue}
     const take=Math.min(space,rem);
     cur.list.push(o);cur.L+=take;cur.q+=Math.round(o.qty*take/o.load);
-    rem-=take;
+    rem-=take;first=false;
     if(rem>0.001)flush();
    }
   });
@@ -828,20 +830,25 @@ function drvRank(car){
   a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);});
  const dord=[];rows.forEach(a=>{if(dord.indexOf(a.d)<0)dord.push(a.d)});
  rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
- const dcnt={},dseen={};rows.forEach(a=>dcnt[a.d]=(dcnt[a.d]||0)+1);
- if(rows.length){
-  h+='<div class="hd2">🧑‍✈️ 기사별 물량·적재 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 줄을 누르면 실을 거래처가 보입니다</span></div><div class="rank">';
-  h+=rows.map((a,ri2)=>{const p=a.cap?a.L/a.cap*100:0;
-   dseen[a.d]=(dseen[a.d]||0)+1;
-   const lbl=dcnt[a.d]>1?a.d+dseen[a.d]:a.d;
-   const det=TROPEN[ri2]?'<div class="trdet">'+a.list.map((o,j)=>'<span onclick="event.stopPropagation();srchGo('+o.i+')" title="품목·주소 보기" style="cursor:pointer"><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i></span>').join('')+'</div>':'';
-   return '<div class="rk" onclick="trToggle('+ri2+')" style="cursor:pointer;flex-wrap:wrap">'
-   +'<div class="no" style="background:#0f5f37;color:#fff">'+a.d.slice(0,1)+(dcnt[a.d]>1?'<sub style="font-size:9px">'+dseen[a.d]+'</sub>':'')+'</div>'
-   +'<div class="nm">'+lbl+' <span class="durb">⏱ '+fmtDur(estDriver([a.rid],a.tot))+'</span><span>'+a.rnm+'</span></div>'
-   +'<div class="bar3"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
-   +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div>'+det+'</div>'}).join('');
+ if(!rows.length)return '';
+ let h='<div class="hd2">🧑‍✈️ 기사별 물량·적재 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 칸을 누르면 거래처, 거래처를 누르면 품목</span></div>';
+ dord.forEach(d=>{
+  const rws=rows.filter(a=>a.d===d);
+  h+='<div class="dgrow">';
+  rws.forEach((a,k)=>{
+   const idx=rows.indexOf(a);
+   const p=a.cap?a.L/a.cap*100:0;
+   const lbl=rws.length>1?d+(k+1):d;
+   h+='<div class="dgcell" onclick="trToggle('+idx+')">'
+    +'<div class="dgt"><b>'+lbl+'</b><span class="durb">⏱ '+fmtDur(estDriver([a.rid],a.tot))+'</span></div>'
+    +'<div class="dgz">'+a.rnm+'</div>'
+    +'<div class="bar3" style="width:100%;margin:7px 0 5px"><i style="width:'+Math.min(p,100)+'%;background:'+(p>100?'#e04b45':p>85?'#e0a03a':'#03C75A')+'"></i></div>'
+    +'<div class="dgv">의자 '+a.q+'개 · <span style="font-weight:800;color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span> · '+a.tot+'곳</div>'
+    +(TROPEN[idx]?'<div class="trdet">'+a.list.map((o,j)=>'<span onclick="event.stopPropagation();srchGo('+o.i+')" style="cursor:pointer"><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i></span>').join('')+'</div>':'')
+   +'</div>';
+  });
   h+='</div>';
- }
+ });
  return h}
 function tabBoard(today){
  if(FQ!=null){const fo=ORDERS[FQ];
