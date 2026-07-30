@@ -771,17 +771,29 @@ let PEND={};
 function pendDrv(i,v){PEND[i]=v;render();toast((v||'동선 기사')+' 선택 — 카드를 오른쪽으로 밀면 이동합니다')}
 function setDrv(i,v){const o=ORDERS[i];if(v)DRVOV[o.key]=v;else delete DRVOV[o.key];save();render();toast(v?v+' 기사에게 배정':'동선 기사 따름')}
 function setDrv2(i,v){const o=ORDERS[i];if(v)DRV2[o.key]=v;else delete DRV2[o.key];save();render();toast(v?'분할: '+v+' 기사 추가':'분할 해제')}
-function fuzzyHit(o,nq){
- const hay=(o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'')).replace(/\s/g,'');
- if(hay.indexOf(nq)>=0)return true;
- if(typeof ALIAS_DB!=='undefined'&&ALIAS_DB[nq]===o.n)return true;
- for(let i=2;i<=nq.length-2;i++){
-  const a=nq.slice(0,i),b=nq.slice(i);
-  if(hay.indexOf(a)>=0&&hay.indexOf(b)>=0)return true}
+/* 단가표 프로젝트 검색 로직 이식: kfix(오타보정)+kloose(유사발음)+multiMatch(토큰·조각) */
+function kfix(x){return String(x==null?'':x).toLowerCase()
+ .replace(/메시/g,'메쉬').replace(/쇼파/g,'소파')
+ .replace(/캐비넷|케비넷|케비닛/g,'캐비닛').replace(/의쟈/g,'의자')}
+function kloose(x){return kfix(x).replace(/[지즈]/g,'지').replace(/[쉬시]/g,'시').replace(/[래레]/g,'래').replace(/[-_()·.,]/g,'')}
+function multiMatch(hayRaw,raw){
+ var r=String(raw||'').trim();if(!r)return false;
+ var h=kfix(hayRaw),toks=kfix(r).split(/\s+/).filter(Boolean);
+ if(toks.length&&toks.every(function(t){return h.indexOf(t)>=0}))return true;
+ var hl=kloose(hayRaw),lt=kloose(r).split(/\s+/).filter(Boolean);
+ if(lt.length&&lt.every(function(t){return hl.indexOf(t)>=0}))return true;
+ var q=kloose(r).replace(/\s+/g,'');
+ if(q.length>=4){
+  for(var i=2;i<=q.length-2;i++){
+   if(hl.indexOf(q.slice(0,i))>=0&&hl.indexOf(q.slice(i))>=0)return true}}
  return false}
+function fuzzyHit(o,nq){
+ var hay=o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'');
+ if(typeof ALIAS_DB!=='undefined'&&ALIAS_DB[nq]===o.n)return true;
+ return multiMatch(hay,nq)}
 function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
  if(!v){el.innerHTML='';return}
- const nv=v.replace(/\s/g,'');
+ const nv=v;
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
  const hits=today.filter(o=>fuzzyHit(o,nv)).slice(0,12);
  el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchGo('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
