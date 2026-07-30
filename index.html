@@ -296,7 +296,17 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 <dialog id="cap"><div class="dh"><h3>적재 기준 · 1톤 만재 대수</h3><button class="btn g" onclick="cap.close()">닫기</button></div>
 <div class="db"><div class="tip">1톤 폭1,600 × 길이3,500 · 의자 60개 기준 / 절반수량(루트·매틱·매직·시소) 120개<br>
 숫자 = <b>그 품목만 실었을 때 만차가 되는 개수</b>. 섞이면 (수량÷만재수)를 더해 적재율을 냅니다.</div>
-<table><thead><tr><th>분류</th><th>키워드</th><th style="text-align:right">만재</th></tr></thead><tbody id="capB"></tbody></table></div></dialog>
+<table><thead><tr><th>분류</th><th>키워드</th><th style="text-align:right">만재</th></tr></thead><tbody id="capB"></tbody><tbody id="capU"></tbody></table>
+<div style="margin-top:12px;padding:12px;background:#f2f7f4;border-radius:12px">
+ <b style="font-size:13px">＋ 새 기준 직접 등록</b>
+ <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+  <input id="cuNm" placeholder="분류명 (예: 소파)" style="flex:1;min-width:110px;padding:9px;border:1.5px solid #dde5ee;border-radius:9px">
+  <input id="cuKw" placeholder="키워드 쉼표구분 (예: 소파,쇼파)" style="flex:2;min-width:170px;padding:9px;border:1.5px solid #dde5ee;border-radius:9px">
+  <input id="cuC" type="number" min="1" placeholder="만재수" style="flex:0 0 84px;padding:9px;border:1.5px solid #dde5ee;border-radius:9px">
+  <button class="btn" onclick="addCap()" style="flex:0 0 auto">추가</button>
+ </div>
+ <div style="font-size:11px;color:#5f7086;margin-top:6px">품목명에 키워드가 들어 있으면 이 만재수를 씁니다. 직접 등록한 기준이 기본 기준보다 우선합니다.</div>
+</div></div></dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -388,6 +398,7 @@ let RAW=LS('_raw',null);
 if(!RAW||RAWV<BUILD_TS){RAW=SEED_LINES.slice();RAWV=BUILD_TS}
 let FEE=Object.assign({},SEED_FEE,LSU('_fe',{}));
 let CAPS=LSU('_c',null)||Object.fromEntries(CAP_DEF.map(c=>[c.id,c.c]));
+let CAPU=LSU('_capu',[]);
 let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{}),DRV2=LSU('_dv2',{});
 let CUSTOM=LSU('_cu',[]);
 let SEQ=LSU('_sq',{});
@@ -437,7 +448,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_fe',FEE);SU('_dv2',DRV2);
+ SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -449,14 +460,14 @@ let SB=null,SB_ON=false,pushT=null,applying=false;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;
+ o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_capu']=CAPU;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
 function applySnap(o){applying=true;try{
  if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];
  if(o['_dov'])DRVOV=o['_dov'];if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
- if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];
+ if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_capu'])CAPU=o['_capu'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_dv'])DRVS=o['_dv'];if(o['_c'])CAPS=o['_c'];
  if(o['_raw']&&(o['_rawv']||0)>RAWV){RAW=o['_raw'];RAWV=o['_rawv']||RAWV;if(o['_fe'])FEE=o['_fe']}
  if(o['_ad'])ADDR=Object.assign({},ADDR_DB,BUILTIN.A,o['_ad']);
@@ -517,6 +528,7 @@ function capOf(n){
    return{c:cap,l:'사이즈 '+W+'×'+D+(H?'×'+H:'')+' · '+ly+'단'}}}
  const sw=n.match(/W(\d{3,4})/);
  if(sw){const W=+sw[1];const per=Math.max(1,Math.floor(1600/W)*Math.floor(3500/600),Math.floor(1600/600)*Math.floor(3500/W));return{c:per,l:'사이즈 W'+sw[1]+' · 1단'}}
+ for(const u of CAPU)for(const k of (u.k||[]))if(k&&n.indexOf(k)>=0)return{c:u.c||60,l:u.nm+'(직접등록)'};
  for(const c of CAP_DEF)for(const k of c.k)if(n.indexOf(k)>=0)return{c:CAPS[c.id]||60,l:c.l};
  return{c:CAPS.etc||60,l:'기타'}}
 const loadOf=o=>o.items.reduce((s,it)=>s+it.q/(capOf(it.p).c||60),0);
@@ -1236,11 +1248,26 @@ function onOrders(f){if(!f)return;
   toast(cn+'곳 불러옴 — 자동배정 완료 ✨');
  }catch(e){alert('오류: '+e.message)}})}
 
+function drawCapU(){
+ var el=document.getElementById('capU');if(!el)return;
+ el.innerHTML=CAPU.map(function(u,i){
+  return '<tr style="background:#f4f9f6"><td><b>'+u.nm+'</b> <span style="color:#0f5f37;font-size:10px">직접등록</span></td><td style="color:#8b9aab;font-size:11px">'+(u.k||[]).join(', ')+'</td>'
+  +'<td style="text-align:right"><input type="number" min="1" value="'+u.c+'" oninput="CAPU['+i+'].c=+this.value||1;save();render()">'
+  +' <button class="btn s" style="padding:4px 8px" onclick="if(confirm(\'삭제할까요?\')){CAPU.splice('+i+',1);save();render();drawCapU()}">🗑</button></td></tr>'}).join('');}
+function addCap(){
+ var nm=document.getElementById('cuNm').value.trim();
+ var kw=document.getElementById('cuKw').value.trim();
+ var c=+document.getElementById('cuC').value;
+ if(!nm||!kw||!c)return alert('분류명, 키워드, 만재수를 모두 입력하세요');
+ CAPU.push({nm:nm,k:kw.split(',').map(function(x){return x.trim()}).filter(Boolean),c:c});
+ document.getElementById('cuNm').value='';document.getElementById('cuKw').value='';document.getElementById('cuC').value='';
+ save();render();drawCapU();toast('적재 기준 추가: '+nm)}
 document.getElementById('capB').innerHTML=CAP_DEF.map(function(c){
  return '<tr><td><b>'+c.l+'</b></td>'
  +'<td style="color:#8b9aab;font-size:11px">'+(c.k.join(', ')||'그 외 전부')+'</td>'
  +'<td style="text-align:right"><input type="number" min="1" value="'+CAPS[c.id]+'" '
  +'oninput="CAPS[\''+c.id+'\']=+this.value||1;save();render()"></td></tr>'}).join('');
+drawCapU();
 render();
 syncInit();
 loadWx();
