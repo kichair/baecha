@@ -241,6 +241,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 <div class="tabs">
  <button id="tb0" onclick="go(0)"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
  <button id="tb3" onclick="go(3)"><em>🛣️</em>동선별</button>
+ <button id="tb4" onclick="go(4)"><em>🧑‍✈️</em>기사별</button>
  <button id="tb1" onclick="go(1)"><em>🚚</em>내 배송</button>
  <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
 </div>
@@ -696,13 +697,13 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2,3].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
+ [0,1,2,3,4].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
  const un=today.filter(o=>ASSIGN[o.i]==='_').length;
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):tabStat(today);
  bind();save();if(TAB===2)initMap()}
 function setupHTML(){const a=Object.keys(ADDR).length;
  return '<div class="setup"><div class="em">🚚</div><h2>시작해볼까요</h2>'
@@ -789,30 +790,8 @@ function secHTML(id,nm,cl,zone,list,dvs){
   h+='<div class="body" data-d="'+id+'">'+inner+'</div>'
   +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
  return h+'</div>'}
-function tabBoard(today){
- if(FQ!=null){const fo=ORDERS[FQ];
-  if(!fo||fo.d!==SEL||ST[fo.i]==='del')FQ=null;
-  else{
-   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
-   h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
-   h+='<button class="bigsw" onclick="FQ=null;render()" style="width:100%;margin-top:6px">← 전체 배차판 보기</button>';
-   return h}}
- const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
- today.forEach(o=>{(by[ASSIGN[o.i]]||by._).push(o)});
- Object.values(by).forEach(l=>l.sort(bySeq));
- const car=today.filter(o=>ASSIGN[o.i]!=='x');
- const totL=car.reduce((a,o)=>a+o.load,0);
- const dn=car.filter(o=>ST[o.i]==='done').length;
- const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
- const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
- let h=wxHTML()+'<div class="kpis">'
- +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
- +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
- +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
- +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
- +'<div class="kpi '+(by._.length?'al':'')+'"><span>미배정</span><b>'+by._.length+'곳</b></div>'
- +'<div class="kpi '+(nodrv?'al':'')+'"><span>기사 미지정</span><b>'+nodrv+'</b></div>'
- +'<div class="kpi '+(over?'al':'')+'"><span>적재초과</span><b>'+over+'</b></div></div>';
+function drvRank(car){
+ let h='';
  // 기사별 요약 (기사×동선×회차 — 적재 초과 시 같은 동선도 1·2회차로 분할 표시)
  const grp={};
  car.forEach(o=>{const drv=effDrv(o);if(!drv)return;const rid=ASSIGN[o.i];
@@ -863,6 +842,32 @@ function tabBoard(today){
    +'<div class="v" style="width:112px">의자 '+a.q+'개<br><span style="color:'+(p>100?'#e04b45':'#5f7086')+'">적재 '+p.toFixed(0)+'%</span></div>'+det+'</div>'}).join('');
   h+='</div>';
  }
+ return h}
+function tabBoard(today){
+ if(FQ!=null){const fo=ORDERS[FQ];
+  if(!fo||fo.d!==SEL||ST[fo.i]==='del')FQ=null;
+  else{
+   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+   h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
+   h+='<button class="bigsw" onclick="FQ=null;render()" style="width:100%;margin-top:6px">← 전체 배차판 보기</button>';
+   return h}}
+ const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
+ today.forEach(o=>{(by[ASSIGN[o.i]]||by._).push(o)});
+ Object.values(by).forEach(l=>l.sort(bySeq));
+ const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ const totL=car.reduce((a,o)=>a+o.load,0);
+ const dn=car.filter(o=>ST[o.i]==='done').length;
+ const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
+ const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
+ let h=wxHTML()+'<div class="kpis">'
+ +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
+ +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
+ +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
+ +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
+ +'<div class="kpi '+(by._.length?'al':'')+'"><span>미배정</span><b>'+by._.length+'곳</b></div>'
+ +'<div class="kpi '+(nodrv?'al':'')+'"><span>기사 미지정</span><b>'+nodrv+'</b></div>'
+ +'<div class="kpi '+(over?'al':'')+'"><span>적재초과</span><b>'+over+'</b></div></div>';
+
  if(by._.length)h+='<div class="hd2">⚠️ 배차 필요 <span class="n">'+by._.length+'</span></div>'
   +secHTML('_','배차 필요','#e04b45','동선을 정해주세요',by._,false);
  h+='<div class="hd2">🚚 동선별 배차</div><div id="secs">'
@@ -953,6 +958,9 @@ function tabRoute(today){
  let h='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn s" onclick="RSEL=\'\';render()">동선 바꾸기</button></div>';
  h+='<div id="secs">'+secHTML(r.id,r.nm,r.cl,r.zone,list,true)+'</div>';
  return h}
+function tabDrv(today){
+ const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ return drvRank(car)||'<div class="empty">오늘 배차가 없습니다</div>'}
 function tabStat(today){
  const rows=DRVS.map(function(d){const n=d[0];
   const list=today.filter(o=>hasDrv(o,n)&&ASSIGN[o.i]!=='x');
