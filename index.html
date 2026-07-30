@@ -739,8 +739,28 @@ function capFactor(id){return id==='t35'?1.2:1}
 const DRIVE_MIN={r1:60,r2:120,r3:130,r4:170,r5:140,r6:130,r7:300,rw:270,rc:300,t35:120,etc:90};
 function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h?(h+'시간'+(mm?' '+mm+'분':'')):(mm+'분')}
 /* 회차 시간 = 상차 25분 + 왕복주행 + 곳당 22분(이동+하차) — 7/29 실측 보정 */
-function tripMins(rows){const cr={};rows.forEach(r=>cr[r.rid]=(cr[r.rid]||0)+1);
- return rows.map(r=>Math.round(25+r.list.length*22+(DRIVE_MIN[r.rid]||90)/cr[r.rid]))}
+/* 동선 안에서도 실제 가는 최원거리 지역 기준 왕복주행 (7/29 GPS 보정) */
+const ZONE_DRV={
+ r7:[[/이천|여주|곤지암|초월|도척/,330],[/용인|오포|광주시|모현|기흥/,270],[/수원|화성|오산|병점|봉담|권선|영통|팔달|장안구/,220],[/안양|군포|의왕|과천/,140]],
+ rc:[[/대전|청주|세종|유성|대덕/,380],[/천안|아산|당진|서산|홍성|예산|보령/,330],[/평택|안성|음성|진천|충주/,250]],
+ rw:[[/원주|춘천|횡성|만종/,330],[/가평|양평|청평/,270],[/남양주|마석|덕소/,180]],
+ r6:[[/화성|발안|남양읍/,180],[/안산|시화|정왕|시흥/,130]],
+ t35:[[/대전|청주|천안|아산/,360],[/부산|대구|광주광역|전주|창원/,600],[/수원|화성|안산|시흥/,200]]};
+function driveFor(rid,list){
+ const zs=ZONE_DRV[rid];
+ if(!zs)return DRIVE_MIN[rid]||90;
+ let mx=0;
+ list.forEach(o=>{const t=(ADDR[o.n]||'')+' '+o.n+' '+(o.memo||'');
+  for(const z of zs){if(z[0].test(t)){if(z[1]>mx)mx=z[1];break}}});
+ return mx||(zs[zs.length-1][1])}
+function tripMins(rows){
+ const grp={};rows.forEach(r=>{(grp[r.rid]=grp[r.rid]||[]).push(r)});
+ const share={};
+ Object.keys(grp).forEach(rid=>{
+  const g=grp[rid];
+  let mx=0;g.forEach(r=>{const d=driveFor(rid,r.list);if(d>mx)mx=d});
+  share[rid]=mx/g.length;});
+ return rows.map(r=>Math.round(25+r.list.length*22+share[r.rid]))}
 function estRoute(id,list){if(!list.length)return 0;const d=DRIVE_MIN[id]||90;return 25+d+list.length*22}
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||90)>mx)mx=DRIVE_MIN[r]||90});return 25+mx+stops*22}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
@@ -974,22 +994,24 @@ function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
- const r=ROUTES.filter(x=>x.id===RSEL)[0];
- if(!r){
-  const rows=ROUTES.map(function(x){const list=by[x.id];
-   const dn=list.filter(o=>ST[o.i]==='done').length;
-   const pc=list.length?dn/list.length*100:0;
-   const dv=(CARD[SEL]||{})[x.id]||'';
-   return '<div class="dcard" onclick="RSEL=\''+x.id+'\';render()">'
-    +'<b><span style="display:inline-flex;width:20px;height:20px;border-radius:6px;background:'+x.cl+';color:#fff;font-size:11px;align-items:center;justify-content:center;margin-right:5px">'+x.nm.slice(0,2)+'</span>'+x.nm+'</b>'
-    +'<span>'+(dv||x.zone)+'</span>'
-    +'<div class="mini"><i style="width:'+pc+'%"></i></div>'
-    +'<div class="st">'+(list.length?dn+'/'+list.length+'곳 완료 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'오늘 배차 없음')+'</div></div>'}).join('');
-  return '<div class="hd2">🛣️ 동선을 선택하세요</div><div class="grid">'+rows+'</div>'}
- const list=by[r.id];
- let h='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn s" onclick="RSEL=\'\';render()">동선 바꾸기</button></div>';
- h+='<div id="secs">'+secHTML(r.id,r.nm,r.cl,r.zone,list,true)+'</div>';
- return h}
+ let h='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 누르면 거래처 목록, 거래처를 누르면 품목</span></div><div class="dlist">';
+ ROUTES.forEach(x=>{
+  const list=by[x.id];
+  const dn=list.filter(o=>ST[o.i]==='done').length;
+  const pc=list.length?dn/list.length*100:0;
+  const dv=CAR[x.id]||'';
+  const open=RSEL===x.id;
+  h+='<div class="dcard dvrow" onclick="RSEL=RSEL===\''+x.id+'\'?\'\':\''+x.id+'\';render()">'
+   +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
+   +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'
+   +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+(dv||x.zone.slice(0,24))+'</span>'
+   +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
+   +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
+   +(open&&list.length?'<div class="trdet">'+list.map((o,j)=>'<span onclick="event.stopPropagation();srchGo('+o.i+')" style="cursor:pointer"><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i>'+(ST[o.i]==='done'?' ✅':'')+'</span>').join('')+'</div>':'')
+  +'</div>';
+ });
+ return h+'</div>'}
 function tabDrv(today){
  const car=today.filter(o=>ASSIGN[o.i]!=='x');
  return drvRank(car)||'<div class="empty">오늘 배차가 없습니다</div>'}
