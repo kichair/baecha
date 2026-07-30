@@ -294,7 +294,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 <div style="margin-top:14px;text-align:right"><button class="btn" onclick="doAdd()">추가</button></div></div></dialog>
 
 <dialog id="cap"><div class="dh"><h3>적재 기준 · 1톤 만재 대수</h3><button class="btn g" onclick="cap.close()">닫기</button></div>
-<div class="db"><div class="tip">1톤 폭1,600 × 길이3,500 · 의자 60개 기준 / 절반수량(루트·매틱·매직·시소) 120개<br>
+<div class="db"><div class="tip">1톤 폭1,600 × 길이4,000 · 의자 60개 기준 / 절반수량(루트·매틱·매직·시소) 120개<br>
 숫자 = <b>그 품목만 실었을 때 만차가 되는 개수</b>. 섞이면 (수량÷만재수)를 더해 적재율을 냅니다.</div>
 <table><thead><tr><th>분류</th><th>키워드</th><th style="text-align:right">만재</th></tr></thead><tbody id="capB"></tbody><tbody id="capU"></tbody></table>
 <div style="margin-top:12px;padding:12px;background:#f2f7f4;border-radius:12px">
@@ -512,12 +512,12 @@ function openShare(){
 
 /* ============ 계산 ============ */
 function capOf(n){
- // 사이즈 명시 시: 바닥면적(1톤 장축 1600×3500=5.6㎡) × 단수(적재높이 2100 기준)
+ // 사이즈 명시 시: 바닥면적(1톤 장축 1600×4000=6.4㎡) × 단수(적재높이 2100 기준)
  const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})(?:\s*[*xX×]\s*(\d{3,4}))?/);
  if(sz){const W=+sz[1],D=+sz[2],H=sz[3]?+sz[3]:0;
   if(W>=300&&D>=200){
    // 격자 배열: 가로·세로 실제로 몇 개 들어가는지 (두 방향 중 큰 쪽)
-   const per=Math.max(1,Math.floor(1600/W)*Math.floor(3500/D),Math.floor(1600/D)*Math.floor(3500/W));
+   const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/D),Math.floor(1600/D)*Math.floor(4000/W));
    let ly;
    if(H>=200)ly=Math.max(1,Math.min(3,Math.floor(2100/H)));      // 높이로 단수 결정
    else if(/상판|도어만/.test(n))ly=6;                             // 판재는 눕혀 다량
@@ -527,7 +527,7 @@ function capOf(n){
    const cap=Math.min(per*ly,300);
    return{c:cap,l:'사이즈 '+W+'×'+D+(H?'×'+H:'')+' · '+ly+'단'}}}
  const sw=n.match(/W(\d{3,4})/);
- if(sw){const W=+sw[1];const per=Math.max(1,Math.floor(1600/W)*Math.floor(3500/600),Math.floor(1600/600)*Math.floor(3500/W));return{c:per,l:'사이즈 W'+sw[1]+' · 1단'}}
+ if(sw){const W=+sw[1];const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/600),Math.floor(1600/600)*Math.floor(4000/W));return{c:per,l:'사이즈 W'+sw[1]+' · 1단'}}
  for(const u of CAPU)for(const k of (u.k||[]))if(k&&n.indexOf(k)>=0)return{c:u.c||60,l:u.nm+'(직접등록)'};
  for(const c of CAP_DEF)for(const k of c.k)if(n.indexOf(k)>=0)return{c:CAPS[c.id]||60,l:c.l};
  return{c:CAPS.etc||60,l:'기타'}}
