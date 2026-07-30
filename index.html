@@ -775,17 +775,20 @@ function mergeSame(rows){
   }else{r._k=key;r.loads=1;out.push(r)}});
  return out}
 function tripMins(rows){
+ /* 한 기사가 여러 동선을 맡아도 하루 왕복은 최장 1회 기준 (나머지 동선은 30%만 가산) — 7/30 GPS 실측 대조 */
  const grp={};rows.forEach(r=>{(grp[r.rid]=grp[r.rid]||[]).push(r)});
- const share={},per={};
- Object.keys(grp).forEach(rid=>{
-  const g=grp[rid];let mx=null,pm=35;
-  g.forEach(r=>{const d=driveFor(rid,r.list);if(!mx||d[0]>mx){mx=d[0];pm=d[1]}});
-  /* 같은 동선의 회차는 왕복 주행을 한 번만 나눠 가짐 (대순회/피스톤 왕복 실측 기준) */
-  share[rid]=mx/g.length;per[rid]=pm});
+ const dv={},per={};
+ Object.keys(grp).forEach(rid=>{let mx=null,pm=22;
+  grp[rid].forEach(r=>{const d=driveFor(rid,r.list);if(!mx||d[0]>mx){mx=d[0];pm=d[1]}});
+  dv[rid]=mx;per[rid]=pm});
+ const ds=Object.keys(dv).map(k=>dv[k]).sort((a,b)=>b-a);
+ const totalDrive=ds.length?ds[0]+ds.slice(1).reduce((a,v)=>a+v*0.3,0):0;
+ const sumDv=Object.keys(grp).reduce((a,rid)=>a+dv[rid]*grp[rid].length,0)||1;
  return rows.map(r=>{
   const uniq={};r.list.forEach(o=>uniq[o.n]=1);
-  const n=Object.keys(uniq).length;   /* 같은 거래처 반복은 1곳으로 */
-  return Math.round(share[r.rid]+n*per[r.rid]+20*((r.loads||1)-1))})}
+  const n=Object.keys(uniq).length;
+  const share=totalDrive*(dv[r.rid]/sumDv);
+  return Math.round(share+n*per[r.rid]+20*((r.loads||1)-1))})}
 function estRoute(id,list){if(!list.length)return 0;const d=driveFor(id,list);return d[0]+list.length*d[1]}
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||234)>mx)mx=DRIVE_MIN[r]||234});return mx+stops*22}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
