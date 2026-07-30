@@ -991,7 +991,7 @@ function tabMine(today){
  return h}
 let TROPEN={};
 function trToggle(i){TROPEN[i]=!TROPEN[i];render()}
-let RSEL='';
+let RSEL='';let ROPEN={};
 function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
@@ -1002,8 +1002,8 @@ function tabRoute(today){
   const dn=list.filter(o=>ST[o.i]==='done').length;
   const pc=list.length?dn/list.length*100:0;
   const dv=CAR[x.id]||'';
-  const open=RSEL===x.id;
-  h+='<div class="dcard dvrow" onclick="RSEL=RSEL===\''+x.id+'\'?\'\':\''+x.id+'\';render()">'
+  const open=ROPEN[x.id]!==false;
+  h+='<div class="dcard dvrow" onclick="ROPEN[\''+x.id+'\']=ROPEN[\''+x.id+'\']===false?true:false;render()">'
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
    +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
    +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'
