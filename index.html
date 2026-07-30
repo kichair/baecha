@@ -158,6 +158,7 @@ button,select,input{font-family:inherit}
 .trdet span{font-size:12px;font-weight:700;color:#33475c;background:#f4f7fa;border-radius:8px;padding:4px 8px}
 .trdet span b{color:#0f5f37;margin-right:3px}
 .trdet span i{font-style:normal;color:#8b9aab;font-weight:600}
+.chipdrv{margin-left:6px;padding:3px 5px;border:1.2px solid #cfe3d6;border-radius:7px;font-size:11.5px;font-weight:800;color:#0f5f37;background:#fff}
 .bigsw{margin-top:10px;padding:12px 20px;border:2px solid #0f5f37;background:#fff;border-radius:12px;font-weight:800;font-size:15px;color:#0f5f37;cursor:pointer}
 .bigsw:active{background:#eaf7ef}
 .srchbar{position:relative;background:#fff;border:1.5px solid #dde5ee;border-radius:12px;padding:11px 14px;display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:15px}
@@ -248,8 +249,8 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 </div>
 
 <div class="tabs">
- <button id="tb0" onclick="go(0)"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
  <button id="tb3" onclick="go(3)"><em>🛣️</em>동선별</button>
+ <button id="tb0" onclick="go(0)"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
  <button id="tb4" onclick="go(4)"><em>🧑‍✈️</em>기사별</button>
  <button id="tb1" onclick="go(1)"><em>🚚</em>기사별 배송</button>
  <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
@@ -770,11 +771,19 @@ let PEND={};
 function pendDrv(i,v){PEND[i]=v;render();toast((v||'동선 기사')+' 선택 — 카드를 오른쪽으로 밀면 이동합니다')}
 function setDrv(i,v){const o=ORDERS[i];if(v)DRVOV[o.key]=v;else delete DRVOV[o.key];save();render();toast(v?v+' 기사에게 배정':'동선 기사 따름')}
 function setDrv2(i,v){const o=ORDERS[i];if(v)DRV2[o.key]=v;else delete DRV2[o.key];save();render();toast(v?'분할: '+v+' 기사 추가':'분할 해제')}
+function fuzzyHit(o,nq){
+ const hay=(o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'')).replace(/\s/g,'');
+ if(hay.indexOf(nq)>=0)return true;
+ if(typeof ALIAS_DB!=='undefined'&&ALIAS_DB[nq]===o.n)return true;
+ for(let i=2;i<=nq.length-2;i++){
+  const a=nq.slice(0,i),b=nq.slice(i);
+  if(hay.indexOf(a)>=0&&hay.indexOf(b)>=0)return true}
+ return false}
 function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
  if(!v){el.innerHTML='';return}
  const nv=v.replace(/\s/g,'');
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
- const hits=today.filter(o=>o.n.replace(/\s/g,'').indexOf(nv)>=0).slice(0,12);
+ const hits=today.filter(o=>fuzzyHit(o,nv)).slice(0,12);
  el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchGo('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
 let FQ=null;
 function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=0;render();window.scrollTo(0,0)}
@@ -996,7 +1005,8 @@ function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
- let h='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 누르면 거래처 목록, 거래처를 누르면 품목</span></div><div class="dlist">';
+ let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 대전성신처럼 줄여 써도 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+ h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
   const list=by[x.id];
   const dn=list.filter(o=>ST[o.i]==='done').length;
@@ -1007,10 +1017,15 @@ function tabRoute(today){
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
    +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
    +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'
-   +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+(dv||x.zone.slice(0,24))+'</span>'
+   +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
    +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
-   +(open&&list.length?'<div class="trdet">'+list.map((o,j)=>'<span onclick="event.stopPropagation();srchGo('+o.i+')" style="cursor:pointer"><b>'+(j+1)+'</b>'+o.n+' <i>'+o.qty+'개</i>'+(ST[o.i]==='done'?' ✅':'')+'</span>').join('')+'</div>':'')
+   +(open&&list.length?'<div class="trdet">'+list.map((o,j)=>{
+     const cd=effDrv(o)||'';
+     return '<span style="cursor:pointer"><b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b><u onclick="event.stopPropagation();srchGo('+o.i+')" style="text-decoration:none">'+o.n+' <i>'+o.qty+'개</i>'+(ST[o.i]==='done'?' ✅':'')+'</u>'
+      +'<select class="chipdrv" onclick="event.stopPropagation()" onchange="setDrv('+o.i+',this.value)">'
+      +'<option value="">'+(CAR[ASSIGN[o.i]]?CAR[ASSIGN[o.i]]:'미지정')+'</option>'
+      +DRVS.map(d=>'<option value="'+d[0]+'"'+(DRVOV[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>').join('')+'</select></span>'}).join('')+'</div>':'')
   +'</div>';
  });
  return h+'</div>'}
