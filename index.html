@@ -1326,7 +1326,11 @@ function onOrders(f){if(!f)return;
   if(hi<0)return alert('헤더를 찾지 못했습니다.\n"거래처명" 컬럼이 있는 명세서인지 확인해주세요.');
   const H=rows[hi].map(x=>String(x||'').replace(/\s/g,''));
   const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
-  const iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
+  let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
+  /* 삼정 명세서 호환: '적요'가 없으면 '비고'를 메모로 사용하고 규격은 비움 */
+  if(iM<0){iM=iS;iS=-1}
+  /* 삼정 명세서 호환: '거래일자'가 없으면 '일자-No.' 같은 일자/날짜 컬럼 사용(회계반영일자 제외) */
+  if(iD<0)iD=H.findIndex(function(h){return (h.indexOf('일자')>=0||h.indexOf('날짜')>=0)&&h.indexOf('회계')<0});
   if(iN<0||iP<0||iQ<0)return alert('거래처명 / 품목명·규격 / 수량 컬럼이 필요합니다.');
   const NEW=[],cs={};let cn=0;
   rows.slice(hi+1).forEach(function(r){
@@ -1342,11 +1346,20 @@ function onOrders(f){if(!f)return;
    NEW.push({n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd})});
   if(!NEW.length)return alert('읽을 수 있는 주문이 없습니다.');
   const nd=[];NEW.forEach(function(l){if(nd.indexOf(l.d)<0)nd.push(l.d)});
-  if(!confirm('거래처 '+cn+'곳 · '+nd.join(', ')+'\n불러올까요? 같은 날짜 자료는 교체됩니다.'))return;
-  RAW=RAW.filter(l=>nd.indexOf(l.d)<0).concat(NEW);RAWV=Date.now();
+  const dup=RAW.some(function(l){return nd.indexOf(l.d)>=0});
+  if(!confirm('거래처 '+cn+'곳 · '+nd.join(', ')+'\n'+NEW.length+'건을 불러올까요?'))return;
+  let addMode=false;
+  if(dup)addMode=confirm('※ '+nd.join(', ')+' 자료가 이미 있습니다.\n\n[확인]  기존 자료에 합치기  (광일 + 삼정처럼 두 명세서를 같이 볼 때)\n[취소]  기존 자료를 지우고 이 파일로 교체');
+  if(addMode){
+   const key=function(l){return [l.d,l.n,l.p,l.s,l.q,l.m].join('\u0001')};
+   const seen={};RAW.forEach(function(l){seen[key(l)]=1});
+   const add=NEW.filter(function(l){if(seen[key(l)])return false;seen[key(l)]=1;return true});
+   RAW=RAW.concat(add);RAWV=Date.now();
+   toast(add.length+'건 합쳐짐 (중복 '+(NEW.length-add.length)+'건 제외) ✨');
+  }else{RAW=RAW.filter(l=>nd.indexOf(l.d)<0).concat(NEW);RAWV=Date.now()}
   if(nd.length===1)SEL=nd[0];
   ASSIGN=null;ST={};build(true);save();render();
-  toast(cn+'곳 불러옴 — 자동배정 완료 ✨');
+  if(!addMode)toast(cn+'곳 불러옴 — 자동배정 완료 ✨');
  }catch(e){alert('오류: '+e.message)}})}
 
 function drawCapU(){
