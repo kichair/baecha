@@ -173,6 +173,11 @@ button,select,input{font-family:inherit}
 .rghd{grid-column:1/-1;display:flex;align-items:center;gap:7px;background:#0f5f37;color:#fff;
  border-radius:8px;padding:6px 11px;font-weight:800;font-size:12.5px;margin-top:5px}
 .rghd:first-child{margin-top:0}
+.rghd .rgsel{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.45);
+ border-radius:7px;padding:3px 6px;font-size:12.5px;font-weight:800;max-width:150px;cursor:pointer}
+.rghd .rgsel:hover{background:rgba(255,255,255,.28)}
+.rghd .rgsel option{color:#1b2733;background:#fff;font-weight:700}
+.rghd .rgtr{background:rgba(255,255,255,.22);border-radius:5px;padding:1px 6px;font-size:10.5px;font-weight:800}
 .rghd .rcnt{margin-left:auto;font-style:normal;font-weight:700;font-size:11.5px;opacity:.9;white-space:nowrap}
 .rghd .vtag{background:rgba(255,255,255,.22);color:#fff}
 .rghd .rwarn{font-style:normal;background:#fdecea;color:#c0392b;border-radius:5px;padding:1px 6px;font-size:10.5px;font-weight:800}
@@ -721,6 +726,21 @@ function drawWx(){
   +'<span class="rw" style="color:#0f7a3d">덮개차 '+covQ+'개</span>'
   +'<button class="btn s" onclick="toggleRain()">해제</button>';
 }
+/* 동선별 화면의 녹색 줄에서 기사 바꾸기
+   · 그 동선 전체면 동선 담당 기사(CAR)를 교체
+   · 회차 분할 등 일부만이면 해당 건들만 개별 지정(DRVOV) */
+function setGrpDrv(rid,ids,name){
+ const all=ORDERS.filter(o=>o.d===SEL&&ASSIGN[o.i]===rid&&ST[o.i]!=='del');
+ if(ids.length>=all.length){
+  CAR[rid]=name;
+  all.forEach(o=>{if(DRVOV[o.key])delete DRVOV[o.key]});
+ }else{
+  ids.forEach(function(i){const o=ORDERS[i];
+   if(name)DRVOV[o.key]=name;else delete DRVOV[o.key]});
+ }
+ save();render();
+ toast(name?name+' 기사로 변경 — '+ids.length+'곳':'기사 지정 해제 — '+ids.length+'곳');
+}
 function autoAssign(){if(!confirm('거래처정보·주소·적요·학습 이력으로 다시 배정합니다.'))return;
  ORDERS.forEach(o=>ASSIGN[o.i]=guess(o));save();render();toast('자동배정 완료 ✨')}
 
@@ -1207,10 +1227,21 @@ function tabRoute(today){
      const dopt='<option value="" selected>🚚</option><option value="__R">동선 기사 따름</option>'
       +DRVS.map(d=>'<option value="'+d[0]+'">'+d[0]+'</option>').join('');
      return '<div class="rgrid">'+grps.map(g=>{
-      const nm=String(g.L).split(' ')[0];
+      /* 라벨은 '김태용2'처럼 회차 숫자가 붙어 있음 → 기사명만 떼어냄 */
+      const nm=(function(L){L=String(L);let b='';
+       DRVS.forEach(function(d){if(L.indexOf(d[0])===0&&d[0].length>b.length)b=d[0]});
+       return b||L.replace(/\d+$/,'')})(g.L);
+      const trip=String(g.L).slice(nm.length);
       const gq=g.items.reduce((a,o)=>a+o.qty,0);
       const gd=g.items.filter(o=>ST[o.i]==='done').length;
-      return '<div class="rghd">🚚 '+g.L+vehTag(nm)
+      const gids='['+g.items.map(o=>o.i).join(',')+']';
+      return '<div class="rghd">🚚 '
+       +'<select class="rgsel" title="이 묶음 기사 바꾸기" onclick="event.stopPropagation()" onchange="setGrpDrv(\''+x.id+'\','+gids+',this.value)">'
+        +'<option value="">— 기사 없음 —</option>'
+        +DRVS.map(d=>'<option value="'+d[0]+'"'+(d[0]===nm?' selected':'')+'>'+d[0]+'</option>').join('')
+       +'</select>'
+       +(trip?'<span class="rgtr">'+trip+'회차</span>':'')
+       +vehTag(nm)
        +(isRain(SEL)&&!covered(nm)?'<em class="rwarn">☔개방</em>':'')
        +'<em class="rcnt">'+gd+'/'+g.items.length+'곳 · '+gq+'개</em></div>'
       +g.items.map((o,j)=>'<div class="ritem'+(ST[o.i]==='done'?' dn':'')+'">'
