@@ -156,6 +156,9 @@ button,select,input{font-family:inherit}
 .vtag.vt{background:#dbeafe;color:#1d4ed8}
 .vtag.vh{background:#e6f4ea;color:#0f7a3d}
 .vtag.vw{background:#fdecea;color:#c0392b}
+.sjtag{display:inline-block;font-style:normal;background:#fdecea;color:#d32f2f;border:1px solid #f3bdb8;
+ border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
+.sjtag.part{background:#fff5e6;color:#c9761a;border-color:#f0d3a8}
 .drowtop{display:flex;gap:10px;align-items:baseline}
 .drowtop b{font-size:15.5px}
 .drowtop span{color:#8b9aab;font-size:12px}
@@ -625,6 +628,11 @@ function guess(o){
  if(LEARN[o.n])return LEARN[o.n];
  if(LEARN_RT[o.n])return LEARN_RT[o.n];
  return hitRoute(ADDR[o.n]||'')||hitRoute(o.n+' '+(o.memo||''))||'_'}
+/* 삼정퍼니처 물량 판별 — 적요가 '삼정)' 로 시작하거나 규격이 [삼정가구] */
+function sjItem(it){return it.sj===1||it.s==='[삼정가구]'||/^\s*삼정\)/.test(it.m||'')}
+function isSJ(o){return (o.items||[]).some(sjItem)}
+function sjAll(o){const L=(o.items||[]);return L.length>0&&L.every(sjItem)}
+function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
  if(LEARN[o.n])return '매장';
@@ -788,7 +796,7 @@ function ccard(o){
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c cm '+cls+'" draggable="true" data-i="'+o.i+'">'
   +'<div class="cmrow" onclick="toggleExp(\''+o.key+'\')">'
-  +'<div class="nm">'+o.n+(o.split?' <small>('+(o.ex?'택배':'차량')+')</small>':'')+'</div>'
+  +'<div class="nm">'+sjTag(o)+o.n+(o.split?' <small>('+(o.ex?'택배':'차량')+')</small>':'')+'</div>'
   +'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>'+'<span class="pct">'+(o.load*100).toFixed(0)+'%</span>'
   +(done?'<span class="cchk ok">✓</span>':'<span class="cchk">▾</span>')+'</div>'
   +'<div class="cmsub">'+chips+dest+'</div></div></div>'}
@@ -829,7 +837,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
@@ -1248,7 +1256,7 @@ function tabRoute(today){
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const ad=shortAddr(ADDR[o.n]||'');
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-          +'<u>'+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'})()
+          +'<u>'+sjTag(o)+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'})()
        +'<i>'+o.qty+'개</i>'
        +'<select class="chipdrv" title="기사 바꾸기" onclick="event.stopPropagation()" onchange="if(this.value)setDrv('+o.i+',this.value===\'__R\'?\'\':this.value)">'+dopt+'</select>'
        +'</div>').join('')}).join('')+'</div>'})():'')
@@ -1495,6 +1503,8 @@ function onOrders(f){if(!f)return;
   const H=rows[hi].map(x=>String(x||'').replace(/\s/g,''));
   const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
   let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
+  /* 공급자가 삼정인 명세서(= '적요' 컬럼이 없는 삼정 서식)면 행마다 표시 */
+  const SJFILE = iM<0;
   /* 삼정 명세서 호환: '적요'가 없으면 '비고'를 메모로 사용하고 규격은 비움 */
   if(iM<0){iM=iS;iS=-1}
   /* 삼정 명세서 호환: '거래일자'가 없으면 '일자-No.' 같은 일자/날짜 컬럼 사용(회계반영일자 제외) */
@@ -1511,7 +1521,9 @@ function onOrders(f){if(!f)return;
    else{const mm=String(dv||'').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
     if(mm)dd=mm[1]+'-'+('0'+mm[2]).slice(-2)+'-'+('0'+mm[3]).slice(-2)}
    if(!cs[n]){cs[n]=1;cn++}
-   NEW.push({n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd})});
+   const row={n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd};
+   if(SJFILE)row.sj=1;
+   NEW.push(row)});
   if(!NEW.length)return alert('읽을 수 있는 주문이 없습니다.');
   const nd=[];NEW.forEach(function(l){if(nd.indexOf(l.d)<0)nd.push(l.d)});
   const dup=RAW.some(function(l){return nd.indexOf(l.d)>=0});
@@ -1519,7 +1531,7 @@ function onOrders(f){if(!f)return;
   let addMode=false;
   if(dup)addMode=confirm('※ '+nd.join(', ')+' 자료가 이미 있습니다.\n\n[확인]  기존 자료에 합치기  (광일 + 삼정처럼 두 명세서를 같이 볼 때)\n[취소]  기존 자료를 지우고 이 파일로 교체');
   if(addMode){
-   const key=function(l){return [l.d,l.n,l.p,l.s,l.q,l.m].join('\u0001')};
+   const key=function(l){return [l.d,l.n,l.p,l.s,l.q,l.m,l.sj||''].join('\u0001')};
    const seen={};RAW.forEach(function(l){seen[key(l)]=1});
    const add=NEW.filter(function(l){if(seen[key(l)])return false;seen[key(l)]=1;return true});
    RAW=RAW.concat(add);RAWV=Date.now();
