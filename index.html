@@ -1503,10 +1503,11 @@ function onOrders(f){if(!f)return;
   const H=rows[hi].map(x=>String(x||'').replace(/\s/g,''));
   const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
   let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
-  /* 공급자가 삼정인 명세서(= '적요' 컬럼이 없는 삼정 서식)면 행마다 표시 */
-  const SJFILE = iM<0;
-  /* 삼정 명세서 호환: '적요'가 없으면 '비고'를 메모로 사용하고 규격은 비움 */
-  if(iM<0){iM=iS;iS=-1}
+  /* 공급자가 삼정인 명세서 판별 — 삼정 서식에만 있는 '일자-No.' / '회계반영일자' 컬럼으로 확인
+     (광일 신서식도 '적요'가 없으므로 적요 유무로 판별하면 안 됨) */
+  const SJFILE = H.some(function(h){return h.indexOf('일자-No')>=0||h.indexOf('회계반영일자')>=0});
+  /* 삼정 서식은 '비고'가 메모(적요) 역할 → 규격은 비움. 광일은 '비고'가 규격이므로 그대로 둠 */
+  if(SJFILE){iM=iS;iS=-1}
   /* 삼정 명세서 호환: '거래일자'가 없으면 '일자-No.' 같은 일자/날짜 컬럼 사용(회계반영일자 제외) */
   if(iD<0)iD=H.findIndex(function(h){return (h.indexOf('일자')>=0||h.indexOf('날짜')>=0)&&h.indexOf('회계')<0});
   if(iN<0||iP<0||iQ<0)return alert('거래처명 / 품목명·규격 / 수량 컬럼이 필요합니다.');
