@@ -615,8 +615,22 @@ function destOf(o){
  if(d2){const c=resolveCust(d2[1]);if(c)return{t:ADDR[c]+' ◂'+c.replace(/\(.*$/,'').slice(0,8),src:'적요'};return{t:d2[0].trim()+'으로',src:'적요'}}
  if(ADDR[o.n])return{t:ADDR[o.n],src:'거래처'};
  return null}
-function hitRoute(t){if(!t)return null;
- for(const r of ROUTES)for(const k of r.k)if(t.indexOf(k)>=0)return r.id;return null}
+/* 동선 판별 — 주소는 '시도 → 시군구 → 동' 순서라, 문자열에서 가장 앞에 나온 지명을 채택한다.
+   (예전엔 ROUTES 순서대로 먼저 걸리는 걸 썼더니
+    '고양시 일산서구' → 서구(인천), '강서구' → 서구(인천), '대전 중구' → 중구(마포)로 잘못 잡혔음)
+   같은 위치면 더 긴 키워드가 이김: '일산서구'의 '일산'(4자) > '서구'(2자) */
+/* 동선이 없는 원거리(화물/택배 지역)는 아예 잡지 않는다 — 잘못된 동선에 섞이는 것보다 미배차가 낫다 */
+const FAR_RE=/^\s*(대구광역시|대구|부산광역시|부산|울산광역시|울산|광주광역시|전라남도|전라북도|전북특별자치도|전남|전북|경상남도|경상북도|경남|경북|제주특별자치도|제주)/;
+function hitRoute(t){
+ if(!t)return null;
+ if(FAR_RE.test(t))return null;
+ let bestId=null,bestPos=1e9,bestLen=0;
+ for(const r of ROUTES)for(const k of r.k){
+  const p=t.indexOf(k);
+  if(p<0)continue;
+  if(p<bestPos||(p===bestPos&&k.length>bestLen)){bestId=r.id;bestPos=p;bestLen=k.length}
+ }
+ return bestId}
 function guess(o){
  if(o.ex)return 'x';
  // 1) 실제 과거 배차가 있는 날짜는 그대로 재현
