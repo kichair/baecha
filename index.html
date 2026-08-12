@@ -175,6 +175,8 @@ button,select,input{font-family:inherit}
 .sjtag{display:inline-block;font-style:normal;background:#fdecea;color:#d32f2f;border:1px solid #f3bdb8;
  border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
 .sjtag.part{background:#fff5e6;color:#c9761a;border-color:#f0d3a8}
+.ertag{display:inline-block;font-style:normal;background:#e8f1ff;color:#1b62d6;border:1px solid #b9d2f7;
+ border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
 .drowtop{display:flex;gap:10px;align-items:baseline}
 .drowtop b{font-size:15.5px}
 .drowtop span{color:#8b9aab;font-size:12px}
@@ -185,6 +187,30 @@ button,select,input{font-family:inherit}
 .trdet span{font-size:12px;font-weight:700;color:#33475c;background:#f4f7fa;border-radius:8px;padding:4px 8px}
 .trdet span b{color:#0f5f37;margin-right:3px}
 .trdet span i{font-style:normal;color:#8b9aab;font-weight:600}
+/* 터치 화면용 물방울 선택 */
+#bub{position:fixed;inset:0;z-index:300;background:rgba(10,38,24,.74);display:none;flex-direction:column}
+.bubhd{display:flex;align-items:center;gap:10px;padding:14px 16px;color:#fff;font-size:16px;font-weight:800;flex:none}
+.bubhd b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px}
+.bubhd button{border:none;background:rgba(255,255,255,.2);color:#fff;border-radius:14px;padding:12px 18px;font-size:15px;font-weight:800;cursor:pointer}
+.bubwrap{flex:1;display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-content:flex-start;padding:10px 16px 26px;overflow:auto}
+.bubble{width:108px;height:108px;flex:none;border-radius:50%;border:none;color:#fff;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:2px;font-size:15px;font-weight:900;cursor:pointer;padding:0 6px;
+ text-align:center;line-height:1.15;letter-spacing:-.4px;
+ box-shadow:0 10px 22px rgba(0,0,0,.28),inset 0 -10px 18px rgba(0,0,0,.15),inset 0 10px 16px rgba(255,255,255,.3);
+ animation:bubfloat 4s ease-in-out infinite}
+.bubble i{font-style:normal;font-size:11px;font-weight:700;opacity:.9}
+.bubble.on{outline:4px solid #ffd53d;outline-offset:3px}
+.bubble:active{filter:brightness(1.12)}
+@keyframes bubfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.bubble.pop{animation:bubpop .26s ease-out forwards}
+@keyframes bubpop{0%{transform:scale(1);opacity:1}55%{transform:scale(1.4);opacity:.7}100%{transform:scale(2);opacity:0}}
+.chipbtn{flex:none;width:46px;height:38px;border:1.4px solid #cfe3d6;border-radius:11px;background:#fff;
+ font-size:16px;font-weight:800;color:#5f7086;cursor:pointer;padding:0;line-height:1}
+.chipbtn.rt{border-color:#cfd9e8}
+.chipbtn.tr{border-color:#e3d6bf;background:#fffdf6;color:#8a6d33;font-size:12px}
+.chipbtn:active{background:#eef3f9}
+.rgbtn{border:none;background:rgba(255,255,255,.92);color:#0f5f37;border-radius:11px;padding:8px 14px;
+ font-size:14px;font-weight:900;cursor:pointer;min-height:36px}
 .seqbar{display:flex;align-items:center;gap:6px;margin-top:7px}
 .seqbar button{border:1px solid #dde5ee;background:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:800;color:#5f7086;cursor:pointer}
 .seqbar button:active{background:#eef3f9}
@@ -368,6 +394,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 <div class="db"><div class="tip">기사님은 동선에 고정되지 않습니다. 여기선 명단만 두고, 그날 담당은 각 동선에서 고르세요.</div>
 <div id="drows"></div><button class="btn" onclick="drow('','')">＋ 기사 추가</button></div></dialog>
 
+<div id="bub"></div>
 <dialog id="asd"><div class="dh"><h3>🔧 오늘 A/S 출동</h3><button class="btn g" onclick="asd.close();render()">닫기</button></div>
 <div class="db"><div class="tip">A/S 나가는 기사를 체크하고 <b>가는 지역(주소)</b>을 적어주세요.
 A/S 기사는 짧은 동선에 배정하는 게 좋습니다. 아래 버튼으로 그날 물량이 적은 동선으로 한 번에 바꿀 수 있습니다.</div>
@@ -472,6 +499,7 @@ const ROUTES=[
  {id:'rc',nm:'화·목. 충청·평택',cl:'#c47a2a',days:[2,4],zone:'오산 평택 아산 천안 홍성 예산 보령 서산 당진 / 음성 진천 청주 대전 안성',
   k:['평택','천안','아산','당진','청주','음성','대전','진천','홍성','예산','보령','서산','안성','충주','계룡','대덕','유성','세종','청북','지제','공주','논산','서천','태안','제천','금산']},
  {id:'t35',nm:'3.5톤 (배진성)',cl:'#b5651d',days:[1,2,3,4,5],zone:'대형·원거리 · 1톤의 1.2배 적재',k:[]},
+ {id:'as',nm:'A/S 출동',cl:'#E0762F',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
  {id:'etc',nm:'추가·기타',cl:'#7a8a9c',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]}
 ];
 const RID=Object.fromEntries(ROUTES.map(r=>[r.id,r]));
@@ -578,6 +606,8 @@ let EXP={};
 function toggleExp(k){EXP[k]=EXP[k]===false?true:false;render()}
 const bySeq=(a,b)=>{const x=SEQ[a.key],y=SEQ[b.key];
  if(x!=null||y!=null)return (x??1e9)-(y??1e9);
+ const ea=isEarly(a)?0:1,eb=isEarly(b)?0:1;
+ if(ea!==eb)return ea-eb;
  const p=seqRank(a),q=seqRank(b);
  if(p!=null||q!=null)return (p??1e9)-(q??1e9);
  return a.sk<b.sk?-1:a.sk>b.sk?1:0};
@@ -781,6 +811,10 @@ function guess(o){
 function sjItem(it){return it.sj===1||it.s==='[삼정가구]'||/^\s*삼정\)/.test(it.m||'')}
 function isSJ(o){return (o.items||[]).some(sjItem)}
 function sjAll(o){const L=(o.items||[]);return L.length>0&&L.every(sjItem)}
+/* 적요에 일찍·오전·새벽 이 있으면 그 동선에서 맨 앞으로 보내고 표에 [일찍] 을 붙인다 */
+const EARLY_RE=/일찍|오전중|오전|새벽|아침|빨리|급건|9시|10시까지/;
+function isEarly(o){return EARLY_RE.test(o&&o.memo||'')}
+function erTag(o){return isEarly(o)?'<em class="ertag" title="적요에 일찍·오전 표시 - 먼저 배송">일찍</em>':''}
 function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
@@ -1038,7 +1072,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+erTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
@@ -1206,6 +1240,60 @@ function srchStep(d){
 function srchClear(){SQ='';SHIT=[];const q=document.getElementById('srchq');if(q)q.value='';applySrch(false)}
 let FQ=null;
 /* 회차 직접 지정 (1　3차) — 빈 값이면 적재량 기준 자동 */
+/* ===== 물방울 선택 — 터치 화면에서 크게 고르기 ===== */
+let BUB=null;
+/* 물방울 색 — 한눈에 구분되게 */
+const BUB_PAL=['#0F6E4A','#1B62D6','#C2410C','#7C3AED','#0E7490','#B91C1C',
+ '#A16207','#4338CA','#047857','#BE185D','#0369A1','#9333EA'];
+function vehOf(n){const d=DRVS.filter(function(x){return x[0]===n})[0];return d?(d[2]||''):''}
+function bubItems(kind,o){
+ if(kind==='drv'||kind==='gdrv'){
+  const a=[{v:'__R',t:'동선 기사',s:(o&&CAR[ASSIGN[o.i]])||'지정 따름',c:'#5f7086'}];
+  return a.concat(DRVS.map(function(d,k){return {v:d[0],t:d[0],s:d[2]||'',c:d[0]==='용차'?'#78849a':BUB_PAL[k%BUB_PAL.length]}}));
+ }
+ if(kind==='rt'){
+  return ROUTES.map(function(r,k){
+   const m=r.nm.match(/^(\d+)\.\s*/);
+   return {v:r.id,t:m?r.nm.slice(m[0].length):r.nm,s:m?m[1]+'번':'',c:r.cl&&r.cl!=='#2F7FE8'?r.cl:BUB_PAL[k%BUB_PAL.length]}})
+   .concat([{v:'x',t:'제외',s:'택배·상차',c:'#8a97a8'}]);
+ }
+ const t=[];for(let k=1;k<=TRIP_MAX;k++)t.push({v:String(k),t:k+'차',s:'',c:'#c9761a'});
+ t.push({v:'0',t:'자동',s:'적재량 기준',c:'#5f7086'});return t;
+}
+function bubDraw(title,items,cur){
+ const el=document.getElementById('bub');if(!el)return;
+ el.innerHTML='<div class="bubhd"><b>'+title+'</b><button onclick="closeBub()">✕ 닫기</button></div>'
+  +'<div class="bubwrap">'+items.map(function(x,k){
+   return '<button class="bubble'+(String(x.v)===String(cur)?' on':'')+'"'
+    +' style="background:'+x.c+';animation-delay:'+(k*0.26).toFixed(2)+'s;animation-duration:'+(3.4+(k%5)*0.5).toFixed(2)+'s"'
+    +' onclick="popBub(this,\''+String(x.v).replace(/'/g,'')+'\')">'
+    +'<span>'+x.t+'</span>'+(x.s?'<i>'+x.s+'</i>':'')+'</button>'}).join('')+'</div>';
+ el.style.display='flex';
+}
+function openBub(kind,i){
+ const o=ORDERS[i];if(!o)return;
+ BUB={kind:kind,i:i};
+ const nm=o.n.length>14?o.n.slice(0,14)+'…':o.n;
+ const cur=kind==='drv'?(DRVOV[o.key]||''):kind==='rt'?ASSIGN[o.i]:String(TRIP[o.key]||'');
+ const ttl=(kind==='drv'?'🚚 기사 선택':kind==='rt'?'🛣️ 동선 선택':'⏱ 회차 선택')+' — '+nm;
+ bubDraw(ttl,bubItems(kind,o),cur);
+}
+function openBubG(rid,ids,cur){
+ BUB={kind:'gdrv',rid:rid,ids:ids};
+ bubDraw('🚚 이 묶음 기사 바꾸기 — '+((RID[rid]||{}).nm||rid)+' '+ids.length+'곳',bubItems('gdrv',null),cur||'');
+}
+function closeBub(){BUB=null;const el=document.getElementById('bub');if(el){el.style.display='none';el.innerHTML=''}}
+function popBub(btn,v){
+ if(!BUB)return;const B=BUB;BUB=null;
+ btn.classList.add('pop');
+ setTimeout(function(){
+  closeBub();
+  if(B.kind==='drv')setDrv(B.i,v==='__R'?'':v);
+  else if(B.kind==='gdrv')setGrpDrv(B.rid,B.ids,v==='__R'?'':v);
+  else if(B.kind==='rt')move(B.i,v,'동선 이동',1);
+  else setTrip(B.i,v);
+ },250);
+}
 function setTrip(i,v){
  const o=ORDERS[i];if(!o||v==='')return;
  if(v==='0'){delete TRIP[o.key]}else{TRIP[o.key]=Math.min(TRIP_MAX,Math.max(1,+v||1))}
@@ -1382,7 +1470,7 @@ function tabBoard(today){
   else{
    let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
    h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
-   h+='<button class="bigsw" onclick="FQ=null;render()" style="width:100%;margin-top:6px">← 전체 배차판 보기</button>';
+   h+='<button class="bigsw" onclick="FQ=null;TAB=3;render()" style="width:100%;margin-top:6px">← 동선별 배차표로</button>';
    return h}}
  const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{(by[ASSIGN[o.i]]||by._).push(o)});
@@ -1531,10 +1619,7 @@ function tabRoute(today){
       const gd=g.items.filter(o=>ST[o.i]==='done').length;
       const gids='['+g.items.map(o=>o.i).join(',')+']';
       return '<div class="rghd">🚚 '
-       +'<select class="rgsel" title="이 묶음 기사 바꾸기" onclick="event.stopPropagation()" onchange="setGrpDrv(\''+x.id+'\','+gids+',this.value)">'
-        +'<option value="">— 기사 없음 —</option>'
-        +DRVS.map(d=>'<option value="'+d[0]+'"'+(d[0]===nm?' selected':'')+'>'+d[0]+'</option>').join('')
-       +'</select>'
+       +'<button class="rgbtn" onclick="event.stopPropagation();openBubG(\''+x.id+'\','+gids+',\''+nm.replace(/'/g,'')+'\')">'+(nm||'기사 지정')+' ▾</button>'
        +(trip?'<span class="rgtr">'+trip+'회차</span>':'')
        +vehTag(nm)+asTag(nm)
        +(isRain(SEL)&&!covered(nm)?'<em class="rwarn">☔개방</em>':'')
@@ -1543,11 +1628,11 @@ function tabRoute(today){
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const ad=shortAddr(ADDR[o.n]||'');
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-          +'<u>'+sjTag(o)+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'})()
+          +'<u>'+erTag(o)+sjTag(o)+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'})()
        +'<i>'+o.qty+'개</i>'
-       +'<select class="chipdrv" title="기사 바꾸기" onclick="event.stopPropagation()" onchange="if(this.value)setDrv('+o.i+',this.value===\'__R\'?\'\':this.value)">'+dopt+'</select>'
-       +'<select class="chiprt" title="동선 바꾸기" onclick="event.stopPropagation()" onchange="if(this.value)move('+o.i+',this.value,\'동선 이동\',1)">'+ropt+'</select>'
-       +'<select class="chiptr" title="몇 차로 나갈지" onclick="event.stopPropagation()" onchange="setTrip('+o.i+',this.value)">'+tropt(o)+'</select>'
+       +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'
+       +'<button class="chipbtn rt" title="동선 바꾸기" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
+       +'<button class="chipbtn tr" title="몇 차로 나갈지" onclick="event.stopPropagation();openBub(\'tr\','+o.i+')">'+(TRIP[o.key]?TRIP[o.key]+'차':'\u23F1')+'</button>'
        +'</div>').join('')}).join('')+'</div>'})():'')
   +'</div>';
  });
