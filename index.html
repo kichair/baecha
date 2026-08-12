@@ -187,23 +187,24 @@ button,select,input{font-family:inherit}
 .trdet span{font-size:12px;font-weight:700;color:#33475c;background:#f4f7fa;border-radius:8px;padding:4px 8px}
 .trdet span b{color:#0f5f37;margin-right:3px}
 .trdet span i{font-style:normal;color:#8b9aab;font-weight:600}
-/* 터치 화면용 물방울 선택 */
-#bub{position:fixed;inset:0;z-index:300;background:rgba(10,38,24,.74);display:none;flex-direction:column}
-.bubhd{display:flex;align-items:center;gap:10px;padding:14px 16px;color:#fff;font-size:16px;font-weight:800;flex:none}
-.bubhd b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px}
-.bubhd button{border:none;background:rgba(255,255,255,.2);color:#fff;border-radius:14px;padding:12px 18px;font-size:15px;font-weight:800;cursor:pointer}
-.bubwrap{flex:1;display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-content:flex-start;padding:10px 16px 26px;overflow:auto}
-.bubble{width:108px;height:108px;flex:none;border-radius:50%;border:none;color:#fff;display:flex;flex-direction:column;
- align-items:center;justify-content:center;gap:2px;font-size:15px;font-weight:900;cursor:pointer;padding:0 6px;
- text-align:center;line-height:1.15;letter-spacing:-.4px;
- box-shadow:0 10px 22px rgba(0,0,0,.28),inset 0 -10px 18px rgba(0,0,0,.15),inset 0 10px 16px rgba(255,255,255,.3);
- animation:bubfloat 4s ease-in-out infinite}
-.bubble i{font-style:normal;font-size:11px;font-weight:700;opacity:.9}
-.bubble.on{outline:4px solid #ffd53d;outline-offset:3px}
-.bubble:active{filter:brightness(1.12)}
-@keyframes bubfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.bubble.pop{animation:bubpop .26s ease-out forwards}
-@keyframes bubpop{0%{transform:scale(1);opacity:1}55%{transform:scale(1.4);opacity:.7}100%{transform:scale(2);opacity:0}}
+/* 터치 화면용 이모티콘 선택판 */
+#bub{position:fixed;inset:0;z-index:300;background:rgba(8,28,18,.55);display:none;align-items:center;justify-content:center;padding:16px}
+.bubcard{background:#fff;border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.32);width:min(720px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;animation:bubin .16s ease-out}
+@keyframes bubin{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.bubhd{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#0f5f37;color:#fff;flex:none}
+.bubhd b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:800}
+.bubhd button{border:none;background:rgba(255,255,255,.22);color:#fff;border-radius:12px;padding:9px 15px;font-size:14px;font-weight:800;cursor:pointer}
+.bubwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px;padding:14px;overflow:auto}
+.bubble{border:1.5px solid #e6ecf3;background:#fff;border-radius:16px;padding:10px 5px 9px;cursor:pointer;
+ display:flex;flex-direction:column;align-items:center;gap:5px;transition:transform .1s,border-color .1s}
+.bubble .em{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+ font-size:21px;font-weight:900;color:#fff;line-height:1;box-shadow:0 3px 8px rgba(0,0,0,.16)}
+.bubble span{font-size:13px;font-weight:800;color:#33475c;line-height:1.15;text-align:center;letter-spacing:-.3px}
+.bubble i{font-style:normal;font-size:10.5px;font-weight:700;color:#8b9aab}
+.bubble:active{transform:scale(.95)}
+.bubble.on{border-color:#03C75A;background:#f2fbf5}
+.bubble.pop{animation:bubpop .24s ease-out forwards}
+@keyframes bubpop{0%{transform:scale(1)}50%{transform:scale(1.14)}100%{transform:scale(.55);opacity:0}}
 .chipbtn{flex:none;width:46px;height:38px;border:1.4px solid #cfe3d6;border-radius:11px;background:#fff;
  font-size:16px;font-weight:800;color:#5f7086;cursor:pointer;padding:0;line-height:1}
 .chipbtn.rt{border-color:#cfd9e8}
@@ -1253,28 +1254,38 @@ let BUB=null;
 const BUB_PAL=['#0F6E4A','#1B62D6','#C2410C','#7C3AED','#0E7490','#B91C1C',
  '#A16207','#4338CA','#047857','#BE185D','#0369A1','#9333EA'];
 function vehOf(n){const d=DRVS.filter(function(x){return x[0]===n})[0];return d?(d[2]||''):''}
+const VEH_EM={'\ud0d1\ucc28':'\uD83D\uDE9B','\ud638\ub85c':'\uD83D\uDEFB','\uce74\uace0':'\uD83D\uDE9A'};
+const RT_EM={rw:'\uD83D\uDCC5',rc:'\uD83D\uDCC5',t35:'\uD83D\uDE9B',as:'\uD83D\uDD27',etc:'\u2795'};
 function bubItems(kind,o){
  if(kind==='drv'||kind==='gdrv'){
-  const a=[{v:'__R',t:'동선 기사',s:(o&&CAR[ASSIGN[o.i]])||'지정 따름',c:'#5f7086'}];
-  return a.concat(DRVS.map(function(d,k){return {v:d[0],t:d[0],s:d[2]||'',c:d[0]==='용차'?'#78849a':BUB_PAL[k%BUB_PAL.length]}}));
+  const a=[{v:'__R',t:'\ub3d9\uc120 \uae30\uc0ac',s:(o&&CAR[ASSIGN[o.i]])||'\uc9c0\uc815 \ub530\ub984',c:'#8794a6',e:'\uD83D\uDD01'}];
+  return a.concat(DRVS.map(function(d,k){
+   const veh=d[2]||'';
+   return {v:d[0],t:d[0],s:veh,c:d[0].indexOf('\uc6a9\ucc28')===0?'#78849a':BUB_PAL[k%BUB_PAL.length],
+    e:d[0].indexOf('\uc6a9\ucc28')===0?'\uD83D\uDE90':(VEH_EM[veh]||'\uD83D\uDE9A')}}));
  }
  if(kind==='rt'){
   return ROUTES.map(function(r,k){
-   const m=r.nm.match(/^(\d+)\.\s*/);
-   return {v:r.id,t:m?r.nm.slice(m[0].length):r.nm,s:m?m[1]+'번':'',c:r.cl&&r.cl!=='#2F7FE8'?r.cl:BUB_PAL[k%BUB_PAL.length]}})
-   .concat([{v:'x',t:'제외',s:'택배·상차',c:'#8a97a8'}]);
+   const m=r.nm.match(/^(\d+)\.\s+/);
+   return {v:r.id,t:m?r.nm.slice(m[0].length):r.nm,s:'',
+    c:(r.cl&&r.cl!=='#2F7FE8')?r.cl:BUB_PAL[k%BUB_PAL.length],
+    e:m?m[1]:(RT_EM[r.id]||'\uD83D\uDEE3')}})
+   .concat([{v:'x',t:'\uc81c\uc678',s:'\ud0dd\ubc30\u00b7\uc0c1\ucc28',c:'#8a97a8',e:'\uD83D\uDCE6'}]);
  }
- const t=[];for(let k=1;k<=TRIP_MAX;k++)t.push({v:String(k),t:k+'차',s:'',c:'#c9761a'});
- t.push({v:'0',t:'자동',s:'적재량 기준',c:'#5f7086'});return t;
+ const t=[];const EM=['1\uFE0F\u20E3','2\uFE0F\u20E3','3\uFE0F\u20E3'];
+ for(let k=1;k<=TRIP_MAX;k++)t.push({v:String(k),t:k+'\ucc28',s:'',c:'#c9761a',e:EM[k-1]||String(k)});
+ t.push({v:'0',t:'\uc790\ub3d9',s:'\uc801\uc7ac\ub7c9 \uae30\uc900',c:'#8794a6',e:'\uD83D\uDD04'});return t;
 }
 function bubDraw(title,items,cur){
  const el=document.getElementById('bub');if(!el)return;
- el.innerHTML='<div class="bubhd"><b>'+title+'</b><button onclick="closeBub()">✕ 닫기</button></div>'
-  +'<div class="bubwrap">'+items.map(function(x,k){
+ el.innerHTML='<div class="bubcard" onclick="event.stopPropagation()">'
+  +'<div class="bubhd"><b>'+title+'</b><button onclick="closeBub()">\u2715 \ub2eb\uae30</button></div>'
+  +'<div class="bubwrap">'+items.map(function(x){
    return '<button class="bubble'+(String(x.v)===String(cur)?' on':'')+'"'
-    +' style="background:'+x.c+';animation-delay:'+(k*0.26).toFixed(2)+'s;animation-duration:'+(3.4+(k%5)*0.5).toFixed(2)+'s"'
     +' onclick="popBub(this,\''+String(x.v).replace(/'/g,'')+'\')">'
-    +'<span>'+x.t+'</span>'+(x.s?'<i>'+x.s+'</i>':'')+'</button>'}).join('')+'</div>';
+    +'<b class="em" style="background:'+x.c+'">'+x.e+'</b>'
+    +'<span>'+x.t+'</span>'+(x.s?'<i>'+x.s+'</i>':'')+'</button>'}).join('')+'</div></div>';
+ el.onclick=function(){closeBub()};
  el.style.display='flex';
 }
 function openBub(kind,i){
