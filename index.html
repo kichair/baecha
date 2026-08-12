@@ -303,6 +303,7 @@ button,select,input{font-family:inherit}
 .hitmark{background:#fff3a8!important;box-shadow:0 0 0 3px #ffd53d;border-radius:12px}
 .srn{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13px;font-weight:700;color:#5f7086}
 .srn b{color:#c9761a}
+.srit{font-style:normal;font-size:12px;font-weight:800;color:#1b62d6;background:#eef4ff;border-radius:8px;padding:2px 8px}
 .srb{margin-left:auto;display:flex;gap:4px}
 .srb button{border:1px solid #dde5ee;background:#fff;border-radius:8px;width:30px;height:28px;font-size:12px;font-weight:800;color:#5f7086;cursor:pointer}
 .srb button:active{background:#eef3f9}
@@ -637,10 +638,50 @@ DRVS=DRVS.map(function(d){return [d[0],d[1]||'',d[2]||VEH_DEF[d[0]]||'카고']})
 function vehOf(n){const d=DRVS.filter(function(x){return x[0]===n})[0];return (d&&d[2])||VEH_DEF[n]||'카고'}
 function covered(n){const v=vehOf(n);return v==='탑차'||v==='호로'}
 function vehTag(n){const v=vehOf(n);return v==='카고'?'':'<span class="vtag '+(v==='탑차'?'vt':'vh')+'">'+v+'</span>'}
-let WXD=LSU('_wxd',{});  /* 일자별 강수 {날짜:{p:강수확률%, m:강수량mm}} */
+let WXD=LSU('_wxd',{});  /* 본사 기준 일자별 강수 {날짜:{p,m}} */
+/* 동선별 대표 좌표 — 그날 실제로 가는 동선의 비만 본다 */
+const RT_GEO={r1:[37.48,126.65],r2:[37.50,126.78],r3:[37.68,126.77],r4:[37.49,127.02],
+ r5:[37.56,127.01],r6:[37.34,126.74],r7:[37.28,127.01],rw:[37.35,127.95],
+ rc:[36.62,127.20],t35:[36.35,127.38],as:[37.48,126.65],etc:[37.48,126.65]};
+let WXR=LSU('_wxr',{});  /* {날짜:{동선id:{p,m}}} */
 let RNO=LSU('_rno',{});  /* 수동 우천 지정 {날짜:1|0} */
-function isRain(d){if(!d)return false;if(RNO[d]!=null)return !!RNO[d];
- const w=WXD[d];return !!(w&&(w.p>=60||w.m>=1))}
+/* 그날 배차가 있는 동선 목록 */
+function rtsOfDay(d){
+ const set={};
+ (typeof ORDERS!=='undefined'?ORDERS:[]).forEach(function(o){
+  if(o.d!==d||ST[o.i]==='del')return;
+  const r=ASSIGN?ASSIGN[o.i]:null;
+  if(r&&r!=='x'&&r!=='_'&&RT_GEO[r])set[r]=1});
+ return Object.keys(set);
+}
+function wxOf(d,rid){
+ const m=WXR[d];
+ if(m&&m[rid])return m[rid];
+ return WXD[d]||null;
+}
+/* 비 오는 동선만 골라낸다 — [{id,nm,p,m}] */
+function rainRts(d){
+ const out=[];
+ rtsOfDay(d).forEach(function(r){
+  const w=wxOf(d,r);
+  if(w&&(w.p>=60||w.m>=1))out.push({id:r,nm:(RID[r]||{}).nm||r,p:w.p,m:w.m})});
+ return out;
+}
+/* 동선 하나만 볼 때 */
+function isRainRt(d,rid){
+ if(!d)return false;
+ if(RNO[d]!=null)return !!RNO[d];
+ const w=wxOf(d,rid);
+ return !!(w&&(w.p>=60||w.m>=1));
+}
+/* 그날 전체 — 실제로 가는 동선 중 하나라도 비면 우천 */
+function isRain(d){
+ if(!d)return false;
+ if(RNO[d]!=null)return !!RNO[d];
+ const rs=rtsOfDay(d);
+ if(rs.length)return rainRts(d).length>0;
+ const w=WXD[d];return !!(w&&(w.p>=60||w.m>=1));
+}
 let SEL=localStorage.getItem(KEY+'_sel')||'';
 let TAB=+(localStorage.getItem(KEY+'_tab')||0);
 let ME=localStorage.getItem(KEY+'_me')||'';
@@ -701,7 +742,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);
+ SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -713,7 +754,7 @@ let SB=null,SB_ON=false,pushT=null,applying=false;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;
+ o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -722,7 +763,7 @@ function applySnap(o){applying=true;try{
  if(o['_dov'])DRVOV=o['_dov'];if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
  if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];if(o['_trip'])TRIP=o['_trip'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_c'])CAPS=o['_c'];
- if(o['_wxd'])WXD=o['_wxd'];if(o['_rno'])RNO=o['_rno'];if(o['_rwm'])RWMK=o['_rwm'];if(o['_as'])ASV=o['_as'];
+ if(o['_wxd'])WXD=o['_wxd'];if(o['_wxr'])WXR=o['_wxr'];if(o['_rno'])RNO=o['_rno'];if(o['_rwm'])RWMK=o['_rwm'];if(o['_as'])ASV=o['_as'];
  if(o['_dv'])DRVS=o['_dv'].map(function(d){return [d[0],d[1]||'',d[2]||VEH_DEF[d[0]]||'카고']});
  if(o['_raw']&&(o['_rawv']||0)>RAWV){RAW=o['_raw'];RAWV=o['_rawv']||RAWV;if(o['_fe'])FEE=o['_fe']}
  if(o['_ad'])ADDR=Object.assign({},ADDR_DB,BUILTIN.A,o['_ad']);
@@ -963,14 +1004,23 @@ function build(fresh){
 /* ============ ☔ 날씨 · 우천 배차 ============ */
 async function fetchWx(){
  try{
-  const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.978'
+  const ids=Object.keys(RT_GEO);
+  const lat=ids.map(function(k){return RT_GEO[k][0]}).join(',');
+  const lon=ids.map(function(k){return RT_GEO[k][1]}).join(',');
+  const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon
    +'&daily=precipitation_probability_max,precipitation_sum&timezone=Asia%2FSeoul&past_days=14&forecast_days=16',{cache:'no-store'});
   if(!r.ok)return;
-  const j=await r.json(),D=j.daily||{},T=D.time||[];
-  if(!T.length)return;
-  T.forEach(function(t,i){
-   WXD[t]={p:Math.round((D.precipitation_probability_max||[])[i]||0),
-           m:Math.round(((D.precipitation_sum||[])[i]||0)*10)/10}});
+  let j=await r.json();
+  if(!Array.isArray(j))j=[j];
+  j.forEach(function(one,k){
+   const rid=ids[k], D=(one&&one.daily)||{}, T=D.time||[];
+   T.forEach(function(t,i){
+    const p=Math.round((D.precipitation_probability_max||[])[i]||0);
+    const mm=Math.round(((D.precipitation_sum||[])[i]||0)*10)/10;
+    (WXR[t]=WXR[t]||{})[rid]={p:p,m:mm};
+    if(rid==='r1')WXD[t]={p:p,m:mm};   /* 본사(인천 서구) 기준값 */
+   });
+  });
   save();drawWx();
  }catch(e){}
 }
@@ -998,25 +1048,38 @@ function drawRw(){
 function drawWx(){
  const b=document.getElementById('wxb'),bar=document.getElementById('rainbar');
  if(!b||!bar)return;
- const w=WXD[SEL],rain=isRain(SEL);
  const auto=RNO[SEL]==null;
- b.textContent=(rain?'☔':'☀️')+(w?' '+w.p+'%':'');
+ const wet=rainRts(SEL);                    /* 그날 실제로 가는 동선 중 비 오는 곳 */
+ const rain=isRain(SEL);
+ const top=wet.slice().sort(function(x,y){return y.p-x.p})[0];
+ const home=WXD[SEL];
+ b.textContent=(rain?'☔':'☀️')+(top?' '+top.p+'%':(home?' '+home.p+'%':''));
  b.style.background=rain?'#dbeafe':'';
  b.style.color=rain?'#1d4ed8':'';
- b.title=(w?SEL+' 강수확률 '+w.p+'% · 강수량 '+w.m+'mm':'날씨 정보 없음')
+ b.title=(wet.length
+   ? SEL+' 비 오는 동선 — '+wet.map(function(x){return x.nm+' '+x.p+'%'}).join(' · ')
+   : (rtsOfDay(SEL).length?SEL+' 오늘 가는 동선은 비 예보 없음':(home?SEL+' 본사 강수확률 '+home.p+'%':'날씨 정보 없음')))
   +(auto?' (자동)':' (수동 지정)')+' — 누르면 전환';
  if(!rain){bar.style.display='none';return}
  const cov=DRVS.map(d=>d[0]).filter(covered);
- /* 오늘 물량 중 개방형 카고에 실린 양 */
+ const wetIds={};wet.forEach(function(x){wetIds[x.id]=1});
+ const wetOnly=wet.length>0;               /* 수동 우천이면 전 동선 대상 */
+ /* 비 오는 동선의 물량만 센다 */
  let openQ=0,covQ=0,openN=0;
  ORDERS.forEach(function(o){
   if(o.d!==SEL||ST[o.i]==='del'||ASSIGN[o.i]==='x')return;
+  if(wetOnly&&!wetIds[ASSIGN[o.i]])return;
   const dn=effDrv(o);if(!dn)return;
   if(covered(dn))covQ+=o.qty;else{openQ+=o.qty;openN++}});
  bar.style.display='';
  bar.innerHTML='<b>☔ 우천 배차</b>'
-  +(w?'<span class="rw">강수확률 '+w.p+'% · '+w.m+'mm</span>':'')
-  +'<span class="rc2">덮개차: '+(cov.length?cov.map(function(x){return x+'('+vehOf(x)+')'}).join(' · '):'없음 — ⋯ → 기사 명단에서 지정하세요')+'</span>'
+  +(wet.length
+     ? wet.sort(function(x,y){return y.p-x.p}).slice(0,5).map(function(x){
+        return '<span class="rw">'+x.nm+' '+x.p+'%'+(x.m?' · '+x.m+'mm':'')+'</span>'}).join('')
+       +(wet.length>5?'<span class="rc2">외 '+(wet.length-5)+'개 동선</span>':'')
+     : '<span class="rw">직접 지정</span>')
+  +'<span class="rc2">'+(wet.length?'비 오는 동선 기준':'오늘 전체 기준')
+     +' · 덮개차: '+(cov.length?cov.map(function(x){return x+'('+vehOf(x)+')'}).join(' · '):'없음 — ⋯ → 기사 명단에서 지정하세요')+'</span>'
   +'<span class="rw" style="color:#c0392b">개방 카고 '+openN+'곳 · '+openQ+'개 노출</span>'
   +'<span class="rw" style="color:#0f7a3d">덮개차 '+covQ+'개</span>'
   +'<button class="btn s" onclick="toggleRain()">해제</button>';
@@ -1240,8 +1303,14 @@ function multiMatch(hayRaw,raw){
   for(var i=2;i<=q.length-2;i++){
    if(hl.indexOf(q.slice(0,i))>=0&&hl.indexOf(q.slice(i))>=0)return true}}
  return false}
+/* 검색 대상 문자열 — 거래처명 · 주소 · 적요 + 품목·규격(의자·침대·흑로 …) */
+function hayOf(o){
+ if(o._hay)return o._hay;
+ var it=(o.items||[]).map(function(x){return x.p+' '+(x.s||'')}).join(' ');
+ return o._hay=o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'')+' '+it;
+}
 function fuzzyHit(o,nq){
- var hay=o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'');
+ var hay=hayOf(o);
  if(typeof ALIAS_DB!=='undefined'&&ALIAS_DB[nq]===o.n)return true;
  return multiMatch(hay,nq)}
 /* ===== 거래처 검색 =====
@@ -1249,6 +1318,15 @@ function fuzzyHit(o,nq){
    · 글자를 치는 즉시 그 글자를 포함한 모든 건이 노란색으로 표시되고 첫 번째 위치로 이동
    · 표시는 다른 검색을 하거나 ✕ 를 누를 때까지 그대로 유지 */
 let SQ='', SHIT=[], SIDX=0;
+/* 검색어가 품목에 걸렸으면 그 품목 이름을 돌려준다 */
+function hitItem(o,q){
+ if(!q)return '';
+ var t=kloose(q).replace(/\s+/g,'');if(!t)return '';
+ var f=(o.items||[]).filter(function(x){
+  var h=kloose(x.p+' '+(x.s||'')).replace(/\s+/g,'');return h.indexOf(t)>=0});
+ if(!f.length)return '';
+ return f.map(function(x){return x.p}).slice(0,2).join(', ')+(f.length>2?' 외':'');
+}
 function srchIn(v){
  SQ=(v||'');
  if(!SQ.trim()){SHIT=[];applySrch(false);return}
@@ -1277,6 +1355,9 @@ function applySrch(jump){
  if(el){el.style.display='';
   el.innerHTML=SHIT.length
    ?'<div class="srn">\uD83D\uDD0E <b>'+SHIT.length+'\uACF3</b> \uCC3E\uC74C'
+     +(function(){var ns=[];SHIT.forEach(function(i){var t=hitItem(ORDERS[i],SQ);
+        if(t)t.split(', ').forEach(function(x){if(ns.indexOf(x)<0&&ns.length<3)ns.push(x)})});
+       return ns.length?'<em class="srit">'+ns.join(' · ')+'</em>':''})()
      +'<span class="srb"><button onclick="srchStep(-1)">\u25B2</button>'
      +'<button onclick="srchStep(1)">\u25BC</button>'
      +'<button onclick="srchClear()">\u2715</button></span></div>'
@@ -1619,7 +1700,7 @@ function tabBoard(today){
  if(FQ!=null){const fo=ORDERS[FQ];
   if(!fo||fo.d!==SEL||ST[fo.i]==='del')FQ=null;
   else{
-   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대도 됩니다됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
    h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
    h+='<button class="bigsw" onclick="FQ=null;TAB=3;render()" style="width:100%;margin-top:6px">← 동선별 배차표로</button>';
    return h}}
@@ -1632,7 +1713,7 @@ function tabBoard(today){
  const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
  const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
  let h=wxHTML()+'<div class="kpis">'
- +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
+ +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대도 됩니다됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
  +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
  +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
  +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
@@ -1738,7 +1819,7 @@ function tabRoute(today){
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
  const tl=tripLabels(today);
- let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시 (대전성신처럼 줄임말 OK)" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+ let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대, 대전성신 다 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
  h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
   const list=by[x.id];
