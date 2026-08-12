@@ -227,6 +227,12 @@ button,select,input{font-family:inherit}
 .kpisrch{grid-column:span 2;margin-bottom:0;font-size:17px;border-width:2px;border-color:#bcd8c6}
 .kpisrch input{font-size:16px;font-weight:700}
 .srchbar input{border:none;outline:none;flex:1;font-size:15px;background:transparent}
+.hitmark{background:#fff3a8!important;box-shadow:0 0 0 3px #ffd53d;border-radius:12px}
+.srn{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13px;font-weight:700;color:#5f7086}
+.srn b{color:#c9761a}
+.srb{margin-left:auto;display:flex;gap:4px}
+.srb button{border:1px solid #dde5ee;background:#fff;border-radius:8px;width:30px;height:28px;font-size:12px;font-weight:800;color:#5f7086;cursor:pointer}
+.srb button:active{background:#eef3f9}
 .hitflash{animation:hitfl 2.2s ease-out;border-radius:12px}
 @keyframes hitfl{0%{background:#fff3a8;box-shadow:0 0 0 3px #ffd53d}
  60%{background:#fffbe0;box-shadow:0 0 0 3px rgba(255,213,61,.55)}
@@ -640,7 +646,7 @@ const SIZE_SKIP=['침대','매트리스','침상','소파','쇼파'];
 function capOf(n){
  for(let z=0;z<SIZE_SKIP.length;z++){
   if(n.indexOf(SIZE_SKIP[z])<0)continue;
-  for(const c of CAP_DEF)for(const k of c.k)if(k&&n.indexOf(k)>=0)return{c:CAPS[c.id]||60,l:c.l};
+  for(const c of CAP_DEF)for(const k of c.k)if(k&&n.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l};
  }
  // 사이즈 명시 시: 바닥면적(1톤 장축 1600×4000=6.4㎡) × 단수(적재높이 2100 기준)
  const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})(?:\s*[*xX×]\s*(\d{3,4}))?/);
@@ -659,7 +665,7 @@ function capOf(n){
  const sw=n.match(/W(\d{3,4})/);
  if(sw){const W=+sw[1];const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/600),Math.floor(1600/600)*Math.floor(4000/W));return{c:per,l:'사이즈 W'+sw[1]+' · 1단'}}
  for(const u of CAPU)for(const k of (u.k||[]))if(k&&n.indexOf(k)>=0)return{c:u.c||60,l:u.nm+'(직접등록)'};
- for(const c of CAP_DEF)for(const k of c.k)if(n.indexOf(k)>=0)return{c:CAPS[c.id]||60,l:c.l};
+ for(const c of CAP_DEF)for(const k of c.k)if(n.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l};
  return{c:CAPS.etc||60,l:'기타'}}
 const loadOf=o=>o.items.reduce((s,it)=>s+it.q/(capOf(it.p).c||60),0);
 
@@ -1010,7 +1016,10 @@ function render(){
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
  app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):tabStat(today);
- bind();save();if(TAB===2)initMap()}
+ bind();
+ const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
+ applySrch(false);
+ save();if(TAB===2)initMap()}
 function setupHTML(){const a=Object.keys(ADDR).length;
  return '<div class="setup"><div class="em">🚚</div><h2>시작해볼까요</h2>'
  +'<p>거래처정보와 명세서를 넣으면<br>동선별로 자동 배차합니다.</p>'
@@ -1097,12 +1106,52 @@ function fuzzyHit(o,nq){
  var hay=o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'');
  if(typeof ALIAS_DB!=='undefined'&&ALIAS_DB[nq]===o.n)return true;
  return multiMatch(hay,nq)}
-function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
- if(!v){el.innerHTML='';return}
- const nv=v;
+/* ===== 거래처 검색 =====
+   Ctrl+F 처럼 동작한다.
+   · 글자를 치는 즉시 그 글자를 포함한 모든 건이 노란색으로 표시되고 첫 번째 위치로 이동
+   · 표시는 다른 검색을 하거나 ✕ 를 누를 때까지 그대로 유지 */
+let SQ='', SHIT=[], SIDX=0;
+function srchIn(v){
+ SQ=(v||'');
+ if(!SQ.trim()){SHIT=[];applySrch(false);return}
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
- const hits=today.filter(o=>fuzzyHit(o,nv)).slice(0,12);
- el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchJump('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
+ SHIT=today.filter(o=>fuzzyHit(o,SQ)).sort(bySeq).map(o=>o.i);
+ /* 접혀 있는 동선·구역은 펼쳐서 찾은 곳이 보이게 한다 */
+ let need=false;
+ SHIT.forEach(function(i){const r=ASSIGN[i]||'_';
+  if(typeof ROPEN!=='undefined'&&ROPEN[r]===false){ROPEN[r]=true;need=true}
+  if(typeof OPEN!=='undefined'&&OPEN[r]===false){OPEN[r]=true;need=true}});
+ if(need){
+  render();
+  const q=document.getElementById('srchq');
+  if(q){q.focus();try{q.setSelectionRange(SQ.length,SQ.length)}catch(e){}}
+ }
+ applySrch(true);
+}
+/* 화면에 노란 표시를 입힌다 (render 뒤에도 다시 불러서 표시를 유지) */
+function applySrch(jump){
+ [].forEach.call(document.querySelectorAll('.hitmark'),function(e){e.classList.remove('hitmark')});
+ const el=document.getElementById('srchres');
+ if(!SQ.trim()){if(el){el.innerHTML='';el.style.display='none'}return}
+ let first=null;
+ SHIT.forEach(function(i){const e=document.getElementById('hit'+i);
+  if(e){e.classList.add('hitmark');if(!first)first=e}});
+ if(el){el.style.display='';
+  el.innerHTML=SHIT.length
+   ?'<div class="srn">\uD83D\uDD0E <b>'+SHIT.length+'\uACF3</b> \uCC3E\uC74C'
+     +'<span class="srb"><button onclick="srchStep(-1)">\u25B2</button>'
+     +'<button onclick="srchStep(1)">\u25BC</button>'
+     +'<button onclick="srchClear()">\u2715</button></span></div>'
+   :'<div class="srn">\uAC80\uC0C9 \uACB0\uACFC \uC5C6\uC74C<span class="srb"><button onclick="srchClear()">\u2715</button></span></div>'}
+ if(jump&&first){SIDX=0;first.scrollIntoView({behavior:'smooth',block:'center'})}
+}
+function srchStep(d){
+ if(!SHIT.length)return;
+ SIDX=(SIDX+d+SHIT.length)%SHIT.length;
+ const e=document.getElementById('hit'+SHIT[SIDX]);
+ if(e)e.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function srchClear(){SQ='';SHIT=[];const q=document.getElementById('srchq');if(q)q.value='';applySrch(false)}
 let FQ=null;
 function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=0;render();window.scrollTo(0,0)}
 /* 검색 → 카드 상세로 들어가지 않고 Ctrl+F 처럼 그 자리로만 이동 */
@@ -1269,7 +1318,7 @@ function tabBoard(today){
  if(FQ!=null){const fo=ORDERS[FQ];
   if(!fo||fo.d!==SEL||ST[fo.i]==='del')FQ=null;
   else{
-   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
    h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
    h+='<button class="bigsw" onclick="FQ=null;render()" style="width:100%;margin-top:6px">← 전체 배차판 보기</button>';
    return h}}
@@ -1282,7 +1331,7 @@ function tabBoard(today){
  const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
  const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
  let h=wxHTML()+'<div class="kpis">'
- +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처명 검색" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
+ +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
  +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
  +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
  +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
@@ -1381,7 +1430,7 @@ function tabRoute(today){
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
  const tl=tripLabels(today);
- let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 대전성신처럼 줄여 써도 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+ let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처명 검색 — 치는 즉시 모두 표시 (대전성신처럼 줄임말 OK)" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
  h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
   const list=by[x.id];
