@@ -742,6 +742,7 @@ function ilsiLabel(m){
  if(!s)return '적요없음';
  let t=s.split(/[,\/(\n]/)[0];
  t=t.replace(/\d{2,3}-\d{3,4}-\d{4}.*$/,'')
+    .replace(/\s*[가-힣]{2,4}\s*(과장|부장|차장|대리|사장|대표|팀장|실장|소장)\s*님?\s*$/,'')
     .replace(/(전달만|설치|직납|직배).*$/,'')
     .replace(/[\s!.]+$/,'').trim();
  return (t||s).slice(0,20);
@@ -769,9 +770,9 @@ function autoRotate(dateStr){
 function build(fresh){
  ORDERS=[];const g={};
  RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';
-  const sub=ILSI_RE.test(l.n)?String(l.m||''):'';   /* 일시성이면 적요를 키에 넣어 분리 */
+  const sub=ILSI_RE.test(l.n)?ilsiLabel(l.m):'';   /* 일시성이면 적요의 기관명으로 분리 */
   const k=dkey(l.n,ex,l.d)+(sub?'§'+sub:'');
-  if(!g[k])g[k]={n:l.n+(sub?' · '+ilsiLabel(sub):''),ex:ex||null,od:l.d,items:[]};
+  if(!g[k])g[k]={n:l.n+(sub?' · '+sub:''),ex:ex||null,od:l.d,items:[]};
   g[k].items.push(l)});
  Object.keys(g).forEach(k=>{const c=g[k];
   const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
