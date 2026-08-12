@@ -1323,7 +1323,7 @@ function bubDraw(title,items,cur){
  el.style.display='flex';
 }
 /* 떠다니는 방식 — 기사 고를 때만 */
-function bubFloat(title,items,cur){
+function bubFloat(title,items,cur,topOnly){
  const el=document.getElementById('bub');if(!el)return;
  el.className='flt';el.style.display='block';
  const W=window.innerWidth,H=window.innerHeight;
@@ -1331,7 +1331,9 @@ function bubFloat(title,items,cur){
  let cols=Math.max(2,Math.round(Math.sqrt(n*W/Math.max(H,1))));
  cols=Math.min(cols,Math.max(2,Math.floor(W/150)));
  const rows=Math.ceil(n/cols);
- const padT=Math.min(120,H*0.16),padB=40,padX=Math.min(90,W*0.09);
+ const padT=Math.min(120,H*0.16),padX=Math.min(90,W*0.09);
+ /* 위쪽에만 띄우기 — 동선·회차처럼 개수가 정해진 건 화면 윗부분에 모아둔다 */
+ const padB=topOnly?Math.max(60,H*0.42):40;
  const cw=(W-padX*2)/cols, ch=(H-padT-padB)/rows;
  let h='<div class="fhd"><b>'+title+'</b>'
   +'<button onclick="event.stopPropagation();closeBub()">\u2715 \ub2eb\uae30</button></div>';
@@ -1355,8 +1357,8 @@ function openBub(kind,i){
  BUB={kind:kind,i:i};
  const nm=o.n.length>14?o.n.slice(0,14)+'…':o.n;
  const cur=kind==='drv'?(DRVOV[o.key]||''):kind==='rt'?ASSIGN[o.i]:String(TRIP[o.key]||'');
- const ttl=(kind==='drv'?'✋ 기사 고르기':kind==='rt'?'🛣️ 동선 선택':'⏱ 회차 선택')+' — '+nm;
- if(kind==='drv')bubFloat(ttl,bubItems(kind,o),cur);else bubDraw(ttl,bubItems(kind,o),cur);
+ const ttl=(kind==='drv'?'✋ 기사 고르기':kind==='rt'?'✋ 동선 고르기':'✋ 회차 고르기')+' — '+nm;
+ bubFloat(ttl,bubItems(kind,o),cur,kind!=='drv');
 }
 function openBubG(rid,ids,cur){
  BUB={kind:'gdrv',rid:rid,ids:ids};
