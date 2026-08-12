@@ -482,6 +482,8 @@ let RAW=LS('_raw',null);
 if(!RAW||RAWV<BUILD_TS){RAW=SEED_LINES.slice();RAWV=BUILD_TS}
 let FEE=Object.assign({},SEED_FEE,LSU('_fe',{}));
 let CAPS=LSU('_c',null)||Object.fromEntries(CAP_DEF.map(c=>[c.id,c.c]));
+/* 새로 추가된 적재기준 항목은 저장된 값에 없으므로 기본값을 채워 넣는다 */
+CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
 let CAPU=LSU('_capu',[]);
 let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{}),DRV2=LSU('_dv2',{});
 let CUSTOM=LSU('_cu',[]);
