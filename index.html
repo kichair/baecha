@@ -205,6 +205,36 @@ button,select,input{font-family:inherit}
 .bubble.on{border-color:#03C75A;background:#f2fbf5}
 .bubble.pop{animation:bubpop .24s ease-out forwards}
 @keyframes bubpop{0%{transform:scale(1)}50%{transform:scale(1.14)}100%{transform:scale(.55);opacity:0}}
+/* 떠다니는 기사 고르기 — 뒤 화면 안 가림 */
+#bub.flt{background:transparent;display:block}
+#bub.flt .fhd{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
+ background:#fff;border-radius:999px;padding:11px 20px;box-shadow:0 10px 26px rgba(0,0,0,.24);z-index:6}
+#bub.flt .fhd b{font-size:18px;color:#23384b;max-width:54vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bub.flt .fhd button{border:none;background:#eef2f6;color:#5f7086;border-radius:999px;padding:9px 16px;font-size:15px;font-weight:800;cursor:pointer}
+.fbub{position:absolute;transform:translate(-50%,-50%);border:none;background:transparent;padding:0;cursor:pointer;
+ display:flex;flex-direction:column;align-items:center;gap:5px;animation:fdrift 9s ease-in-out infinite alternate}
+@keyframes fdrift{from{translate:0 0}to{translate:var(--dx) var(--dy)}}
+.fem{width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;
+ box-shadow:0 8px 18px rgba(0,0,0,.3),inset 0 -8px 14px rgba(0,0,0,.18),inset 0 8px 12px rgba(255,255,255,.3)}
+.fbub>span{background:#fff;border-radius:11px;padding:4px 12px;font-size:16px;font-weight:900;color:#23384b;white-space:nowrap;
+ box-shadow:0 4px 12px rgba(0,0,0,.22),0 0 0 1.5px rgba(255,255,255,.9)}
+.fbub>span i{font-style:normal;font-weight:700;color:#8b9aab;font-size:12px;margin-left:5px}
+.fbub.on .fem{outline:5px solid #ffd53d;outline-offset:3px}
+.fbub.pop{animation:none;z-index:5}
+.fbub.pop .fem{animation:fsquash .32s ease-out forwards}
+@keyframes fsquash{0%{transform:scale(1)}45%{transform:scaleY(.5) scaleX(1.25)}100%{transform:scale(.4);opacity:0}}
+.fhand{position:absolute;left:50%;top:-56px;width:150px;height:172px;pointer-events:none;
+ filter:drop-shadow(0 0 14px rgba(167,139,250,.9)) drop-shadow(0 12px 18px rgba(0,0,0,.38));
+ animation:fslap .3s ease-out both}
+@keyframes fslap{0%{transform:translate(-50%,-70px) rotate(-32deg);opacity:0}
+ 45%{opacity:1}100%{transform:translate(-50%,0) rotate(-10deg);opacity:1}}
+.fbang{position:absolute;left:50%;top:-96px;transform:translateX(-50%) rotate(-7deg);background:#ffd53d;color:#7a4b00;
+ font-weight:900;font-size:18px;padding:6px 15px;border-radius:10px;box-shadow:0 5px 14px rgba(0,0,0,.3);
+ white-space:nowrap;pointer-events:none;animation:fpop .3s ease-out both}
+@keyframes fpop{0%{transform:translateX(-50%) scale(.5) rotate(-7deg);opacity:0}100%{transform:translateX(-50%) scale(1) rotate(-7deg);opacity:1}}
+.fstar{position:absolute;width:11px;height:11px;border-radius:50%;background:#ffd53d;pointer-events:none;
+ box-shadow:0 0 0 2px rgba(255,255,255,.8);animation:fstarout .45s ease-out both}
+@keyframes fstarout{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--sx),var(--sy)) scale(1);opacity:0}}
 .chipbtn{flex:none;width:46px;height:38px;border:1.4px solid #cfe3d6;border-radius:11px;background:#fff;
  font-size:16px;font-weight:800;color:#5f7086;cursor:pointer;padding:0;line-height:1}
 .chipbtn.rt{border-color:#cfd9e8}
@@ -1250,6 +1280,7 @@ let FQ=null;
 /* 회차 직접 지정 (1　3차) — 빈 값이면 적재량 기준 자동 */
 /* ===== 물방울 선택 — 터치 화면에서 크게 고르기 ===== */
 let BUB=null;
+const HAND_SVG='<svg viewBox="0 0 220 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;overflow:visible"><defs><path id="khp" d="M60,120 L60,58 a14,14 0 0 1 28,0 L88,112 L96,112 L96,38 a14,14 0 0 1 28,0 L124,112 L132,112 L132,44 a14,14 0 0 1 28,0 L160,112 L168,112 L168,70 a14,14 0 0 1 28,0 L196,150 Q198,214 156,222 L104,230 Q64,234 58,196 L54,168 C40,166 22,156 18,140 C14,124 28,116 40,124 L58,138 Z"/></defs><g opacity=".5" transform="translate(-22,-12) rotate(-7 110 130)"><use href="#khp" fill="#fff" stroke="#fff" stroke-width="30" stroke-linejoin="round"/><use href="#khp" fill="#9AA8BD" stroke="#15181d" stroke-width="11" stroke-linejoin="round"/></g><use href="#khp" fill="#fff" stroke="#fff" stroke-width="30" stroke-linejoin="round"/><use href="#khp" fill="#9AA8BD" stroke="#15181d" stroke-width="11" stroke-linejoin="round"/></svg>';
 /* 물방울 색 — 한눈에 구분되게 */
 const BUB_PAL=['#0F6E4A','#1B62D6','#C2410C','#7C3AED','#0E7490','#B91C1C',
  '#A16207','#4338CA','#047857','#BE185D','#0369A1','#9333EA'];
@@ -1288,29 +1319,70 @@ function bubDraw(title,items,cur){
  el.onclick=function(){closeBub()};
  el.style.display='flex';
 }
+/* 떠다니는 방식 — 기사 고를 때만 */
+function bubFloat(title,items,cur){
+ const el=document.getElementById('bub');if(!el)return;
+ el.className='flt';el.style.display='block';
+ const W=window.innerWidth,H=window.innerHeight;
+ const n=items.length;
+ let cols=Math.max(2,Math.round(Math.sqrt(n*W/Math.max(H,1))));
+ cols=Math.min(cols,Math.max(2,Math.floor(W/150)));
+ const rows=Math.ceil(n/cols);
+ const padT=Math.min(120,H*0.16),padB=40,padX=Math.min(90,W*0.09);
+ const cw=(W-padX*2)/cols, ch=(H-padT-padB)/rows;
+ let h='<div class="fhd"><b>'+title+'</b>'
+  +'<button onclick="event.stopPropagation();closeBub()">\u2715 \ub2eb\uae30</button></div>';
+ items.forEach(function(x,k){
+  const c=k%cols,r=Math.floor(k/cols);
+  const jx=(Math.random()-0.5)*cw*0.42, jy=(Math.random()-0.5)*ch*0.36;
+  const L=Math.round(padX+c*cw+cw/2+jx), T=Math.round(padT+r*ch+ch/2+jy);
+  const dx=Math.round(-14+Math.random()*28), dy=Math.round(-16+Math.random()*32);
+  const dur=(8+Math.random()*5).toFixed(1), del=(Math.random()*4).toFixed(1);
+  h+='<button class="fbub'+(String(x.v)===String(cur)?' on':'')+'"'
+   +' style="left:'+L+'px;top:'+T+'px;--dx:'+dx+'px;--dy:'+dy+'px;animation-duration:'+dur+'s;animation-delay:-'+del+'s"'
+   +' onclick="event.stopPropagation();popBub(this,\''+String(x.v).replace(/'/g,'')+'\')">'
+   +'<b class="fem" style="background:'+x.c+'">'+x.e+'</b>'
+   +'<span>'+x.t+(x.s?'<i>'+x.s+'</i>':'')+'</span></button>';
+ });
+ el.innerHTML=h;
+ el.onclick=function(){closeBub()};
+}
 function openBub(kind,i){
  const o=ORDERS[i];if(!o)return;
  BUB={kind:kind,i:i};
  const nm=o.n.length>14?o.n.slice(0,14)+'…':o.n;
  const cur=kind==='drv'?(DRVOV[o.key]||''):kind==='rt'?ASSIGN[o.i]:String(TRIP[o.key]||'');
- const ttl=(kind==='drv'?'🚚 기사 선택':kind==='rt'?'🛣️ 동선 선택':'⏱ 회차 선택')+' — '+nm;
- bubDraw(ttl,bubItems(kind,o),cur);
+ const ttl=(kind==='drv'?'✋ 기사 고르기':kind==='rt'?'🛣️ 동선 선택':'⏱ 회차 선택')+' — '+nm;
+ if(kind==='drv')bubFloat(ttl,bubItems(kind,o),cur);else bubDraw(ttl,bubItems(kind,o),cur);
 }
 function openBubG(rid,ids,cur){
  BUB={kind:'gdrv',rid:rid,ids:ids};
- bubDraw('🚚 이 묶음 기사 바꾸기 — '+((RID[rid]||{}).nm||rid)+' '+ids.length+'곳',bubItems('gdrv',null),cur||'');
+ bubFloat('✋ 이 묶음 기사 고르기 — '+((RID[rid]||{}).nm||rid)+' '+ids.length+'곳',bubItems('gdrv',null),cur||'');
 }
-function closeBub(){BUB=null;const el=document.getElementById('bub');if(el){el.style.display='none';el.innerHTML=''}}
+function closeBub(){BUB=null;const el=document.getElementById('bub');
+ if(el){el.style.display='none';el.className='';el.innerHTML='';el.onclick=null}}
 function popBub(btn,v){
  if(!BUB)return;const B=BUB;BUB=null;
  btn.classList.add('pop');
+ if(btn.classList.contains('fbub')){
+  const sp=btn.querySelector('span');
+  const nm=(sp&&sp.childNodes[0]?sp.childNodes[0].textContent:'')||'';
+  const hd=document.createElement('div');hd.className='fhand';hd.innerHTML=HAND_SVG;btn.appendChild(hd);
+  const bg=document.createElement('div');bg.className='fbang';bg.textContent='짝! '+nm.trim();btn.appendChild(bg);
+  for(let z=0;z<7;z++){const st=document.createElement('i');st.className='fstar';
+   const a=z/7*6.283, d=46+Math.random()*26;
+   st.style.left='34px';st.style.top='34px';
+   st.style.setProperty('--sx',Math.round(Math.cos(a)*d)+'px');
+   st.style.setProperty('--sy',Math.round(Math.sin(a)*d)+'px');
+   st.style.animationDelay=(z*0.012)+'s';btn.appendChild(st)}
+ }
  setTimeout(function(){
   closeBub();
   if(B.kind==='drv')setDrv(B.i,v==='__R'?'':v);
   else if(B.kind==='gdrv')setGrpDrv(B.rid,B.ids,v==='__R'?'':v);
   else if(B.kind==='rt')move(B.i,v,'동선 이동',1);
   else setTrip(B.i,v);
- },250);
+ },360);
 }
 function setTrip(i,v){
  const o=ORDERS[i];if(!o||v==='')return;
