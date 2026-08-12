@@ -222,11 +222,11 @@ button,select,input{font-family:inherit}
 .fbub>span i{font-style:normal;font-weight:700;color:#8b9aab;font-size:12px;margin-left:5px}
 .fbub.on .fem{outline:5px solid #ffd53d;outline-offset:3px}
 .fbub.pop{animation:none;z-index:5}
-.fbub.pop .fem{animation:fsquash .24s ease-out .09s forwards}
+.fbub.pop .fem{animation:fsquash .22s ease-out .07s forwards}
 @keyframes fsquash{0%{transform:scale(1)}45%{transform:scaleY(.5) scaleX(1.25)}100%{transform:scale(.4);opacity:0}}
 .fhand{position:absolute;left:50%;top:-56px;width:150px;height:172px;pointer-events:none;
  filter:drop-shadow(0 0 14px rgba(167,139,250,.9)) drop-shadow(0 12px 18px rgba(0,0,0,.38));
- animation:fslap .15s cubic-bezier(.3,1.5,.5,1) both}
+ animation:fslap .12s cubic-bezier(.3,1.6,.5,1) both}
 @keyframes fslap{0%{transform:translate(-50%,-54px) rotate(-26deg);opacity:.2}
  30%{opacity:1}100%{transform:translate(-50%,0) rotate(-10deg);opacity:1}}
 .fbang{position:absolute;left:50%;top:-96px;transform:translateX(-50%) rotate(-7deg);background:#ffd53d;color:#7a4b00;
@@ -1304,18 +1304,31 @@ function slapSound(){
   ACTX=ACTX||new (window.AudioContext||window.webkitAudioContext)();
   if(ACTX.state==='suspended')ACTX.resume();
   const t=ACTX.currentTime, sr=ACTX.sampleRate;
-  /* 짝 — 짧은 잡음 */
-  const len=Math.floor(sr*0.11), buf=ACTX.createBuffer(1,len,sr), d=buf.getChannelData(0);
-  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);
-  const src=ACTX.createBufferSource();src.buffer=buf;
-  const bp=ACTX.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2100;bp.Q.value=0.75;
-  const g=ACTX.createGain();g.gain.setValueAtTime(0.42,t);g.gain.exponentialRampToValueAtTime(0.0008,t+0.12);
-  src.connect(bp);bp.connect(g);g.connect(ACTX.destination);src.start(t);
-  /* 툭 — 낮은 울림 */
-  const o=ACTX.createOscillator(), og=ACTX.createGain();
-  o.type='sine';o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(58,t+0.1);
-  og.gain.setValueAtTime(0.3,t);og.gain.exponentialRampToValueAtTime(0.0008,t+0.13);
-  o.connect(og);og.connect(ACTX.destination);o.start(t);o.stop(t+0.15);
+  function noise(sec,shape){
+   const n=Math.max(1,Math.floor(sr*sec)), b=ACTX.createBuffer(1,n,sr), d=b.getChannelData(0);
+   for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*shape(i/n);
+   const src=ACTX.createBufferSource();src.buffer=b;return src;
+  }
+  /* 1) 휙 — 파리채 휘두르는 바람소리 */
+  const sw=noise(0.075,function(x){return Math.sin(Math.PI*x)});
+  const swf=ACTX.createBiquadFilter();swf.type='bandpass';swf.Q.value=1.1;
+  swf.frequency.setValueAtTime(500,t);swf.frequency.exponentialRampToValueAtTime(2600,t+0.075);
+  const swg=ACTX.createGain();swg.gain.setValueAtTime(0.0001,t);
+  swg.gain.exponentialRampToValueAtTime(0.13,t+0.055);
+  swg.gain.exponentialRampToValueAtTime(0.0005,t+0.085);
+  sw.connect(swf);swf.connect(swg);swg.connect(ACTX.destination);sw.start(t);
+  /* 2) 딱 — 플라스틱이 부딪는 순간 (아주 짧고 날카롭게) */
+  const T=t+0.07;
+  const hit=noise(0.05,function(x){return Math.pow(1-x,7)});
+  const hp=ACTX.createBiquadFilter();hp.type='highpass';hp.frequency.value=2400;
+  const pk=ACTX.createBiquadFilter();pk.type='peaking';pk.frequency.value=4200;pk.Q.value=1.2;pk.gain.value=9;
+  const hg=ACTX.createGain();hg.gain.setValueAtTime(0.6,T);hg.gain.exponentialRampToValueAtTime(0.0006,T+0.055);
+  hit.connect(hp);hp.connect(pk);pk.connect(hg);hg.connect(ACTX.destination);hit.start(T);
+  /* 3) 팍 — 채 판이 떨리는 짧은 울림 */
+  const bd=noise(0.06,function(x){return Math.pow(1-x,4)});
+  const bf=ACTX.createBiquadFilter();bf.type='bandpass';bf.frequency.value=950;bf.Q.value=2.4;
+  const bg=ACTX.createGain();bg.gain.setValueAtTime(0.34,T);bg.gain.exponentialRampToValueAtTime(0.0006,T+0.065);
+  bd.connect(bf);bf.connect(bg);bg.connect(ACTX.destination);bd.start(T);
  }catch(e){}
 }
 let BUB=null;
@@ -1422,7 +1435,7 @@ function popBub(btn,v){
    st.style.left='34px';st.style.top='34px';
    st.style.setProperty('--sx',Math.round(Math.cos(a)*d)+'px');
    st.style.setProperty('--sy',Math.round(Math.sin(a)*d)+'px');
-   st.style.animationDelay=(0.09+z*0.012)+'s';btn.appendChild(st)}
+   st.style.animationDelay=(0.07+z*0.012)+'s';btn.appendChild(st)}
  }
  setTimeout(function(){
   closeBub();
