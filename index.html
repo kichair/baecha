@@ -156,6 +156,12 @@ button,select,input{font-family:inherit}
  border-radius:10px;background:#f2ecfb;border:1px solid #d6c6ef;color:#5b3b91;font-size:12.5px;font-weight:700}
 #rwbar .rw2{background:#fff;border-radius:20px;padding:2px 9px;font-weight:800}
 #rwbar .rc3{color:#4a3a63;font-weight:600}
+#dfbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 10px 8px;padding:9px 12px;
+ border-radius:10px;background:#eef7ef;border:1px solid #c6e3ca;color:#1d6b2b;font-size:12.5px;font-weight:700}
+#dfbar .dfa{background:#dff3e2;border-radius:20px;padding:2px 9px;color:#116b28;font-weight:800}
+#dfbar .dfd{background:#fdecea;border-radius:20px;padding:2px 9px;color:#c0392b;font-weight:800}
+#dfbar .dfc{background:#fff3dc;border-radius:20px;padding:2px 9px;color:#a35b00;font-weight:800}
+#dfbar .dfl{flex-basis:100%;color:#3d5c44;font-weight:600;font-size:11.5px;line-height:1.5}
 .vtag{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:5px;font-size:10px;font-weight:800;vertical-align:middle}
 .vtag.vt{background:#dbeafe;color:#1d4ed8}
 .vtag.vh{background:#e6f4ea;color:#0f7a3d}
@@ -221,6 +227,10 @@ button,select,input{font-family:inherit}
 .kpisrch{grid-column:span 2;margin-bottom:0;font-size:17px;border-width:2px;border-color:#bcd8c6}
 .kpisrch input{font-size:16px;font-weight:700}
 .srchbar input{border:none;outline:none;flex:1;font-size:15px;background:transparent}
+.hitflash{animation:hitfl 2.2s ease-out;border-radius:12px}
+@keyframes hitfl{0%{background:#fff3a8;box-shadow:0 0 0 3px #ffd53d}
+ 60%{background:#fffbe0;box-shadow:0 0 0 3px rgba(255,213,61,.55)}
+ 100%{background:transparent;box-shadow:none}}
 #srchres{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #dde5ee;border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.14);z-index:60;max-height:340px;overflow:auto}
 .sri{padding:11px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #f1f4f7;align-items:center}
 .sri:hover{background:#f4f9f6}
@@ -299,8 +309,8 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
  <h1>광일체어 배차</h1>
  <select id="dsel" onchange="SEL=this.value;save();render()"></select>
  <div class="sp"></div>
- <input type="file" id="f1" accept=".xls,.xlsx,.xlsm,.csv" hidden onchange="onOrders(this.files[0])">
- <button class="btn g" onclick="f1.value='';f1.click()">📁 명세서</button>
+ <input type="file" id="f1" accept=".xls,.xlsx,.xlsm,.csv" multiple hidden onchange="onOrders(this.files)">
+ <button class="btn g" onclick="f1.value='';f1.click()" title="광일·삼정 파일을 한 번에 여러 개 선택할 수 있습니다">📁 명세서</button>
  <button class="btn g" id="wxb" onclick="toggleRain()" title="누르면 우천 배차 켜기/끄기">☀️</button>
  <span id="syncdot" style="width:9px;height:9px;border-radius:50%;background:#c3ceda;display:inline-block" title="실시간 공유 상태"></span><button class="btn g" onclick="openAdd()">＋추가</button>
  <button class="btn g" onclick="menu.showModal()">⋯</button>
@@ -316,6 +326,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 
 <div id="rainbar" style="display:none"></div>
 <div id="rwbar" style="display:none"></div>
+<div id="dfbar" style="display:none"></div>
 <div class="wrap" id="app"></div>
 <div id="fxl"></div>
 <div id="toast"><span id="tmsg"></span><button onclick="undo()">되돌리기</button></div>
@@ -422,6 +433,8 @@ const CAP_DEF=[
  {id:'furn', l:'가구 장류(옷장·문장·서가·락카)',k:['옷장','올문장','도어장','도장','분리장','양면장','서가장','서가','오픈장','수납장','신발장','락카장','하문장'],c:40},
  {id:'desk2',l:'책상',k:['책상'],c:8},
  {id:'tbl',  l:'테이블',k:['테이블'],c:30},
+ {id:'bed', l:'침대·매트리스',k:['침대','매트리스','침상'],c:4},
+ {id:'sofa',l:'소파',k:['소파','쇼파'],c:6},
  {id:'etc', l:'기타',k:[],c:60}];
 
 /* ============ 동선 ============ */
@@ -619,7 +632,14 @@ function openShare(){
 
 
 /* ============ 계산 ============ */
+/* 침대·소파는 사이즈로 계산하면 '1대에 1개'가 되어버림(눕혀 쌓거나 세워 싣기 때문).
+   → 아래 품목은 사이즈를 무시하고 적재기준 화면의 등록값을 쓴다. */
+const SIZE_SKIP=['침대','매트리스','침상','소파','쇼파'];
 function capOf(n){
+ for(let z=0;z<SIZE_SKIP.length;z++){
+  if(n.indexOf(SIZE_SKIP[z])<0)continue;
+  for(const c of CAP_DEF)for(const k of c.k)if(k&&n.indexOf(k)>=0)return{c:CAPS[c.id]||60,l:c.l};
+ }
  // 사이즈 명시 시: 바닥면적(1톤 장축 1600×4000=6.4㎡) × 단수(적재높이 2100 기준)
  const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})(?:\s*[*xX×]\s*(\d{3,4}))?/);
  if(sz){const W=+sz[1],D=+sz[2],H=sz[3]?+sz[3]:0;
@@ -659,6 +679,14 @@ function destOf(o){
  const d2=m.match(/([가-힣]{2,})\s*(?:매장|창고|지점)/);
  if(d2){const c=resolveCust(d2[1]);if(c)return{t:ADDR[c]+' ◂'+c.replace(/\(.*$/,'').slice(0,8),src:'적요'};return{t:d2[0].trim()+'으로',src:'적요'}}
  if(ADDR[o.n])return{t:ADDR[o.n],src:'거래처'};
+ if(ILSI_RE.test(o.n)){
+  const lb=ilsiTail(o.n);
+  const cand=[lb].concat(lb.split(/\s+/)).filter(function(x){return x&&x.length>=3&&x!=='적요없음'});
+  let c=null;
+  for(let z=0;z<cand.length&&!c;z++)c=resolveCust(cand[z]);
+  for(let z=0;z<cand.length&&!c;z++){for(const k in ADDR){if(multiMatch(k,cand[z])){c=k;break}}}
+  if(c&&ADDR[c])return{t:ADDR[c]+' ◂'+c.replace(/\(.*$/,'').slice(0,10),src:'적요'};
+ }
  return null}
 /* 동선 판별 — 주소는 '시도 → 시군구 → 동' 순서라, 문자열에서 가장 앞에 나온 지명을 채택한다.
    (예전엔 ROUTES 순서대로 먼저 걸리는 걸 썼더니
@@ -704,6 +732,19 @@ function why(o){
  if(hitRoute(o.n+' '+(o.memo||'')))return '상호';
  return ''}
 const dkey=(n,ex,d)=>n+'§'+ex+'§'+d;
+/* '일시성거래처'는 조달기관이 서로 다른 건들이 한 줄로 합쳐져 들어온다.
+   적요(메모)가 곧 조달기관·납품처이므로 적요별로 따로 떼어 배차한다. */
+const ILSI_RE=/일시성/;
+function ilsiLabel(m){
+ let s=String(m||'').trim().replace(/^[*Xx×•○□\-\s]+/,'');
+ if(!s)return '적요없음';
+ let t=s.split(/[,\/(\n]/)[0];
+ t=t.replace(/\d{2,3}-\d{3,4}-\d{4}.*$/,'')
+    .replace(/(전달만|설치|직납|직배).*$/,'')
+    .replace(/[\s!.]+$/,'').trim();
+ return (t||s).slice(0,20);
+}
+function ilsiTail(n){return String(n||'').replace(/^[^·]*·\s*/,'').trim()}
 /* 기사-동선 매일 순환 배정 (배진성=3.5톤 고정 · 김석호/직납 제외) */
 function autoRotate(dateStr){
  let pool=DRVS.map(d=>d[0]).filter(n=>['배진성','김석호','용차'].indexOf(n)<0);
@@ -725,8 +766,10 @@ function autoRotate(dateStr){
  return o}
 function build(fresh){
  ORDERS=[];const g={};
- RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';const k=dkey(l.n,ex,l.d);
-  if(!g[k])g[k]={n:l.n,ex:ex||null,od:l.d,items:[]};
+ RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';
+  const sub=ILSI_RE.test(l.n)?String(l.m||''):'';   /* 일시성이면 적요를 키에 넣어 분리 */
+  const k=dkey(l.n,ex,l.d)+(sub?'§'+sub:'');
+  if(!g[k])g[k]={n:l.n+(sub?' · '+ilsiLabel(sub):''),ex:ex||null,od:l.d,items:[]};
   g[k].items.push(l)});
  Object.keys(g).forEach(k=>{const c=g[k];
   const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
@@ -957,7 +1000,7 @@ function render(){
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
  [0,1,2,3,4].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
- drawWx();drawRw();
+ drawWx();drawRw();drawDiff();
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
  const un=today.filter(o=>ASSIGN[o.i]==='_').length;
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
@@ -1056,9 +1099,29 @@ function srchIn(v){const el=document.getElementById('srchres');if(!el)return;
  const nv=v;
  const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
  const hits=today.filter(o=>fuzzyHit(o,nv)).slice(0,12);
- el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchGo('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
+ el.innerHTML=hits.length?hits.map(o=>'<div class="sri" onclick="srchJump('+o.i+')"><b>'+o.n+'</b><span>'+(((RID[ASSIGN[o.i]]||{}).nm)||(ASSIGN[o.i]==='x'?'제외':'미배정'))+' · '+o.qty+'개</span></div>').join(''):'<div class="sri"><span>검색 결과 없음</span></div>'}
 let FQ=null;
 function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=0;render();window.scrollTo(0,0)}
+/* 검색 → 카드 상세로 들어가지 않고 Ctrl+F 처럼 그 자리로만 이동 */
+function srchJump(i){
+ const o=ORDERS[i];if(!o)return;
+ const rid=ASSIGN[o.i]||'_';
+ if(o.d!==SEL)SEL=o.d;
+ FQ=null;
+ if(typeof ROPEN!=='undefined')ROPEN[rid]=true;   /* 동선별 접힘 펼치기 */
+ if(typeof OPEN!=='undefined')OPEN[rid]=true;     /* 배차판 접힘 펼치기 */
+ const q=document.getElementById('srchq');const kw=q?q.value:'';
+ const res=document.getElementById('srchres');if(res)res.innerHTML='';
+ save();render();
+ setTimeout(function(){
+  const q2=document.getElementById('srchq');if(q2)q2.value=kw;
+  const el=document.getElementById('hit'+i);
+  if(!el){toast('이 화면에는 표시되지 않는 건입니다');return}
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.add('hitflash');
+  setTimeout(function(){el.classList.remove('hitflash')},2200);
+ },30);
+}
 function hasDrv(o,n){return effDrv(o)===n||DRV2[o.key]===n}
 /* 기사 한 명의 배송 목록을 회차(차량 단위)로 분할 */
 function loadOfFor(o){return (DRV2[o.key]?o.load/2:o.load)}
@@ -1111,7 +1174,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  +'<div class="load '+(p>100?'o':p>85?'w':'')+'"><i style="width:'+Math.min(p,100)+'%"></i></div>'
  +'<div style="display:flex;justify-content:space-between;padding:0 12px 8px;font-size:11.5px;font-weight:700"><span style="color:#5f7086">의자 '+qty+'개'+(list.length?' · ⏱ 약 '+fmtDur(estRoute(id,list)):'')+'</span><span style="color:'+(p>100?'#e04b45':p>85?'#c98a1a':'#03C75A')+'">적재 '+p.toFixed(0)+'%'+(p>100?' ⚠초과':'')+'</span></div>'}
  if(op){let inner;
-  const mk=o=>'<div class="cardw">'+(EXP[o.key]===false?ccard(o):('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o)))+'</div>';
+  const mk=o=>'<div id="hit'+o.i+'" class="cardw">'+(EXP[o.key]===false?ccard(o):('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o)))+'</div>';
   if(!list.length)inner='<div class="empty">비어 있음</div>';
   else if(dvs&&n>1){
    const total=list.reduce((a,o)=>a+o.load,0),target=total/n;
@@ -1353,7 +1416,7 @@ function tabRoute(today){
        +vehTag(nm)+asTag(nm)
        +(isRain(SEL)&&!covered(nm)?'<em class="rwarn">☔개방</em>':'')
        +'<em class="rcnt">'+gd+'/'+g.items.length+'곳 · '+gq+'개</em></div>'
-      +g.items.map((o,j)=>'<div class="ritem'+(ST[o.i]==='done'?' dn':'')+'">'
+      +g.items.map((o,j)=>'<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+'">'
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const ad=shortAddr(ADDR[o.n]||'');
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
@@ -1633,53 +1696,113 @@ function onCust(f){if(!f)return;
    const g=guess(o);if(g!=='_')ASSIGN[o.i]=g}});
   save();render();toast('주소 '+na+'건 · 동선분류 '+ng+'건 등록');
  }catch(e){alert('오류: '+e.message)}})}
-function onOrders(f){if(!f)return;
- readSheets(f,function(sheets){try{
-  const rows=sheets[0][1];
-  const hi=hdrRow(rows);
-  if(hi<0)return alert('헤더를 찾지 못했습니다.\n"거래처명" 컬럼이 있는 명세서인지 확인해주세요.');
-  const H=rows[hi].map(x=>String(x||'').replace(/\s/g,''));
-  const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
-  let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
-  /* 공급자가 삼정인 명세서 판별 — 삼정 서식에만 있는 '일자-No.' / '회계반영일자' 컬럼으로 확인
-     (광일 신서식도 '적요'가 없으므로 적요 유무로 판별하면 안 됨) */
-  const SJFILE = H.some(function(h){return h.indexOf('일자-No')>=0||h.indexOf('회계반영일자')>=0});
-  /* 삼정 서식은 '비고'가 메모(적요) 역할 → 규격은 비움. 광일은 '비고'가 규격이므로 그대로 둠 */
-  if(SJFILE){iM=iS;iS=-1}
-  /* 삼정 명세서 호환: '거래일자'가 없으면 '일자-No.' 같은 일자/날짜 컬럼 사용(회계반영일자 제외) */
-  if(iD<0)iD=H.findIndex(function(h){return (h.indexOf('일자')>=0||h.indexOf('날짜')>=0)&&h.indexOf('회계')<0});
-  if(iN<0||iP<0||iQ<0)return alert('거래처명 / 품목명·규격 / 수량 컬럼이 필요합니다.');
-  const NEW=[],cs={};let cn=0;
-  rows.slice(hi+1).forEach(function(r){
-   const n=String(r[iN]||'').trim(),p=String(r[iP]||'').trim();
-   if(!n||!p||/단가정정/.test(p))return;
-   const q=Math.round(parseFloat(r[iQ])||0);if(q<=0)return;
-   if(/택배비|운임비/.test(p)){FEE[n]=1;return}
-   let dd='';const dv=r[iD];
-   if(dv instanceof Date)dd=new Date(dv.getTime()-dv.getTimezoneOffset()*60000).toISOString().slice(0,10);
-   else{const mm=String(dv||'').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
-    if(mm)dd=mm[1]+'-'+('0'+mm[2]).slice(-2)+'-'+('0'+mm[3]).slice(-2)}
-   if(!cs[n]){cs[n]=1;cn++}
-   const row={n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd};
-   if(SJFILE)row.sj=1;
-   NEW.push(row)});
-  if(!NEW.length)return alert('읽을 수 있는 주문이 없습니다.');
-  const nd=[];NEW.forEach(function(l){if(nd.indexOf(l.d)<0)nd.push(l.d)});
+/* ===== 명세서 업로드 =====
+   · 파일 여러 개를 한 번에 올릴 수 있음 (광일 + 삼정을 같이 던지면 알아서 합침)
+   · 올린 뒤 기존 자료와 비교해서 추가·삭제·수량변경을 화면에 보여줌 */
+function parseSheet(rows){
+ const hi=hdrRow(rows);
+ if(hi<0)return {err:'헤더(거래처명)를 찾지 못했습니다.'};
+ const H=rows[hi].map(x=>String(x||'').replace(/\s/g,''));
+ const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
+ let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
+ /* 공급자가 삼정인 명세서 판별 — 삼정 서식에만 있는 '일자-No.' / '회계반영일자' 컬럼 */
+ const SJFILE=H.some(function(h){return h.indexOf('일자-No')>=0||h.indexOf('회계반영일자')>=0});
+ if(SJFILE){iM=iS;iS=-1}
+ if(iD<0)iD=H.findIndex(function(h){return (h.indexOf('일자')>=0||h.indexOf('날짜')>=0)&&h.indexOf('회계')<0});
+ if(iN<0||iP<0||iQ<0)return {err:'거래처명 / 품목명·규격 / 수량 컬럼이 필요합니다.'};
+ const out=[];
+ rows.slice(hi+1).forEach(function(r){
+  const n=String(r[iN]||'').trim(),p=String(r[iP]||'').trim();
+  if(!n||!p||/단가정정/.test(p))return;
+  const q=Math.round(parseFloat(r[iQ])||0);if(q<=0)return;
+  if(/택배비|운임비/.test(p)){FEE[n]=1;return}
+  let dd='';const dv=r[iD];
+  if(dv instanceof Date)dd=new Date(dv.getTime()-dv.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  else{const mm=String(dv||'').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+   if(mm)dd=mm[1]+'-'+('0'+mm[2]).slice(-2)+'-'+('0'+mm[3]).slice(-2)}
+  const row={n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd};
+  if(SJFILE)row.sj=1;
+  out.push(row)});
+ return {rows:out, sj:SJFILE};
+}
+/* 같은 건인지 판단하는 키 (수량은 뺌 — 수량 변경을 따로 잡기 위해) */
+const RSEP='\u0001';
+function rkey(l){return [l.d,l.n,l.p,l.s,l.m,l.sj||''].join(RSEP)}
+function diffRaw(before,after,dates){
+ const B={},A={};
+ before.filter(l=>dates.indexOf(l.d)>=0).forEach(l=>{const k=rkey(l);B[k]=(B[k]||0)+l.q});
+ after .filter(l=>dates.indexOf(l.d)>=0).forEach(l=>{const k=rkey(l);A[k]=(A[k]||0)+l.q});
+ const add=[],del=[],chg=[];
+ Object.keys(A).forEach(function(k){
+  const t=k.split(RSEP);
+  if(B[k]===undefined)add.push({d:t[0],n:t[1],p:t[2],q:A[k]});
+  else if(B[k]!==A[k])chg.push({d:t[0],n:t[1],p:t[2],q:A[k],was:B[k]});
+ });
+ Object.keys(B).forEach(function(k){
+  if(A[k]===undefined){const t=k.split(RSEP);del.push({d:t[0],n:t[1],p:t[2],q:B[k]})}
+ });
+ return {add:add,del:del,chg:chg};
+}
+let LASTDIFF=null;
+function onOrders(fs){
+ if(!fs)return;
+ const files=(fs.length!==undefined)?[].slice.call(fs):[fs];
+ if(!files.length)return;
+ const ALL=[],names=[];let done=0,bad='';
+ files.forEach(function(f){
+  readSheets(f,function(sheets){
+   try{
+    const r=parseSheet(sheets[0][1]);
+    if(r.err)bad+=f.name+': '+r.err+'\n';
+    else{ALL.push.apply(ALL,r.rows);names.push(f.name+(r.sj?'  [삼정]':''))}
+   }catch(e){bad+=f.name+': '+e.message+'\n'}
+   if(++done===files.length)finish();
+  });
+ });
+ function finish(){
+  if(bad)alert(bad);
+  if(!ALL.length)return alert('읽을 수 있는 주문이 없습니다.');
+  const nd=[],cs={};let cn=0;
+  ALL.forEach(function(l){if(nd.indexOf(l.d)<0)nd.push(l.d);if(!cs[l.n]){cs[l.n]=1;cn++}});
+  nd.sort();
   const dup=RAW.some(function(l){return nd.indexOf(l.d)>=0});
-  if(!confirm('거래처 '+cn+'곳 · '+nd.join(', ')+'\n'+NEW.length+'건을 불러올까요?'))return;
+  if(!confirm('파일 '+files.length+'개\n'+names.join('\n')+'\n\n거래처 '+cn+'곳 · '+nd.join(', ')+'\n'+ALL.length+'건을 불러올까요?'))return;
   let addMode=false;
-  if(dup)addMode=confirm('※ '+nd.join(', ')+' 자료가 이미 있습니다.\n\n[확인]  기존 자료에 합치기  (광일 + 삼정처럼 두 명세서를 같이 볼 때)\n[취소]  기존 자료를 지우고 이 파일로 교체');
+  if(dup)addMode=confirm('※ '+nd.join(', ')+' 자료가 이미 있습니다.\n\n[확인]  기존 자료에 합치기\n[취소]  기존 자료를 지우고 이 파일로 교체');
+  const before=RAW.slice();
   if(addMode){
-   const key=function(l){return [l.d,l.n,l.p,l.s,l.q,l.m,l.sj||''].join('\u0001')};
+   const key=function(l){return [l.d,l.n,l.p,l.s,l.q,l.m,l.sj||''].join(RSEP)};
    const seen={};RAW.forEach(function(l){seen[key(l)]=1});
-   const add=NEW.filter(function(l){if(seen[key(l)])return false;seen[key(l)]=1;return true});
+   const add=ALL.filter(function(l){if(seen[key(l)])return false;seen[key(l)]=1;return true});
    RAW=RAW.concat(add);RAWV=Date.now();
-   toast(add.length+'건 합쳐짐 (중복 '+(NEW.length-add.length)+'건 제외) ✨');
-  }else{RAW=RAW.filter(l=>nd.indexOf(l.d)<0).concat(NEW);RAWV=Date.now()}
+  }else{RAW=RAW.filter(l=>nd.indexOf(l.d)<0).concat(ALL);RAWV=Date.now()}
+  LASTDIFF=diffRaw(before,RAW,nd);LASTDIFF.dates=nd;LASTDIFF.first=!dup;
   if(nd.length===1)SEL=nd[0];
   ASSIGN=null;ST={};build(true);save();render();
-  if(!addMode)toast(cn+'곳 불러옴 — 자동배정 완료 ✨');
- }catch(e){alert('오류: '+e.message)}})}
+  const D=LASTDIFF;
+  toast(dup?('갱신 — 추가 '+D.add.length+' · 삭제 '+D.del.length+' · 수량변경 '+D.chg.length)
+           :(cn+'곳 불러옴 — 자동배정 완료 ✨'));
+ }
+}
+/* 바뀐 내역 배너 */
+function drawDiff(){
+ const el=document.getElementById('dfbar');if(!el)return;
+ const D=LASTDIFF;
+ if(!D||D.first||D.dates.indexOf(SEL)<0){el.style.display='none';return}
+ const f=x=>x.d===SEL;
+ const A=D.add.filter(f),R=D.del.filter(f),C=D.chg.filter(f);
+ if(!A.length&&!R.length&&!C.length){el.style.display='none';return}
+ const li=(arr,mk)=>arr.slice(0,5).map(mk).join(' · ')+(arr.length>5?' 외 '+(arr.length-5)+'건':'');
+ el.style.display='';
+ el.innerHTML='<b>📋 '+SEL.slice(5)+' 명세서 갱신</b>'
+  +(A.length?'<span class="dfa">＋추가 '+A.length+'건</span>':'')
+  +(R.length?'<span class="dfd">－삭제 '+R.length+'건</span>':'')
+  +(C.length?'<span class="dfc">수량변경 '+C.length+'건</span>':'')
+  +(A.length?'<span class="dfl">＋ '+li(A,x=>x.n+' '+x.p.slice(0,14)+' '+x.q+'개')+'</span>':'')
+  +(R.length?'<span class="dfl">－ '+li(R,x=>x.n+' '+x.p.slice(0,14)+' '+x.q+'개')+'</span>':'')
+  +(C.length?'<span class="dfl">✏️ '+li(C,x=>x.n+' '+x.p.slice(0,12)+' '+x.was+'→'+x.q+'개')+'</span>':'')
+  +'<button class="btn s" onclick="LASTDIFF=null;render()">확인</button>';
+}
 
 function drawCapU(){
  var el=document.getElementById('capU');if(!el)return;
