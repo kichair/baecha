@@ -1293,6 +1293,31 @@ function srchClear(){SQ='';SHIT=[];const q=document.getElementById('srchq');if(q
 let FQ=null;
 /* 회차 직접 지정 (1　3차) — 빈 값이면 적재량 기준 자동 */
 /* ===== 물방울 선택 — 터치 화면에서 크게 고르기 ===== */
+/* 짝! 소리 — 파일 없이 그때그때 만들어 낸다 (기기마다 따로 저장) */
+let SND=LSU('_snd',1), ACTX=null;
+function sndToggle(){SND=SND?0:1;localStorage.setItem(UKEY+'_snd',JSON.stringify(SND));
+ const b=document.getElementById('sndbtn');if(b)b.textContent=SND?'\uD83D\uDD0A':'\uD83D\uDD07';
+ if(SND)slapSound();toast(SND?'\uc18c\ub9ac \ucf2c':'\uc18c\ub9ac \uaebc');}
+function slapSound(){
+ if(!SND)return;
+ try{
+  ACTX=ACTX||new (window.AudioContext||window.webkitAudioContext)();
+  if(ACTX.state==='suspended')ACTX.resume();
+  const t=ACTX.currentTime, sr=ACTX.sampleRate;
+  /* 짝 — 짧은 잡음 */
+  const len=Math.floor(sr*0.11), buf=ACTX.createBuffer(1,len,sr), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);
+  const src=ACTX.createBufferSource();src.buffer=buf;
+  const bp=ACTX.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2100;bp.Q.value=0.75;
+  const g=ACTX.createGain();g.gain.setValueAtTime(0.42,t);g.gain.exponentialRampToValueAtTime(0.0008,t+0.12);
+  src.connect(bp);bp.connect(g);g.connect(ACTX.destination);src.start(t);
+  /* 툭 — 낮은 울림 */
+  const o=ACTX.createOscillator(), og=ACTX.createGain();
+  o.type='sine';o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(58,t+0.1);
+  og.gain.setValueAtTime(0.3,t);og.gain.exponentialRampToValueAtTime(0.0008,t+0.13);
+  o.connect(og);og.connect(ACTX.destination);o.start(t);o.stop(t+0.15);
+ }catch(e){}
+}
 let BUB=null;
 const HAND_SVG='<svg viewBox="0 0 220 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;overflow:visible"><defs><path id="khp" d="M60,120 L60,58 a14,14 0 0 1 28,0 L88,112 L96,112 L96,38 a14,14 0 0 1 28,0 L124,112 L132,112 L132,44 a14,14 0 0 1 28,0 L160,112 L168,112 L168,70 a14,14 0 0 1 28,0 L196,150 Q198,214 156,222 L104,230 Q64,234 58,196 L54,168 C40,166 22,156 18,140 C14,124 28,116 40,124 L58,138 Z"/></defs><g opacity=".5" transform="translate(-22,-12) rotate(-7 110 130)"><use href="#khp" fill="#fff" stroke="#fff" stroke-width="30" stroke-linejoin="round"/><use href="#khp" fill="#9AA8BD" stroke="#15181d" stroke-width="11" stroke-linejoin="round"/></g><use href="#khp" fill="#fff" stroke="#fff" stroke-width="30" stroke-linejoin="round"/><use href="#khp" fill="#9AA8BD" stroke="#15181d" stroke-width="11" stroke-linejoin="round"/></svg>';
 /* 물방울 색 — 한눈에 구분되게 */
@@ -1351,6 +1376,8 @@ function bubFloat(title,items,cur,topOnly){
  const rowH=Math.min(CH+16,Math.max(CH*0.86,zoneH/rows));
  const y0=Math.round(padT+Math.max(0,(zoneH-rowH*rows)/2)+rowH/2);
  let h='<div class="fhd"><b>'+title+'</b>'
+  +'<button id="sndbtn" title="\uc18c\ub9ac \ucf1c\uae30/\ub044\uae30" onclick="event.stopPropagation();sndToggle()">'
+  +(SND?'\uD83D\uDD0A':'\uD83D\uDD07')+'</button>'
   +'<button onclick="event.stopPropagation();closeBub()">\u2715 \ub2eb\uae30</button></div>';
  items.forEach(function(x,k){
   const r=Math.floor(k/cols), c=k%cols;
@@ -1385,6 +1412,7 @@ function popBub(btn,v){
  if(!BUB)return;const B=BUB;BUB=null;
  btn.classList.add('pop');
  if(btn.classList.contains('fbub')){
+  slapSound();
   const sp=btn.querySelector('span');
   const nm=(sp&&sp.childNodes[0]?sp.childNodes[0].textContent:'')||'';
   const hd=document.createElement('div');hd.className='fhand';hd.innerHTML=HAND_SVG;btn.appendChild(hd);
