@@ -564,6 +564,11 @@ const RW_MERGE_MAX=0.60, RW_MERGE_TO='r5';
 const RT_FIX={'SL퍼니처':'r6','퍼니퍼니':'r6','아이스타일':'r2','광일퍼니처(윤광)2':'r2','파란들가구(계산)2':'r2'};
 /* 주소는 인천이지만 본사(석남동) 출발 기준으로는 2번 부천 코스가 맞는 곳 */
 const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계산/,'r2']];
+/* 적요에 직납 주소가 있어도 무조건 이 동선으로 보내는 거래처 */
+const RT_HARD=[[/심플즈|네오스코리아/,'r4']];
+function rtHard(n){const t=String(n||'');
+ for(let i=0;i<RT_HARD.length;i++)if(RT_HARD[i][0].test(t))return RT_HARD[i][1];
+ return null}
 function rtFix(n){
  if(RT_FIX[n])return RT_FIX[n];
  const t=String(n||'');
@@ -796,6 +801,8 @@ function hitRoute(t){
  return bestId}
 function guess(o){
  if(o.ex)return 'x';
+ // 0) 무조건 고정 — 적요 직납보다도 우선 (예: 심플즈는 주소가 화성이어도 사당 코스)
+ {const _h=rtHard(o.n);if(_h)return _h}
  // 1) 실제 과거 배차가 있는 날짜는 그대로 재현
  if(DAY_CUST[o.d]&&DAY_CUST[o.d][o.n])return DAY_CUST[o.d][o.n];
  // 2) 적요에 목적지 주소/직납이 있으면 거래처 상습동선보다 우선 (그날 실제 배송지)
@@ -818,7 +825,7 @@ function erTag(o){return isEarly(o)?'<em class="ertag" title="적요에 일찍·
 function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
- if(rtFix(o.n))return '고정';
+ if(rtHard(o.n)||rtFix(o.n))return '고정';
  if(LEARN[o.n])return '매장';
  if(LEARN_RT[o.n])return '실적';
  if(GRP[o.n])return '거래처';
