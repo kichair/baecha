@@ -773,6 +773,33 @@ function applySnap(o){applying=true;try{
  for(const k of SHARE)if(o[k]!=null)localStorage.setItem(KEY+k,JSON.stringify(o[k]));
  render();
 }finally{applying=false}}
+/* ===== 자동 인박스 =====
+   파이썬이 이카운트·광일 명세서를 받아 board(id=3)에 올려두면
+   배차가 알아서 집어와 합친다. 업로드 안 해도 됨. */
+let INBOX_TS=+(localStorage.getItem(UKEY+'_inboxts')||0);
+function inboxApply(box){
+ if(!box||!Array.isArray(box.rows))return;
+ const ts=+box.ts||0;
+ if(!ts||ts<=INBOX_TS)return;
+ const K=function(l){return [l.d,l.n,l.p,l.s||'',l.q,(l.m||'').trim(),l.sj||''].join('\u0001')};
+ const B=function(l){return [l.d,l.n,l.p,l.s||'',l.q].join('\u0001')};
+ const seen={},bag={};
+ RAW.forEach(function(l){seen[K(l)]=1;(bag[B(l)]=bag[B(l)]||[]).push((l.m||'').trim())});
+ const add=box.rows.filter(function(l){
+  if(!l||!l.n||!l.p||!l.d||!(+l.q>0))return false;
+  l.q=Math.round(+l.q);l.s=l.s||'';l.m=(l.m||'').slice(0,80);
+  if(seen[K(l)])return false;
+  const b=B(l), m=(l.m||'').trim(), ms=bag[b];
+  if(ms&&ms.some(function(x){return x===m||x===''||m===''}))return false;
+  seen[K(l)]=1;(bag[b]=bag[b]||[]).push(m);return true});
+ INBOX_TS=ts;try{localStorage.setItem(UKEY+'_inboxts',String(ts))}catch(e){}
+ if(!add.length)return;
+ RAW=RAW.concat(add);RAWV=Date.now();
+ build();save();render();
+ const ds={};add.forEach(function(l){ds[l.d]=(ds[l.d]||0)+1});
+ toast('\uD83D\uDCE5 명세서 자동 갱신 — '+add.length+'건 ('
+  +Object.keys(ds).sort().map(function(d){return d.slice(5)+' '+ds[d]}).join(' · ')+')');
+}
 function namesSnap(){
  const m={};const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='x');
  DRVS.forEach(d=>{const n=d[0];
@@ -795,8 +822,13 @@ async function syncInit(){
  try{SB=window.supabase.createClient(SB_URL,SB_KEY);
   const {data}=await SB.from('board').select('data').eq('id',1).maybeSingle();
   if(data&&data.data)applySnap(data.data);
+  try{const bx=await SB.from('board').select('data').eq('id',3).maybeSingle();
+      if(bx&&bx.data&&bx.data.data)inboxApply(bx.data.data)}catch(e){}
   SB.channel('board').on('postgres_changes',{event:'*',schema:'public',table:'board'},p=>{
-   if(p.new&&p.new.id===1&&p.new.data)applySnap(p.new.data)}).subscribe();
+   if(!p.new)return;
+   if(p.new.id===1&&p.new.data)applySnap(p.new.data);
+   if(p.new.id===3&&p.new.data)inboxApply(p.new.data);
+  }).subscribe();
   SB_ON=true;setDot('#03C75A');
   if(localStorage.getItem('kiu_gps')==='1'&&ME&&GPSW==null)try{gpsToggle()}catch(e){}
  }catch(e){setDot('#e04b45')}}
