@@ -212,8 +212,9 @@ button,select,input{font-family:inherit}
 #bub.flt .fhd b{font-size:18px;color:#23384b;max-width:54vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bub.flt .fhd button{border:none;background:#eef2f6;color:#5f7086;border-radius:999px;padding:9px 16px;font-size:15px;font-weight:800;cursor:pointer}
 .fbub{position:absolute;transform:translate(-50%,-50%);border:none;background:transparent;padding:0;cursor:pointer;
- display:flex;flex-direction:column;align-items:center;gap:5px;animation:fdrift 9s ease-in-out infinite alternate}
-@keyframes fdrift{from{translate:0 0}to{translate:var(--dx) var(--dy)}}
+ display:flex;flex-direction:column;align-items:center;gap:5px;width:136px;
+ animation:fdrift 4.6s ease-in-out infinite alternate}
+@keyframes fdrift{from{translate:0 -5px}to{translate:0 5px}}
 .fem{width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;
  box-shadow:0 8px 18px rgba(0,0,0,.3),inset 0 -8px 14px rgba(0,0,0,.18),inset 0 8px 12px rgba(255,255,255,.3)}
 .fbub>span{background:#fff;border-radius:11px;padding:4px 12px;font-size:16px;font-weight:900;color:#23384b;white-space:nowrap;
@@ -221,17 +222,24 @@ button,select,input{font-family:inherit}
 .fbub>span i{font-style:normal;font-weight:700;color:#8b9aab;font-size:12px;margin-left:5px}
 .fbub.on .fem{outline:5px solid #ffd53d;outline-offset:3px}
 .fbub.pop{animation:none;z-index:5}
-.fbub.pop .fem{animation:fsquash .32s ease-out forwards}
+.fbub.pop .fem{animation:fsquash .24s ease-out .09s forwards}
 @keyframes fsquash{0%{transform:scale(1)}45%{transform:scaleY(.5) scaleX(1.25)}100%{transform:scale(.4);opacity:0}}
 .fhand{position:absolute;left:50%;top:-56px;width:150px;height:172px;pointer-events:none;
  filter:drop-shadow(0 0 14px rgba(167,139,250,.9)) drop-shadow(0 12px 18px rgba(0,0,0,.38));
- animation:fslap .3s ease-out both}
-@keyframes fslap{0%{transform:translate(-50%,-70px) rotate(-32deg);opacity:0}
- 45%{opacity:1}100%{transform:translate(-50%,0) rotate(-10deg);opacity:1}}
+ animation:fslap .15s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes fslap{0%{transform:translate(-50%,-54px) rotate(-26deg);opacity:.2}
+ 30%{opacity:1}100%{transform:translate(-50%,0) rotate(-10deg);opacity:1}}
 .fbang{position:absolute;left:50%;top:-96px;transform:translateX(-50%) rotate(-7deg);background:#ffd53d;color:#7a4b00;
  font-weight:900;font-size:18px;padding:6px 15px;border-radius:10px;box-shadow:0 5px 14px rgba(0,0,0,.3);
  white-space:nowrap;pointer-events:none;animation:fpop .3s ease-out both}
 @keyframes fpop{0%{transform:translateX(-50%) scale(.5) rotate(-7deg);opacity:0}100%{transform:translateX(-50%) scale(1) rotate(-7deg);opacity:1}}
+@media(max-width:560px){.fbub{width:108px;gap:4px}
+ .fem{width:62px;height:62px;font-size:26px}
+ .fbub>span{font-size:13px;padding:3px 9px;border-radius:9px}
+ .fbub>span i{font-size:10.5px;margin-left:4px}
+ #bub.flt .fhd{padding:9px 14px;gap:8px}
+ #bub.flt .fhd b{font-size:14px;max-width:56vw}
+ #bub.flt .fhd button{padding:7px 12px;font-size:13px}}
 .fstar{position:absolute;width:11px;height:11px;border-radius:50%;background:#ffd53d;pointer-events:none;
  box-shadow:0 0 0 2px rgba(255,255,255,.8);animation:fstarout .45s ease-out both}
 @keyframes fstarout{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--sx),var(--sy)) scale(1);opacity:0}}
@@ -529,7 +537,7 @@ const ROUTES=[
   k:['남양주','마석','원주','춘천','가평','만종','양평']},
  {id:'rc',nm:'화·목. 충청·평택',cl:'#FF7A45',days:[2,4],zone:'오산 평택 아산 천안 홍성 예산 보령 서산 당진 / 음성 진천 청주 대전 안성',
   k:['평택','천안','아산','당진','청주','음성','대전','진천','홍성','예산','보령','서산','안성','충주','계룡','대덕','유성','세종','청북','지제','공주','논산','서천','태안','제천','금산']},
- {id:'t35',nm:'3.5톤 (배진성)',cl:'#F5C518',days:[1,2,3,4,5],zone:'대형·원거리 · 1톤의 1.2배 적재',k:[]},
+ {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'대형·원거리 · 1톤의 1.2배 적재',k:[]},
  {id:'as',nm:'A/S 출동',cl:'#F97316',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
  {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]}
 ];
@@ -1334,23 +1342,24 @@ function bubFloat(title,items,cur,topOnly){
  el.className='flt';el.style.display='block';
  const W=window.innerWidth,H=window.innerHeight;
  const n=items.length;
- let cols=Math.max(2,Math.round(Math.sqrt(n*W/Math.max(H,1))));
- cols=Math.min(cols,Math.max(2,Math.floor(W/150)));
+ const narrow=W<560;
+ const CW=narrow?116:152, CH=narrow?106:128;   /* 한 칸 크기 */
+ const padT=Math.min(112,H*0.15);
+ const zoneH=topOnly?Math.max(CH*2+16,H*0.46-padT):(H-padT-24);
+ const cols=Math.max(1,Math.min(n,Math.floor((W-24)/CW)));
  const rows=Math.ceil(n/cols);
- const padT=Math.min(120,H*0.16),padX=Math.min(90,W*0.09);
- /* 위쪽에만 띄우기 — 동선·회차처럼 개수가 정해진 건 화면 윗부분에 모아둔다 */
- const padB=topOnly?Math.max(60,H*0.42):40;
- const cw=(W-padX*2)/cols, ch=(H-padT-padB)/rows;
+ const rowH=Math.min(CH+16,Math.max(CH*0.86,zoneH/rows));
+ const y0=Math.round(padT+Math.max(0,(zoneH-rowH*rows)/2)+rowH/2);
  let h='<div class="fhd"><b>'+title+'</b>'
   +'<button onclick="event.stopPropagation();closeBub()">\u2715 \ub2eb\uae30</button></div>';
  items.forEach(function(x,k){
-  const c=k%cols,r=Math.floor(k/cols);
-  const jx=(Math.random()-0.5)*cw*0.42, jy=(Math.random()-0.5)*ch*0.36;
-  const L=Math.round(padX+c*cw+cw/2+jx), T=Math.round(padT+r*ch+ch/2+jy);
-  const dx=Math.round(-14+Math.random()*28), dy=Math.round(-16+Math.random()*32);
-  const dur=(8+Math.random()*5).toFixed(1), del=(Math.random()*4).toFixed(1);
+  const r=Math.floor(k/cols), c=k%cols;
+  const inRow=Math.min(cols,n-r*cols);
+  const rx=Math.round((W-inRow*CW)/2);      /* 마지막 줄도 가운데 정렬 */
+  const L=Math.round(rx+c*CW+CW/2), T=Math.round(y0+r*rowH);
+  const dur=(4.2+(k%5)*0.5).toFixed(1), del=((k%7)*0.35).toFixed(2);
   h+='<button class="fbub'+(String(x.v)===String(cur)?' on':'')+'"'
-   +' style="left:'+L+'px;top:'+T+'px;--dx:'+dx+'px;--dy:'+dy+'px;animation-duration:'+dur+'s;animation-delay:-'+del+'s"'
+   +' style="left:'+L+'px;top:'+T+'px;animation-duration:'+dur+'s;animation-delay:-'+del+'s"'
    +' onclick="event.stopPropagation();popBub(this,\''+String(x.v).replace(/'/g,'')+'\')">'
    +'<b class="fem" style="background:'+x.c+';color:'+bubTx(x.c)+'">'+x.e+'</b>'
    +'<span>'+x.t+(x.s?'<i>'+x.s+'</i>':'')+'</span></button>';
@@ -1385,7 +1394,7 @@ function popBub(btn,v){
    st.style.left='34px';st.style.top='34px';
    st.style.setProperty('--sx',Math.round(Math.cos(a)*d)+'px');
    st.style.setProperty('--sy',Math.round(Math.sin(a)*d)+'px');
-   st.style.animationDelay=(z*0.012)+'s';btn.appendChild(st)}
+   st.style.animationDelay=(0.09+z*0.012)+'s';btn.appendChild(st)}
  }
  setTimeout(function(){
   closeBub();
@@ -1393,7 +1402,7 @@ function popBub(btn,v){
   else if(B.kind==='gdrv')setGrpDrv(B.rid,B.ids,v==='__R'?'':v);
   else if(B.kind==='rt')move(B.i,v,'동선 이동',1);
   else setTrip(B.i,v);
- },360);
+ },300);
 }
 function setTrip(i,v){
  const o=ORDERS[i];if(!o||v==='')return;
