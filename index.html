@@ -879,8 +879,14 @@ function ilsiLabel(m){
 }
 function ilsiTail(n){return String(n||'').replace(/^[^·]*·\s*/,'').trim()}
 /* 기사-동선 매일 순환 배정 (배진성=3.5톤 고정 · 김석호/직납 제외) */
+/* 자동 순환 배차에서 빼는 사람
+   · 배진성 — 3.5톤 전담
+   · 김석호 — 배차 동선을 같이 짜는 사람. 짧은 코스는 갈 수 있으니 목록에는 남기고 자동 배정만 제외
+   · 용차·용차2·용차3 — 필요할 때만 부르는 차 */
+const NO_AUTO=['배진성','김석호'];
+function autoOK(n){return NO_AUTO.indexOf(n)<0&&String(n).indexOf('용차')!==0}
 function autoRotate(dateStr){
- let pool=DRVS.map(d=>d[0]).filter(n=>['배진성','김석호','용차'].indexOf(n)<0);
+ let pool=DRVS.map(d=>d[0]).filter(autoOK);
  const o={t35:'배진성'};
  if(!pool.length||!dateStr)return o;
  const day=Math.floor(new Date(dateStr+'T00:00:00').getTime()/86400000);
