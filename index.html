@@ -177,6 +177,8 @@ button,select,input{font-family:inherit}
 .sjtag.part{background:#fff5e6;color:#c9761a;border-color:#f0d3a8}
 .ertag{display:inline-block;font-style:normal;background:#e8f1ff;color:#1b62d6;border:1px solid #b9d2f7;
  border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
+.jdtag{display:inline-block;font-style:normal;background:#eef7ee;color:#1f7a3d;border:1px solid #b8ddc2;
+ border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
 .drowtop{display:flex;gap:10px;align-items:baseline}
 .drowtop b{font-size:15.5px}
 .drowtop span{color:#8b9aab;font-size:12px}
@@ -243,10 +245,10 @@ button,select,input{font-family:inherit}
 .fstar{position:absolute;width:11px;height:11px;border-radius:50%;background:#ffd53d;pointer-events:none;
  box-shadow:0 0 0 2px rgba(255,255,255,.8);animation:fstarout .45s ease-out both}
 @keyframes fstarout{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--sx),var(--sy)) scale(1);opacity:0}}
-.chipbtn{flex:none;width:46px;height:38px;border:1.4px solid #cfe3d6;border-radius:11px;background:#fff;
- font-size:16px;font-weight:800;color:#5f7086;cursor:pointer;padding:0;line-height:1}
+.chipbtn{flex:none;width:38px;height:36px;border:1.4px solid #cfe3d6;border-radius:10px;background:#fff;
+ font-size:15px;font-weight:800;color:#5f7086;cursor:pointer;padding:0;line-height:1}
 .chipbtn.rt{border-color:#cfd9e8}
-.chipbtn.tr{border-color:#e3d6bf;background:#fffdf6;color:#8a6d33;font-size:12px}
+.chipbtn.tr{border-color:#e3d6bf;background:#fffdf6;color:#8a6d33;font-size:11.5px}
 .chipbtn:active{background:#eef3f9}
 .rgbtn{border:none;background:rgba(255,255,255,.92);color:#0f5f37;border-radius:11px;padding:8px 14px;
  font-size:14px;font-weight:900;cursor:pointer;min-height:36px}
@@ -258,7 +260,7 @@ button,select,input{font-family:inherit}
 .chiprt{margin-left:4px;padding:3px 5px;border:1.2px solid #cfd9e8;border-radius:7px;font-size:11px;font-weight:700;color:#5f7086;background:#fff}
 .chipdrv{margin-left:6px;padding:3px 5px;border:1.2px solid #cfe3d6;border-radius:7px;font-size:11px;font-weight:700;color:#5f7086;background:#fff}
 /* ===== 동선별 정렬 그리드 ===== */
-.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(304px,1fr));gap:6px;
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:6px;
  padding:9px 2px 3px;border-top:1px dashed #e3e9ef;margin-top:9px}
 .rghd{grid-column:1/-1;display:flex;align-items:center;gap:7px;background:#0f5f37;color:#fff;
  border-radius:8px;padding:6px 11px;font-weight:800;font-size:12.5px;margin-top:5px}
@@ -271,17 +273,18 @@ button,select,input{font-family:inherit}
 .rghd .rcnt{margin-left:auto;font-style:normal;font-weight:700;font-size:11.5px;opacity:.9;white-space:nowrap}
 .rghd .vtag{background:rgba(255,255,255,.22);color:#fff}
 .rghd .rwarn{font-style:normal;background:#fdecea;color:#c0392b;border-radius:5px;padding:1px 6px;font-size:10.5px;font-weight:800}
-.ritem{display:flex;align-items:center;gap:5px;min-height:46px;padding:6px 8px;
+.ritem{display:flex;align-items:center;gap:4px;min-height:50px;padding:6px 7px;
  background:#f6f9fc;border:1px solid #e6edf4;border-radius:9px;overflow:hidden}
 .ritem>b{flex:none;width:23px;height:23px;border-radius:6px;background:#0f5f37;color:#fff;
  font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .ritem>.rtx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px;cursor:pointer}
-.rtx>u{text-decoration:none;font-size:12.5px;font-weight:700;color:#33475c;
- white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.rtx>u{text-decoration:none;font-size:12.5px;font-weight:700;color:#33475c;letter-spacing:-.3px;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ overflow:hidden;word-break:break-all;line-height:1.28}
 .rtx>.radd{font-size:10.5px;font-weight:600;color:#95a4b3;letter-spacing:-.2px;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
-.ritem>i{flex:none;font-style:normal;font-size:11.5px;font-weight:800;color:#5f7086;
- background:#fff;border:1px solid #e6edf4;border-radius:6px;padding:2px 5px}
+.ritem>i{flex:none;font-style:normal;font-size:11px;font-weight:800;color:#5f7086;
+ background:#fff;border:1px solid #e6edf4;border-radius:6px;padding:2px 4px}
 .ritem>select{flex:none;width:42px;padding:4px 0 4px 2px;font-size:11px;text-align:center}
 .ritem>select.chiprt{width:40px}
 .ritem>select.chiptr{width:40px}
@@ -290,8 +293,9 @@ button,select,input{font-family:inherit}
 .ritem.dn .rtx>u{color:#7d8b98;text-decoration:line-through}
 .ritem.dn .rtx>.radd{color:#a8bdb0}
 @media(max-width:760px){.rgrid{grid-template-columns:1fr;gap:5px}
- .ritem{min-height:44px;padding:5px 7px;gap:6px}
- .rtx>u{font-size:12.5px}}
+ .ritem{min-height:48px;padding:5px 7px;gap:5px}
+ .rtx>u{font-size:13px}
+ .chipbtn{width:40px;height:38px}}
 .trghd{background:#0f5f37;color:#fff;border-radius:8px;padding:5px 11px;font-weight:800;font-size:12px}
 .trbrk{flex-basis:100%;height:0;padding:0!important;background:none!important}
 .bigsw{margin-top:10px;padding:12px 20px;border:2px solid #0f5f37;background:#fff;border-radius:12px;font-weight:800;font-size:15px;color:#0f5f37;cursor:pointer}
@@ -887,7 +891,7 @@ function destOf(o){
  const d2=m.match(/([가-힣]{2,})\s*(?:매장|창고|지점)/);
  if(d2){const c=resolveCust(d2[1]);if(c)return{t:ADDR[c]+' ◂'+c.replace(/\(.*$/,'').slice(0,8),src:'적요'};return{t:d2[0].trim()+'으로',src:'적요'}}
  if(ADDR[o.n])return{t:ADDR[o.n],src:'거래처'};
- if(ILSI_RE.test(o.n)){
+ if(o.jd){
   const lb=ilsiTail(o.n);
   const cand=[lb].concat(lb.split(/\s+/)).filter(function(x){return x&&x.length>=3&&x!=='적요없음'});
   let c=null;
@@ -936,6 +940,8 @@ const EARLY_RE=/일찍|오전중|오전|새벽|아침|빨리|급건|9시|10시�
 function isEarly(o){return EARLY_RE.test(o&&o.memo||'')}
 function erTag(o){return isEarly(o)?'<em class="ertag" title="적요에 일찍·오전 표시 - 먼저 배송">일찍</em>':''}
 function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
+/* 일시성거래처 = 전부 조달 건. 거래처명 대신 [조달] 표시를 붙이고 납품처만 보여준다 */
+function jdTag(o){return (o&&o.jd)?'<em class="jdtag" title="조달 납품 건 (일시성거래처)">조달</em>':''}
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
  if(rtHard(o.n)||rtFix(o.n))return '고정';
@@ -949,15 +955,36 @@ const dkey=(n,ex,d)=>n+'§'+ex+'§'+d;
 /* '일시성거래처'는 조달기관이 서로 다른 건들이 한 줄로 합쳐져 들어온다.
    적요(메모)가 곧 조달기관·납품처이므로 적요별로 따로 떼어 배차한다. */
 const ILSI_RE=/일시성/;
+/* 조달 적요에서 '어디로 가는 건인지'(납품처·기관·주소)만 뽑아낸다.
+   날짜·전화번호·선발주·배송만·우리설치 같은 말은 이름이 아니므로 걷어낸다. */
+const ILSI_ACT=/(선발주건|선발주|선출고|조달건|조달|매장으로선출고|매장으로|매장배송|매장|사무실로|사무실|배송만|배송여부|배송|전달만|전달|택배선불|택배|우리설치|설치배송|설치|파레트포장|포장|각각|같이|이동|만나|엘베앞까지밀어주기|엘베유|엘베|지하|오전중|오전|오후|요망|전화|조립|기관에서|기관|납품|주차장|선불|밀어주기|이틀전에|사이|이전)/g;
+function ilsiPhone(x){return String(x||'')
+ .replace(/\(?\s*0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}\s*\)?/g,' ')
+ .replace(/\(?\s*\d{3}[-.]\d{3,4}[-.]\d{4}\s*\)?/g,' ')}
+function ilsiTidy(x){return String(x||'')
+ .replace(/\(\s*\)/g,'')
+ .replace(/^[\s*Xx×•○□\-.,]+/,'')
+ .replace(/^\d{1,2}\s*일?\s*~\s*\d{1,2}\s*일?\s*/,'')
+ .replace(/^\d{1,2}\s*[\/.\-]\s*\d{1,2}(?:\s*~\s*\d{1,2})?\s*일?\s*/,'')
+ .replace(/^\d{1,2}\.\s*/,'')
+ .replace(/^[\s,\-]+/,'')
+ .replace(/\s*[가-힣]{2,4}\s*(주무관|과장|부장|차장|대리|사장|대표|팀장|실장|소장|주임|계장)\s*님?\s*$/,'')
+ .replace(/[\s.!,\/]+$/,'').trim()}
 function ilsiLabel(m){
- let s=String(m||'').trim().replace(/^[*Xx×•○□\-\s]+/,'');
- if(!s)return '적요없음';
- let t=s.split(/[,\/(\n]/)[0];
- t=t.replace(/\d{2,3}-\d{3,4}-\d{4}.*$/,'')
-    .replace(/\s*[가-힣]{2,4}\s*(과장|부장|차장|대리|사장|대표|팀장|실장|소장)\s*님?\s*$/,'')
-    .replace(/(전달만|설치|직납|직배).*$/,'')
-    .replace(/[\s!.]+$/,'').trim();
- return (t||s).slice(0,20);
+ var raw=String(m||'').trim();
+ if(!raw)return '적요없음';
+ var s=ilsiPhone(raw), parts=s.split(/[,\n]/);
+ for(var i=0;i<parts.length;i++){
+  var t=ilsiTidy(parts[i]);
+  if(!t||/^\d+$/.test(t))continue;
+  var core=t.replace(ILSI_ACT,'').replace(/[\d\s()~!.\-호층동번길]/g,'');
+  if(core.length<2)continue;
+  var nm=t.replace(ILSI_ACT,' ').replace(/[!~]+/g,' ').replace(/\s{2,}/g,' ').trim();
+  if(nm.replace(/[\s()]/g,'').length>=2)t=nm;
+  t=t.replace(/\s*\d{1,2}\s*[\/.]\s*\d{1,2}\s*$/,'').replace(/(으로|에서)$/,'').replace(/[\s.,\/]+$/,'').trim();
+  if(t)return t.slice(0,22);
+ }
+ return ilsiTidy(s).slice(0,20)||'적요없음';
 }
 function ilsiTail(n){return String(n||'').replace(/^[^·]*·\s*/,'').trim()}
 /* 기사-동선 매일 순환 배정 (배진성=3.5톤 고정 · 김석호/직납 제외) */
@@ -988,13 +1015,15 @@ function autoRotate(dateStr){
 function build(fresh){
  ORDERS=[];const g={};
  RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';
-  const sub=ILSI_RE.test(l.n)?ilsiLabel(l.m):'';   /* 일시성이면 적요의 기관명으로 분리 */
+  const jd=ILSI_RE.test(l.n);
+  const sub=jd?ilsiLabel(l.m):'';   /* 일시성이면 적요의 기관명(조달 납품처)으로 분리 */
   const k=dkey(l.n,ex,l.d)+(sub?'§'+sub:'');
-  if(!g[k])g[k]={n:l.n+(sub?' · '+sub:''),ex:ex||null,od:l.d,items:[]};
+  /* 일시성거래처는 전부 조달 건이라 상호는 의미가 없다 → 납품처 이름만 남기고 [조달] 로 표시 */
+  if(!g[k])g[k]={n:jd?(sub&&sub!=='적요없음'?sub:'조달 (납품처 미기재)'):l.n,jd:jd?1:0,ex:ex||null,od:l.d,items:[]};
   g[k].items.push(l)});
  Object.keys(g).forEach(k=>{const c=g[k];
   const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
-  ORDERS.push({n:c.n,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / ')})});
+  ORDERS.push({n:c.n,jd:c.jd||0,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / ')})});
  CUSTOM.forEach((c,j)=>{const k='cu'+j;
   ORDERS.push({n:c.n,ex:null,od:c.d||SEL,key:k,d:DOVR[k]||c.d||SEL,items:c.items,memo:c.memo||'',cu:1})});
  ORDERS.forEach((o,i)=>{o.i=i;o.qty=o.items.reduce((a,b)=>a+b.q,0);o.load=loadOf(o);
@@ -1179,7 +1208,7 @@ function ccard(o){
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c cm '+cls+'" draggable="true" data-i="'+o.i+'">'
   +'<div class="cmrow" onclick="toggleExp(\''+o.key+'\')">'
-  +'<div class="nm">'+sjTag(o)+o.n+(o.split?' <small>('+(o.ex?'택배':'차량')+')</small>':'')+'</div>'
+  +'<div class="nm">'+jdTag(o)+sjTag(o)+o.n+(o.split?' <small>('+(o.ex?'택배':'차량')+')</small>':'')+'</div>'
   +'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>'+'<span class="pct">'+(o.load*100).toFixed(0)+'%</span>'
   +(done?'<span class="cchk ok">✓</span>':'<span class="cchk">▾</span>')+'</div>'
   +'<div class="cmsub">'+chips+dest+'</div></div></div>'}
@@ -1220,7 +1249,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+erTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+erTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
@@ -1340,7 +1369,7 @@ function multiMatch(hayRaw,raw){
 function hayOf(o){
  if(o._hay)return o._hay;
  var it=(o.items||[]).map(function(x){return x.p+' '+(x.s||'')}).join(' ');
- return o._hay=o.n+' '+(ADDR[o.n]||'')+' '+(o.memo||'')+' '+it;
+ return o._hay=o.n+' '+(o.jd?'조달 일시성거래처 ':'')+(ADDR[o.n]||'')+' '+(o.memo||'')+' '+it;
 }
 function fuzzyHit(o,nq){
  var hay=hayOf(o);
@@ -1893,7 +1922,7 @@ function tabRoute(today){
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const ad=shortAddr(ADDR[o.n]||'');
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-          +'<u>'+erTag(o)+sjTag(o)+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'})()
+          +'<u>'+erTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'})()
        +'<i>'+o.qty+'개</i>'
        +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'
        +'<button class="chipbtn rt" title="동선 바꾸기" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
