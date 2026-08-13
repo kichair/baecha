@@ -556,7 +556,9 @@ const ROUTES=[
   k:['평택','천안','아산','당진','청주','음성','대전','진천','홍성','예산','보령','서산','안성','충주','계룡','대덕','유성','세종','청북','지제','공주','논산','서천','태안','제천','금산']},
  {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'대형·원거리 · 1톤의 1.2배 적재',k:[]},
  {id:'as',nm:'A/S 출동',cl:'#F97316',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
- {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]}
+ {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]},
+ /* 명세서에는 있는데 실제 거래명세서(실물)가 없는 건 — 배차·적재 계산에서 빼고 따로 모아 둔다 */
+ {id:'nb',nm:'실거래명세서 없음',cl:'#8D9BAA',days:[1,2,3,4,5],zone:'실물 명세서 확인 필요 · 배차 제외',k:[]}
 ];
 const RID=Object.fromEntries(ROUTES.map(r=>[r.id,r]));
 const SH2R={};ROUTES.forEach(r=>(r.sh||[]).forEach(s=>SH2R[s]=r.id));
@@ -817,7 +819,7 @@ function inboxApply(box){
   +Object.keys(ds).sort().map(function(d){return d.slice(5)+' '+ds[d]}).join(' · ')+')');
 }
 function namesSnap(){
- const m={};const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='x');
+ const m={};const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&!offRoute(ASSIGN[o.i]));
  DRVS.forEach(d=>{const n=d[0];
   const list=today.filter(o=>hasDrv(o,n)).slice().sort(bySeq);
   if(list.length)m[n]=list.map((o,i)=>(i+1)+o.n).join('·')});
@@ -1142,7 +1144,7 @@ function drawWx(){
  /* 비 오는 동선의 물량만 센다 */
  let openQ=0,covQ=0,openN=0;
  ORDERS.forEach(function(o){
-  if(o.d!==SEL||ST[o.i]==='del'||ASSIGN[o.i]==='x')return;
+  if(o.d!==SEL||ST[o.i]==='del'||ASSIGN[o.i]==='x'||ASSIGN[o.i]==='nb')return;
   if(wetOnly&&!wetIds[ASSIGN[o.i]])return;
   const dn=effDrv(o);if(!dn)return;
   if(covered(dn))covQ+=o.qty;else{openQ+=o.qty;openN++}});
@@ -1181,7 +1183,7 @@ function autoAssign(){if(!confirm('거래처정보·주소·적요·학습 이�
 let last=null;
 function move(i,to,msg,learn){last={i:i,a:ASSIGN[i],s:ST[i],l:LEARN[ORDERS[i].n]};
  ASSIGN[i]=to;delete ST[i];
- if(learn&&to!=='_'&&to!=='x')LEARN[ORDERS[i].n]=to;
+ if(learn&&to!=='_'&&to!=='x'&&to!=='nb')LEARN[ORDERS[i].n]=to;
  if(msg)toast(msg);save();render()}
 function act(i,to,msg){last={i:i,a:ASSIGN[i],s:ST[i],l:LEARN[ORDERS[i].n]};
  if(to==='done'){ST[i]='done';confetti()}
@@ -1501,7 +1503,7 @@ const BUB_LIGHT=['#F5C518','#84CC16','#94A3B8'];
 function bubTx(c){return BUB_LIGHT.indexOf(c)>=0?'#33475c':'#fff'}
 function vehOf(n){const d=DRVS.filter(function(x){return x[0]===n})[0];return d?(d[2]||''):''}
 const VEH_EM={'\ud0d1\ucc28':'\uD83D\uDE9B','\ud638\ub85c':'\uD83D\uDEFB','\uce74\uace0':'\uD83D\uDE9A'};
-const RT_EM={rw:'\uD83D\uDCC5',rc:'\uD83D\uDCC5',t35:'\uD83D\uDE9B',as:'\uD83D\uDD27',etc:'\u2795'};
+const RT_EM={rw:'\uD83D\uDCC5',rc:'\uD83D\uDCC5',t35:'\uD83D\uDE9B',as:'\uD83D\uDD27',etc:'\u2795',nb:'\uD83D\uDCC4'};
 function bubItems(kind,o){
  if(kind==='drv'||kind==='gdrv'){
   const a=[{v:'__R',t:'\ub3d9\uc120 \uae30\uc0ac',s:(o&&CAR[ASSIGN[o.i]])||'\uc9c0\uc815 \ub530\ub984',c:'#94A3B8',e:'\uD83D\uDD01'}];
@@ -1698,7 +1700,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
   +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
  return h+'</div>'}
 function tripLabels(today){
- const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ const car=today.filter(o=>!offRoute(ASSIGN[o.i]));
  const rr=drvRows(car);
  const map={};const dcnt={};
  rr.rows.forEach(a=>{if(a.d!=='용차')dcnt[a.d]=(dcnt[a.d]||0)+1});
@@ -1786,7 +1788,7 @@ function tabBoard(today){
  const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{(by[ASSIGN[o.i]]||by._).push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
- const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ const car=today.filter(o=>!offRoute(ASSIGN[o.i]));
  const totL=car.reduce((a,o)=>a+o.load,0);
  const dn=car.filter(o=>ST[o.i]==='done').length;
  const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
@@ -1812,7 +1814,7 @@ function tabMine(today){
  const known=DRVS.filter(d=>d[0]===ME).length>0;
  if(!ME||!known){
   const rows=DRVS.map(function(d){const n=d[0],p=d[1];
-   const list=today.filter(function(o){return hasDrv(o,n)&&ASSIGN[o.i]!=='x'});
+   const list=today.filter(function(o){return hasDrv(o,n)&&!offRoute(ASSIGN[o.i])});
    const dn=list.filter(function(o){return ST[o.i]==='done'}).length;
    const pc=list.length?dn/list.length*100:0;
    const tr=list.length?driverTrips(list):[];
@@ -1827,7 +1829,7 @@ function tabMine(today){
     +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
     +'<div style="margin-top:7px;font-size:14px;font-weight:800;color:#0f5f37">'+tinfo+'</div></div>'}).join('');
   return '<div class="hd2">👤 기사님을 선택하세요</div><div class="dlist">'+rows+'</div>'}
- const mine=today.filter(o=>hasDrv(o,ME)&&ASSIGN[o.i]!=='x');
+ const mine=today.filter(o=>hasDrv(o,ME)&&!offRoute(ASSIGN[o.i]));
  const dn=mine.filter(o=>ST[o.i]==='done').length,tot=mine.length;
  const pc=tot?dn/tot*100:0,left=tot-dn;
  const L=mine.filter(o=>ST[o.i]!=='done').reduce((a,o)=>a+o.load,0);
@@ -1893,6 +1895,15 @@ function tropt(o){
  for(let k=1;k<=TRIP_MAX;k++)h+='<option value="'+k+'"'+(cur===k?' selected':'')+'>'+k+'차</option>';
  if(cur)h+='<option value="0">자동</option>';
  return h}
+function nbRow(o,j){
+ const ad=shortAddr(ADDR[o.n]||'');
+ return '<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+'">'
+  +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
+  +'<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
+   +'<u>'+erTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'+(ad?'<span class="radd">'+ad+'</span>':'')+'</div>'
+  +'<i>'+o.qty+'개</i>'
+  +'<button class="chipbtn rt" title="동선 바꾸기 — 명세서 확인되면 동선으로 보내세요" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
+  +'</div>'}
 function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
@@ -1913,7 +1924,7 @@ function tabRoute(today){
    +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
    +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
-   +(list.length?'<div class="seqbar" onclick="event.stopPropagation()">'+'<button onclick="learnOrder(\''+x.id+'\')" title="지금 보이는 차례를 이 동선의 기본 순서로 저장">\uD83D\uDD22 이 순서 기억</button>'+(SEQL[x.id]?'<em>\uD83D\uDCCC 기억된 순서 적용중</em><button onclick="forgetOrder(\''+x.id+'\')">\u2715</button>':'')+'</div>':'')
+   +(list.length&&x.id!=='nb'?'<div class="seqbar" onclick="event.stopPropagation()">'+'<button onclick="learnOrder(\''+x.id+'\')" title="지금 보이는 차례를 이 동선의 기본 순서로 저장">\uD83D\uDD22 이 순서 기억</button>'+(SEQL[x.id]?'<em>\uD83D\uDCCC 기억된 순서 적용중</em><button onclick="forgetOrder(\''+x.id+'\')">\u2715</button>':'')+'</div>':'')
    +(open&&list.length?(function(){
      const grps=[];const gm={};
      list.forEach(o=>{const L=tl[o.i]||effDrv(o)||'미지정';if(!gm[L]){gm[L]={L:L,items:[]};grps.push(gm[L])}gm[L].items.push(o)});
@@ -1929,6 +1940,9 @@ function tabRoute(today){
       const gq=g.items.reduce((a,o)=>a+o.qty,0);
       const gd=g.items.filter(o=>ST[o.i]==='done').length;
       const gids='['+g.items.map(o=>o.i).join(',')+']';
+      if(x.id==='nb')return '<div class="rghd" style="background:#8D9BAA">📄 실물 거래명세서 확인 필요'
+       +'<em class="rcnt">'+g.items.length+'곳 · '+gq+'개</em></div>'
+      +g.items.map(function(o,j){return nbRow(o,j)}).join('');
       return '<div class="rghd">🚚 '
        +'<button class="rgbtn" onclick="event.stopPropagation();openBubG(\''+x.id+'\','+gids+',\''+nm.replace(/'/g,'')+'\')">'+(nm||'기사 지정')+' ▾</button>'
        +(trip?'<span class="rgtr">'+trip+'회차</span>':'')
@@ -1961,17 +1975,17 @@ function noteSave(){
  clearTimeout(noteT);noteT=setTimeout(function(){save();
   var s2=document.getElementById('notest');if(s2)s2.textContent='저장됨 · 공유 완료'},700)}
 function tabDrv(today){
- const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ const car=today.filter(o=>!offRoute(ASSIGN[o.i]));
  return drvRank(car)||'<div class="empty">오늘 배차가 없습니다</div>'}
 function tabStat(today){
  const rows=DRVS.map(function(d){const n=d[0];
-  const list=today.filter(o=>hasDrv(o,n)&&ASSIGN[o.i]!=='x');
+  const list=today.filter(o=>hasDrv(o,n)&&!offRoute(ASSIGN[o.i]));
   const rs=list.map(o=>ASSIGN[o.i]);
   return {n:n,tot:list.length,dn:list.filter(o=>ST[o.i]==='done').length,
    q:list.reduce((a,o)=>a+o.qty,0),
    z:ROUTES.filter(r=>rs.indexOf(r.id)>=0).map(r=>r.nm).join(', ')}
  }).filter(r=>r.tot).sort((a,b)=>(b.dn/b.tot)-(a.dn/a.tot)||b.dn-a.dn);
- const car=today.filter(o=>ASSIGN[o.i]!=='x');
+ const car=today.filter(o=>!offRoute(ASSIGN[o.i]));
  const dn=car.filter(o=>ST[o.i]==='done').length;
  let h='<div class="hero">'+ring(car.length?dn/car.length*100:0,
   dn+'<span style="font-size:13px;color:#8b9aab">/'+car.length+'</span>','완료')
@@ -2069,6 +2083,8 @@ function bind(){
 /* ============ 다이얼로그 ============ */
 let pkM,pkA;
 function locNm(a){return a==='_'?'배차 필요':a==='x'?'제외':(RID[a]?RID[a].nm:'?')}
+/* 배차·적재 계산에서 빼는 칸 */
+function offRoute(r){return r==='x'||r==='nb'}
 function openPick(id){pkM='pull';pkA=id;
  document.getElementById('pkT').textContent=RID[id].nm+' 로 가져오기';
  document.getElementById('q').value='';drawPick();
@@ -2164,7 +2180,7 @@ function asAddr(n,v){ASV[SEL]=ASV[SEL]||{};ASV[SEL][n]=v;save()}
 function asShort(){
  const names=Object.keys(ASV[SEL]||{});
  if(!names.length)return alert('A/S 나가는 기사를 먼저 체크해주세요.');
- const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='x');
+ const today=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&!offRoute(ASSIGN[o.i]));
  const L={};ROUTES.forEach(r=>L[r.id]=0);
  today.forEach(o=>{if(L[ASSIGN[o.i]]!==undefined)L[ASSIGN[o.i]]+=o.load});
  const used=Object.keys(CAR).filter(k=>L[k]!==undefined&&CAR[k]);
