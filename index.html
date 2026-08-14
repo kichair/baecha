@@ -1061,8 +1061,16 @@ function build(fresh){
   const byD={};
   ORDERS.forEach(function(o){
    if(ST[o.i]==='del')return;
+   /* 손으로 다른 동선에 옮긴 건은 합침 표시를 풀어준다
+      (안 그러면 화면을 그릴 때마다 5번으로 다시 끌려간다) */
+   if(RWMK[o.key]&&ASSIGN[o.i]!=='rw'&&ASSIGN[o.i]!==RW_MERGE_TO){delete RWMK[o.key];return}
    if(ASSIGN[o.i]==='rw'||RWMK[o.key]){(byD[o.d]=byD[o.d]||[]).push(o)}});
   Object.keys(byD).forEach(function(d){
+   /* 원주·춘천은 수요일 코스다. 수요일이 아닌 날은 합칠 일이 없다 */
+   if(new Date(d+'T00:00:00').getDay()!==3){
+    (byD[d]||[]).forEach(function(o){if(RWMK[o.key])delete RWMK[o.key]});
+    return;
+   }
    const arr=byD[d], L=arr.reduce(function(a,o){return a+o.load},0);
    if(L>=RW_MERGE_MAX){
     /* 물량이 늘었으면 다시 원주 동선으로 되돌린다 */
