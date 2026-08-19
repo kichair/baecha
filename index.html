@@ -1437,6 +1437,18 @@ function hitItem(o,q){
  if(!f.length)return '';
  return f.map(function(x){return x.p}).slice(0,2).join(', ')+(f.length>2?' 외':'');
 }
+/* 한글은 여러 번의 키 입력이 모여 한 글자가 된다.
+   글자마다 바로 검색해서 화면을 다시 그리면 조합이 깨져 '삼'이 'tka'로 들어간다.
+   → 조합 중에는 기다리고, 손을 뗀 뒤 잠깐 있다가 검색한다. */
+var SCOMP=0, SRT=null;   /* 화면의 oninput 속성에서도 보이도록 var 로 둔다 */
+function srchType(el){
+ const v=el.value;
+ if(SCOMP){SQ=v;return}          /* 조합 중 — 건드리지 않는다 */
+ clearTimeout(SRT);
+ if(!v.trim()){srchIn('');return}
+ SRT=setTimeout(function(){srchIn(v)},280);
+}
+function srchNow(el){clearTimeout(SRT);srchIn(el.value)}
 function srchIn(v){
  SQ=(v||'');
  if(!SQ.trim()){SHIT=[];applySrch(false);return}
@@ -1810,7 +1822,7 @@ function tabBoard(today){
  if(FQ!=null){const fo=ORDERS[FQ];
   if(!fo||fo.d!==SEL||ST[fo.i]==='del')FQ=null;
   else{
-   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대도 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+   let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대도 됩니다" oninput="srchType(this)" onkeydown="if(event.keyCode===13){SCOMP=0;srchNow(this)}" autocomplete="off"><div id="srchres"></div></div>';
    h+='<div class="hd2">🔍 검색 결과</div><div class="cardw">'+card(fo)+'</div>';
    h+='<button class="bigsw" onclick="FQ=null;TAB=3;render()" style="width:100%;margin-top:6px">← 동선별 배차표로</button>';
    return h}}
@@ -1823,7 +1835,7 @@ function tabBoard(today){
  const nodrv=ROUTES.filter(r=>by[r.id].length&&!CAR[r.id]).length;
  const over=ROUTES.filter(r=>by[r.id].reduce((a,o)=>a+o.load,0)/((CAR[r.id+'_n']||1)*capFactor(r.id))>1).length;
  let h=wxHTML()+'<div class="kpis">'
- +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대도 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>'
+ +'<div class="srchbar kpisrch">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대도 됩니다" oninput="srchType(this)" onkeydown="if(event.keyCode===13){SCOMP=0;srchNow(this)}" autocomplete="off"><div id="srchres"></div></div>'
  +'<div class="kpi"><span>배송 대상</span><b>'+car.length+'곳</b></div>'
  +'<div class="kpi"><span>완료</span><b>'+dn+'/'+car.length+'</b></div>'
  +'<div class="kpi"><span>총 물량</span><b>'+totL.toFixed(1)+'<span style="font-size:11px"> 대분</span></b></div>'
@@ -1938,7 +1950,7 @@ function tabRoute(today){
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
  Object.values(by).forEach(l=>l.sort(bySeq));
  const tl=tripLabels(today);
- let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대, 대전성신 다 됩니다" oninput="srchIn(this.value)" autocomplete="off"><div id="srchres"></div></div>';
+ let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대, 대전성신 다 됩니다" oninput="srchType(this)" onkeydown="if(event.keyCode===13){SCOMP=0;srchNow(this)}" autocomplete="off"><div id="srchres"></div></div>';
  h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
   const list=by[x.id];
@@ -2077,6 +2089,11 @@ function drawPos(){if(!LMAP||!window.L)return;
 /* ============ 드래그 · 스와이프 ============ */
 let drag=null;
 function bind(){
+ /* 한글 조합(IME) 중에는 검색을 미룬다 — 조합 중 화면을 다시 그리면 글자가 깨진다 */
+ (function(){const q=document.getElementById('srchq');
+  if(!q||q._ime)return;q._ime=1;
+  q.addEventListener('compositionstart',function(){SCOMP=1});
+  q.addEventListener('compositionend',function(){SCOMP=0;srchType(q)});})();
  document.querySelectorAll('.c').forEach(function(c){
   c.ondragstart=function(e){drag=+c.dataset.i;c.classList.add('drag');e.dataTransfer.effectAllowed='move'};
   c.ondragend=function(){c.classList.remove('drag')}});
