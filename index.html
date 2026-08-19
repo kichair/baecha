@@ -530,6 +530,7 @@ const CAP_DEF=[
  {id:'furn', l:'가구 장류(옷장·문장·서가·락카)',k:['옷장','올문장','도어장','도장','분리장','양면장','서가장','서가','오픈장','수납장','신발장','락카장','하문장'],c:40},
  {id:'desk2',l:'책상',k:['책상'],c:8},
  {id:'tbl',  l:'테이블',k:['테이블'],c:30},
+ {id:'mat', l:'얇은 매트(두께 10cm 이하)',k:[],c:24},
  {id:'bed', l:'침대·매트리스',k:['침대','매트리스','침상'],c:4},
  {id:'sofa',l:'소파',k:['소파','쇼파'],c:6},
  {id:'etc', l:'기타',k:[],c:60}];
@@ -863,7 +864,16 @@ function openShare(){
 /* 침대·소파는 사이즈로 계산하면 '1대에 1개'가 되어버림(눕혀 쌓거나 세워 싣기 때문).
    → 아래 품목은 사이즈를 무시하고 적재기준 화면의 등록값을 쓴다. */
 const SIZE_SKIP=['침대','매트리스','침상','소파','쇼파'];
+/* 매트리스라도 두께가 얇으면(10cm 이하) 겹쳐 실으므로 침대와 같이 보면 안 된다.
+   품목명 사이즈의 마지막 숫자(두께)를 보고 가른다. 예) 매트리스 1000*430*50 → 얇은 매트 */
+function thinMat(n){
+ if(n.indexOf('매트')<0&&n.indexOf('침상')<0)return false;
+ const m=String(n).match(/(\d{3,4})\s*[*xX×]\s*(\d{2,4})\s*[*xX×]\s*(\d{1,4})/);
+ if(!m)return false;
+ return +m[3]<=100;
+}
 function capOf(n){
+ if(thinMat(n))return{c:CAPS.mat||24,l:'얇은 매트(두께 10cm 이하)'};
  for(let z=0;z<SIZE_SKIP.length;z++){
   if(n.indexOf(SIZE_SKIP[z])<0)continue;
   for(const c of CAP_DEF)for(const k of c.k)if(k&&n.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l};
