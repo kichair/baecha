@@ -204,10 +204,10 @@ def locked(path):
 
 
 # ── Supabase 에 올리기 ───────────────────────────────────────
-def push(rows, url, key):
+def push(rows, url, key, src=None):
     body = json.dumps([{
         'id': 3,
-        'data': {'ts': int(time.time() * 1000), 'rows': rows},
+        'data': {'ts': int(time.time() * 1000), 'rows': rows, 'src': src or {}},
         'updated_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
     }]).encode('utf-8')
     req = urllib.request.Request(
@@ -237,6 +237,7 @@ def main():
 
     rows, files = [], []
     newest = {}
+    src = {}
     for tag in ('kwangil', 'samjung'):
         folder = CFG.get('folder', tag, fallback='')
         match = CFG.get('folder', tag + '_match', fallback='').strip()
@@ -253,6 +254,10 @@ def main():
             rows += got
             files.append(f)
             newest[tag] = max(newest.get(tag, 0), os.path.getmtime(f))
+            d = src.setdefault(tag, {'ts': 0, 'n': 0, 'f': ''})
+            d['ts'] = int(time.time() * 1000)
+            d['n'] += len(got)
+            d['f'] = os.path.basename(f)[:40]
 
     if not rows:
         log('새로 올릴 명세서가 없습니다.')
@@ -274,7 +279,7 @@ def main():
 
     url = CFG.get('supabase', 'url')
     key = CFG.get('supabase', 'key')
-    code = push(uniq, url, key)
+    code = push(uniq, url, key, src)
     log('배차로 보냄:', len(uniq), '줄  (HTTP', code, ')')
 
     for tag, ts in newest.items():
