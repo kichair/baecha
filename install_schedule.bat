@@ -34,10 +34,10 @@ set "BAT=%~dp0run.bat"
 rem ==========================================
 rem   TIMES - edit this line only  (HHMM)
 rem ==========================================
-set "TIMES=0910 1110 1310 1530"
+set "TIMES=0910 1110 1310 1500 1530"
 
 echo --- removing old entries ---
-for %%T in (0900 0910 1100 1110 1300 1310 1500 1510 1530 1600 1630 1700 1710) do schtasks /Delete /TN "baecha %%T" /F >nul 2>&1
+for %%T in (0900 0910 1100 1110 1300 1310 1400 1500 1510 1530 1600 1630 1700 1710) do schtasks /Delete /TN "baecha %%T" /F >nul 2>&1
 echo done.
 echo.
 
