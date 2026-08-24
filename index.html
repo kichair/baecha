@@ -784,7 +784,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260825';
+const APPVER='20260825b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1043,12 +1043,12 @@ function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" tit
 /* 일시성거래처 = 전부 조달 건. 거래처명 대신 [조달] 표시를 붙이고 납품처만 보여준다 */
 function jdTag(o){return (o&&o.jd)?'<em class="jdtag" title="조달 납품 건 (일시성거래처)">조달</em>':''}
 /* 거래처구분이 'ERP수시집' 이면 빨간 동그라미 — 거래명세서를 들고 나가거나 돈을 받아야 하는 건 */
-const ERP_RE=/ERP\s*수시집/i;
+const ERP_RE=/ERP\s*수시/i;   /* 실제 명세서 값은 'ERP수시' · 'ERP수시(운임비별도)' — '집'이 없다 */
 const ERP_FROM='2026-08-25';
 function erpTag(o){
  if(!o||!o.erp)return '';
  if((o.od||'')<ERP_FROM)return '';
- return '<em class="erpdot" title="ERP수시집 — 거래명세서 지참 / 대금 수령 주의">\u25CF</em>';
+ return '<em class="erpdot" title="ERP수시 — 거래명세서 지참 / 대금 수령 주의">\u25CF</em>';
 }
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
