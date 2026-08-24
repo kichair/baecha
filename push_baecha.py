@@ -95,6 +95,7 @@ def parse_sheet(rows):
 
     iN, iP, iS, iM, iQ = ix('거래처명'), ix('품목명'), ix('비고'), ix('적요'), ix('수량')
     iD = ix('거래일자')
+    iG = ix('거래처구분')   # ERP수시집 = 명세서 지참 / 대금 수령 주의 건
     # 삼정(이카운트) 서식은 '일자-No.' / '회계반영일자' 가 있다 → 비고가 적요 역할
     sj = any(('일자-No' in h) or ('회계반영일자' in h) for h in H)
     if sj:
@@ -125,6 +126,10 @@ def parse_sheet(rows):
             continue
         row = {'n': n, 'p': p, 's': str(g(iS) or '').strip(),
                'q': q, 'm': str(g(iM) or '').strip()[:80], 'd': to_date(g(iD))}
+        if iG >= 0:
+            gv = str(g(iG) or '').strip()
+            if gv:
+                row['g'] = gv[:20]
         if not row['d']:
             continue
         if sj:
@@ -271,7 +276,7 @@ def main():
     # 같은 줄은 한 번만
     seen, uniq = set(), []
     for l in rows:
-        k = (l['d'], l['n'], l['p'], l['s'], l['q'], l['m'], l.get('sj', ''))
+        k = (l['d'], l['n'], l['p'], l['s'], l['q'], l['m'], l.get('sj', ''), l.get('g', ''))
         if k in seen:
             continue
         seen.add(k)

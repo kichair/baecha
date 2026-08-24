@@ -185,6 +185,8 @@ button,select,input{font-family:inherit}
 .sjtag.part{background:#fff5e6;color:#c9761a;border-color:#f0d3a8}
 .ertag{display:inline-block;font-style:normal;background:#e8f1ff;color:#1b62d6;border:1px solid #b9d2f7;
  border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
+.erpdot{display:inline-block;font-style:normal;color:#e02020;font-size:13px;line-height:1;
+ margin-right:3px;vertical-align:1px;text-shadow:0 0 1px rgba(224,32,32,.5)}
 .jdtag{display:inline-block;font-style:normal;background:#eef7ee;color:#1f7a3d;border:1px solid #b8ddc2;
  border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
 .drowtop{display:flex;gap:10px;align-items:baseline}
@@ -776,7 +778,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260821b';
+const APPVER='20260824a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1026,6 +1028,14 @@ function erTag(o){return isEarly(o)?'<em class="ertag" title="적요에 일찍·
 function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
 /* 일시성거래처 = 전부 조달 건. 거래처명 대신 [조달] 표시를 붙이고 납품처만 보여준다 */
 function jdTag(o){return (o&&o.jd)?'<em class="jdtag" title="조달 납품 건 (일시성거래처)">조달</em>':''}
+/* 거래처구분이 'ERP수시집' 이면 빨간 동그라미 — 거래명세서를 들고 나가거나 돈을 받아야 하는 건 */
+const ERP_RE=/ERP\s*수시집/i;
+const ERP_FROM='2026-08-25';
+function erpTag(o){
+ if(!o||!o.erp)return '';
+ if((o.od||'')<ERP_FROM)return '';
+ return '<em class="erpdot" title="ERP수시집 — 거래명세서 지참 / 대금 수령 주의">\u25CF</em>';
+}
 function why(o){
  const D=destOf(o);if(D&&D.src==='적요'&&hitRoute(D.t))return '적요';
  if(rtHard(o.n)||rtFix(o.n))return '고정';
@@ -1114,7 +1124,8 @@ function build(fresh){
   g[k].items.push(l)});
  Object.keys(g).forEach(k=>{const c=g[k];
   const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
-  ORDERS.push({n:c.n,jd:c.jd||0,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / ')})});
+  const erp=c.items.some(function(x){return ERP_RE.test(x.g||'')})?1:0;
+  ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / ')})});
  CUSTOM.forEach((c,j)=>{const k='cu'+j;
   ORDERS.push({n:c.n,ex:null,od:c.d||SEL,key:k,d:DOVR[k]||c.d||SEL,items:c.items,memo:c.memo||'',cu:1})});
  ORDERS.forEach((o,i)=>{o.i=i;o.qty=o.items.reduce((a,b)=>a+b.q,0);o.load=loadOf(o);
@@ -1345,7 +1356,7 @@ function ccard(o){
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c cm '+cls+'" draggable="true" data-i="'+o.i+'">'
   +'<div class="cmrow" onclick="toggleExp(\''+o.key+'\')">'
-  +'<div class="nm">'+jdTag(o)+sjTag(o)+o.n+(o.split?' <small>('+(o.ex?'택배':'차량')+')</small>':'')+'</div>'
+  +'<div class="nm">'+erpTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <small>('+(o.ex?'택배':'차량')+')</small>':'')+'</div>'
   +'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>'+'<span class="pct">'+(o.load*100).toFixed(0)+'%</span>'
   +(done?'<span class="cchk ok">✓</span>':'<span class="cchk">▾</span>')+'</div>'
   +'<div class="cmsub">'+chips+dest+'</div></div></div>'}
@@ -1386,7 +1397,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+erTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
@@ -2046,7 +2057,7 @@ function nbRow(o,j){
  return '<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+'">'
   +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
   +'<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-   +'<u>'+erTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
+   +'<u>'+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
    +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'
   +'<i>'+o.qty+'개</i>'
   +'<button class="chipbtn rt" title="동선 바꾸기 — 명세서 확인되면 동선으로 보내세요" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
@@ -2103,7 +2114,7 @@ function tabRoute(today){
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const A=rowAddr(o);const ad=A.t;
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-          +'<u>'+erTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
+          +'<u>'+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
           +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'})()
        +'<i>'+o.qty+'개</i>'
        +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'
@@ -2442,6 +2453,7 @@ function parseSheet(rows){
  const H=rows[hi].map(x=>String(x||'').replace(/\s/g,''));
  const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
  let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
+ const iG=ix('거래처구분');   /* ERP수시집 = 거래명세서를 우리가 들고 나가거나 현금 받는 건 */
  /* 공급자가 삼정인 명세서 판별 — 삼정 서식에만 있는 '일자-No.' / '회계반영일자' 컬럼 */
  const SJFILE=H.some(function(h){return h.indexOf('일자-No')>=0||h.indexOf('회계반영일자')>=0});
  if(SJFILE){iM=iS;iS=-1}
@@ -2458,6 +2470,7 @@ function parseSheet(rows){
   else{const mm=String(dv||'').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
    if(mm)dd=mm[1]+'-'+('0'+mm[2]).slice(-2)+'-'+('0'+mm[3]).slice(-2)}
   const row={n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd};
+  if(iG>=0){const gv=String(r[iG]||'').trim();if(gv)row.g=gv.slice(0,20)}
   if(SJFILE)row.sj=1;
   out.push(row)});
  return {rows:out, sj:SJFILE};
