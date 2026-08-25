@@ -1844,6 +1844,7 @@ function driverTrips(list){
  rows.forEach(r=>r.ri=ord.indexOf(r.rid));
  rows.sort((a,b)=>a.ri-b.ri);
  return mergeSame(rows)}
+const SYM={r1:'A',r2:'B',r3:'C',r4:'D',r5:'E',r6:'F',r7:'G',rw:'W',rc:'T'};
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
  const qty=list.reduce((a,o)=>a+o.qty,0);
@@ -1851,7 +1852,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  const dv=CAR[id]||'',dr=DRVS.filter(d=>d[0]===dv)[0],ph=dr?dr[1]:'';
  const opts='<option value="">— 기사 지정 —</option>'+DRVS.map(d=>'<option value="'+d[0]+'"'+(dv===d[0]?' selected':'')+'>'+d[0]+'</option>').join('');
  let h='<div class="sec"><h3 onclick="tg(\''+id+'\')">'
- +'<div class="ic" style="background:'+cl+'">'+nm.slice(0,2)+'</div>'
+ +'<div class="ic" style="background:'+cl+'">'+(SYM[id]||nm.slice(0,2))+'</div>'
  +'<div class="t"><b>'+nm+'</b><span>'+(dv?dv+vehTag(dv)+asTag(dv)+(ph?' · '+ph:'')+(isRain(SEL)&&!covered(dv)?'<span class="vtag vw">☔개방</span>':''):zone)+'</span></div>'
  +'<div class="rt"><b>'+list.length+'곳</b><span>'+qty+'개</span></div>'
  +'<span style="color:#c3ceda;font-size:12px">'+(op?'▾':'▸')+'</span></h3>';
@@ -2103,7 +2104,7 @@ function tabRoute(today){
   const open=ROPEN[x.id]!==false;
   h+='<div class="dcard dvrow" onclick="ROPEN[\''+x.id+'\']=ROPEN[\''+x.id+'\']===false?true:false;render()">'
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
-   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
+   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+(SYM[x.id]||x.nm.slice(0,2))+'</span>'
    +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'
    +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
