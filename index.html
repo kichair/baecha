@@ -398,6 +398,73 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
  .cardw{min-width:0}
 }
 @media print{.tabs,.top,.acts,.dv,#toast{display:none}body{padding:0}.sec{break-inside:avoid;box-shadow:none;border:1px solid #ccc}}
+/* ===== 라벨 인쇄 (A4 일반지 · 컬러) ===== */
+#lblsheet{display:none}
+body.lblmode #lblsheet{display:block;position:fixed;inset:0;background:#fff;z-index:9999;overflow:auto;padding:14px}
+.lblbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #dde4ec}
+.lblgrid{display:grid;gap:0}
+.lblcell{border:1px dashed #c8d0da;padding:0;overflow:hidden;display:flex;flex-direction:column;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
+.lblband{flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.lblbody{flex:1;display:flex;flex-direction:column;justify-content:center;padding:3mm 4mm;min-width:0}
+.lblnm{font-weight:800;line-height:1.2;letter-spacing:-.4px;word-break:break-all;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.lbltags{display:flex;gap:3px;flex-wrap:wrap;margin-top:2mm}
+.lbltags em{font-style:normal;font-weight:800;border-radius:3px;padding:.6mm 2mm;border:1px solid;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.lbltags em.e{background:#fdecea;color:#c0271c;border-color:#e8a49d}
+.lbltags em.j{background:#e8f3ec;color:#1f7a44;border-color:#a8cfb8}
+.lbltags em.s{background:#fdecea;color:#d32f2f;border-color:#f3bdb8}
+.lbltags em.sp{background:#fff5e6;color:#b3670f;border-color:#f0d3a8}
+.lblempty{border:1px dashed #eceff3;background:repeating-linear-gradient(45deg,#fafbfc,#fafbfc 4px,#fff 4px,#fff 8px)}
+.lbllegend{border:1px solid #dde4ec;border-radius:8px;padding:10px 12px;margin-bottom:6mm;break-inside:avoid;page-break-inside:avoid}
+.lbllegend h4{font-size:13px;font-weight:800;margin-bottom:8px}
+.lbllegend .lg{display:flex;flex-wrap:wrap;gap:6px 14px}
+.lbllegend .lg span{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700}
+.lbllegend .lg i{width:16px;height:16px;border-radius:4px;display:block;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{size:A4;margin:8mm}
+@media print{
+ body.lblmode{padding:0!important;background:#fff!important}
+ body.lblmode>*{display:none!important}
+ body.lblmode #lblsheet{display:block!important;position:static!important;padding:0!important;overflow:visible!important}
+ body.lblmode .lblbar{display:none!important}
+ .lblcell{break-inside:avoid;page-break-inside:avoid}
+ .lblpage{break-after:page;page-break-after:always}
+ .lblpage:last-child{break-after:auto;page-break-after:auto}
+}
+/* ===== 전표 인쇄 (ERP 화면인쇄 대체) ===== */
+.jpslip{border:1.5px solid #333;border-radius:2mm;overflow:hidden;display:flex;flex-direction:column;
+ break-inside:avoid;page-break-inside:avoid;margin-bottom:4mm;background:#fff;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.jphead{display:flex;align-items:center;gap:3mm;padding:2.2mm 3.5mm;color:#fff;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.jphead .rt{font-weight:800;font-size:4mm;white-space:nowrap}
+.jphead .dt{margin-left:auto;font-size:3.4mm;font-weight:700;opacity:.92;white-space:nowrap}
+.jpnm{display:flex;align-items:center;gap:2mm;flex-wrap:wrap;padding:2.2mm 3.5mm 1mm;font-size:5.4mm;font-weight:800;letter-spacing:-.4px}
+.jpnm .tg{display:flex;gap:1.5mm}
+.jpnm .tg em{font-style:normal;font-weight:800;font-size:3.2mm;border-radius:1mm;padding:.5mm 2mm;border:.3mm solid;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.jpnm .tg em.e{background:#fdecea;color:#c0271c;border-color:#e8a49d}
+.jpnm .tg em.j{background:#e8f3ec;color:#1f7a44;border-color:#a8cfb8}
+.jpnm .tg em.s{background:#fdecea;color:#d32f2f;border-color:#f3bdb8}
+.jpnm .tg em.sp{background:#fff5e6;color:#b3670f;border-color:#f0d3a8}
+.jpnm .tg em.new{background:#e7f0fb;color:#1c5fb8;border-color:#a8c6ee}
+table.jpt{width:100%;border-collapse:collapse;font-size:3.4mm;margin-top:1mm}
+table.jpt th{background:#f0f2f5;font-weight:800;padding:1.2mm 2mm;border-top:.3mm solid #555;border-bottom:.3mm solid #555;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.jpt td{padding:1.2mm 2mm;border-bottom:.2mm solid #d5dae1;vertical-align:top}
+table.jpt .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.jpt .c{text-align:center}
+table.jpt small{color:#667;font-size:2.9mm}
+table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:none;background:#fafbfc;
+ -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.jpmemo{padding:1.5mm 3.5mm 2.5mm;font-size:3.3mm;color:#b02a20;font-weight:700;line-height:1.45}
+.jpsign{display:flex;justify-content:flex-end;gap:2mm;align-items:center;padding:0 3.5mm 2.5mm;font-size:3.2mm;color:#556}
+.jpsign i{display:inline-block;width:28mm;border-bottom:.3mm solid #99a;height:5mm;font-style:normal}
+@media print{
+ body.lblmode #lblsheet .jpslip{margin-bottom:4mm}
+}
 </style></head><body>
 
 <div class="top">
@@ -442,6 +509,8 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
   <button class="btn" onclick="menu.close();cleanDup()">🧹 중복 명세서 정리</button>
   <button class="btn" onclick="menu.close();cap.showModal()">📦 적재 기준</button>
   <button class="btn" onclick="menu.close();openShare()">🔗 실시간 공유 설정</button>
+  <button class="btn" onclick="menu.close();openJp()">🧾 전표 인쇄 (동선 색깔)</button>
+  <button class="btn" onclick="menu.close();openLbl()">🏷️ 라벨 인쇄 (색깔 구분)</button>
   <button class="btn s" onclick="menu.close();print()">🖨️ 인쇄</button>
   <button class="btn s" onclick="if(confirm('명세서를 처음 상태(7/20~27)로 되돌립니다.')){localStorage.removeItem(KEY+'_raw');['','_s','_card'].forEach(k=>localStorage.removeItem(KEY+k));location.reload()}">↩︎ 명세서 되돌리기</button>
   <button class="btn s" style="background:#fbe9e7;color:#a5372f" onclick="if(confirm('오늘 배차만 초기화합니다. (거래처정보·학습은 유지)')){['','_s','_card'].forEach(k=>localStorage.removeItem(KEY+k));location.reload()}">↺ 배차 초기화</button>
@@ -784,7 +853,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260825c';
+const APPVER='20260825d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -871,9 +940,13 @@ function inboxApply(box){
  /* 이미 들어와 있는 줄에 거래처구분(ERP수시집)만 새로 붙는 경우가 있다.
     같은 줄로 걸러버리면 빨간 표시가 영영 안 붙으므로, 새 줄로 넣지 말고 표시만 채워 넣는다. */
  let gfix=0;
- (function(){const GM={};
-  box.rows.forEach(function(l){if(l&&l.g)GM[K(l)]=l.g});
-  RAW.forEach(function(l){const gv=GM[K(l)];if(gv&&l.g!==gv){l.g=gv;gfix++}});})();
+ (function(){const GM={},AM={};
+  box.rows.forEach(function(l){if(!l)return;const k=K(l);
+   if(l.g)GM[k]=l.g;
+   if(l.u||l.a||l.v||l.t)AM[k]=l});
+  RAW.forEach(function(l){const k=K(l);
+   const gv=GM[k];if(gv&&l.g!==gv){l.g=gv;gfix++}
+   const am=AM[k];if(am){['u','a','v','t'].forEach(function(f){if(am[f]&&l[f]!==am[f])l[f]=am[f]})}});})();
  const B=function(l){return [l.d,l.n,l.p,l.s||'',l.q].join('\u0001')};
  const seen={},bag={};
  RAW.forEach(function(l){seen[K(l)]=1;(bag[B(l)]=bag[B(l)]||[]).push((l.m||'').trim())});
@@ -883,7 +956,7 @@ function inboxApply(box){
   if(seen[K(l)])return false;
   const b=B(l), m=(l.m||'').trim(), ms=bag[b];
   if(ms&&ms.some(function(x){return x===m||x===''||m===''}))return false;
-  seen[K(l)]=1;(bag[b]=bag[b]||[]).push(m);return true});
+  seen[K(l)]=1;(bag[b]=bag[b]||[]).push(m);l._in=ts;return true});
  INBOX_TS=ts;try{localStorage.setItem(UKEY+'_inboxts',String(ts))}catch(e){}
  /* 새 줄이 없어도 '언제 받았는지'는 저장하고 화면 표시도 새로 그린다 */
  if(!add.length){
@@ -1844,7 +1917,6 @@ function driverTrips(list){
  rows.forEach(r=>r.ri=ord.indexOf(r.rid));
  rows.sort((a,b)=>a.ri-b.ri);
  return mergeSame(rows)}
-const SYM={r1:'A',r2:'B',r3:'C',r4:'D',r5:'E',r6:'F',r7:'G',rw:'W',rc:'T'};
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
  const qty=list.reduce((a,o)=>a+o.qty,0);
@@ -1852,7 +1924,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  const dv=CAR[id]||'',dr=DRVS.filter(d=>d[0]===dv)[0],ph=dr?dr[1]:'';
  const opts='<option value="">— 기사 지정 —</option>'+DRVS.map(d=>'<option value="'+d[0]+'"'+(dv===d[0]?' selected':'')+'>'+d[0]+'</option>').join('');
  let h='<div class="sec"><h3 onclick="tg(\''+id+'\')">'
- +'<div class="ic" style="background:'+cl+'">'+(SYM[id]||nm.slice(0,2))+'</div>'
+ +'<div class="ic" style="background:'+cl+'">'+nm.slice(0,2)+'</div>'
  +'<div class="t"><b>'+nm+'</b><span>'+(dv?dv+vehTag(dv)+asTag(dv)+(ph?' · '+ph:'')+(isRain(SEL)&&!covered(dv)?'<span class="vtag vw">☔개방</span>':''):zone)+'</span></div>'
  +'<div class="rt"><b>'+list.length+'곳</b><span>'+qty+'개</span></div>'
  +'<span style="color:#c3ceda;font-size:12px">'+(op?'▾':'▸')+'</span></h3>';
@@ -2104,7 +2176,7 @@ function tabRoute(today){
   const open=ROPEN[x.id]!==false;
   h+='<div class="dcard dvrow" onclick="ROPEN[\''+x.id+'\']=ROPEN[\''+x.id+'\']===false?true:false;render()">'
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
-   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+(SYM[x.id]||x.nm.slice(0,2))+'</span>'
+   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
    +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'
    +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
@@ -2481,6 +2553,7 @@ function parseSheet(rows){
  const ix=function(n){return H.findIndex(h=>h.indexOf(n)>=0)};
  let iN=ix('거래처명'),iP=ix('품목명'),iS=ix('비고'),iM=ix('적요'),iQ=ix('수량'),iD=ix('거래일자');
  const iG=ix('거래처구분');   /* ERP수시집 = 거래명세서를 우리가 들고 나가거나 현금 받는 건 */
+ const iU=ix('단가'),iA=ix('공급가액'),iV=ix('부가세'),iT=ix('합계');   /* 전표 인쇄용 금액 */
  /* 공급자가 삼정인 명세서 판별 — 삼정 서식에만 있는 '일자-No.' / '회계반영일자' 컬럼 */
  const SJFILE=H.some(function(h){return h.indexOf('일자-No')>=0||h.indexOf('회계반영일자')>=0});
  if(SJFILE){iM=iS;iS=-1}
@@ -2497,6 +2570,8 @@ function parseSheet(rows){
   else{const mm=String(dv||'').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
    if(mm)dd=mm[1]+'-'+('0'+mm[2]).slice(-2)+'-'+('0'+mm[3]).slice(-2)}
   const row={n:n,p:p,s:String(r[iS]||'').trim(),q:q,m:String(r[iM]||'').trim().slice(0,80),d:dd};
+  [['u',iU],['a',iA],['v',iV],['t',iT]].forEach(function(fk){
+   if(fk[1]>=0){const fv=Math.round(parseFloat(String(r[fk[1]]||'').replace(/,/g,''))||0);if(fv)row[fk[0]]=fv}});
   if(iG>=0){const gv=String(r[iG]||'').trim();if(gv)row.g=gv.slice(0,20)}
   if(SJFILE)row.sj=1;
   out.push(row)});
@@ -2615,4 +2690,214 @@ render();
 syncInit();
 loadWx();
 fetchWx();
-</script></body></html>
+
+/* ============ 🏷️ 라벨 인쇄 ============
+   A4 일반지에 동선별 색을 깔아서 뽑는다. 오려서 거래명세서에 붙이면
+   기사·순서가 바뀌어도 색은 그대로라 다시 정리할 필요가 없다.
+   동선은 거래처 주소로 정해지므로 미리 뽑아둬도 거의 안 바뀐다. */
+const LBL_C={
+ r1:['#E03131','#fff'], r2:['#F76707','#fff'], r3:['#F2B705','#1a1a1a'],
+ r4:['#2F9E44','#fff'], r5:['#1971C2','#fff'], r6:['#7048E8','#fff'],
+ r7:['#D6336C','#fff'], rw:['#0B7285','#fff'], rc:['#5F3DC4','#fff'],
+ t35:['#8D6E28','#fff'], as:['#C2255C','#fff'], etc:['#495057','#fff'],
+ jn:['#ADB5BD','#1a1a1a'], nb:['#CED4DA','#1a1a1a'], '_':['#DEE2E6','#1a1a1a']};
+function lblC(rid){return LBL_C[rid]||LBL_C['_']}
+/* 칸 배치 — [가로칸, 세로칸] */
+const LBL_GRID={'2x5':[2,5],'2x6':[2,6],'3x6':[3,6],'3x8':[3,8]};
+let LBLOPT=LSU('_lbl',{g:'2x6',skip:0,sort:'rt',leg:1,only:''});
+
+
+/* ============ 🧾 전표 인쇄 ============
+   ERP 화면에서 한 장씩 인쇄하던 것을 대체한다.
+   자동 조회로 들어온 명세서(품목·수량·단가·금액)를 거래처별 전표로 묶고
+   동선 색 머리띠를 입혀서 A4에 이어 찍는다.
+   금요일에 미리 뽑아두고, 월요일엔 '이후 반영분만'으로 추가분만 다시 뽑으면 된다. */
+function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+let LBLMODE='';
+let JPOPT=LSU('_jp',{rt:'',sort:'rt',since:'',sign:1});
+function jpSet(k,v){JPOPT[k]=v;try{localStorage.setItem(UKEY+'_jp',JSON.stringify(JPOPT))}catch(e){}drawJp()}
+function openJp(){document.body.classList.add('lblmode');LBLMODE='jp';drawJp();window.scrollTo(0,0)}
+function jpWon(v){return v==null?'':String(v).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function jpRows(){
+ let L=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del');
+ if(JPOPT.rt)L=L.filter(o=>(ASSIGN[o.i]||'_')===JPOPT.rt);
+ if(JPOPT.since){const T=+new Date(JPOPT.since);
+  if(T)L=L.filter(o=>(o.items||[]).some(x=>+x._in>=T))}
+ const ord={};ROUTES.forEach((r,i)=>ord[r.id]=i);
+ if(JPOPT.sort==='nm')L=L.slice().sort((a,b)=>String(a.n).localeCompare(String(b.n),'ko'));
+ else L=L.slice().sort((a,b)=>{
+  const x=ord[ASSIGN[a.i]]==null?99:ord[ASSIGN[a.i]], y=ord[ASSIGN[b.i]]==null?99:ord[ASSIGN[b.i]];
+  return x-y||bySeq(a,b)||String(a.n).localeCompare(String(b.n),'ko')});
+ return L;
+}
+function jpTags(o,T){
+ let h='';
+ if(o.erp&&(o.od||'')>=ERP_FROM)h+='<em class="e">● 수시·수금</em>';
+ if(o.jd)h+='<em class="j">조달</em>';
+ if(isSJ(o))h+=sjAll(o)?'<em class="s">삼정</em>':'<em class="sp">삼정혼합</em>';
+ if(T&&(o.items||[]).some(x=>+x._in>=T))h+='<em class="new">추가분</em>';
+ return h;
+}
+function drawJp(){
+ const el=document.getElementById('lblsheet');if(!el)return;
+ const W=['일','월','화','수','목','금','토'];
+ const dt=new Date(SEL+'T00:00:00');
+ const dts=SEL+' ('+(isNaN(dt)?'':W[dt.getDay()])+')';
+ const list=jpRows();
+ const T=JPOPT.since?+new Date(JPOPT.since):0;
+ const hasAmt=list.some(o=>(o.items||[]).some(x=>x.t||x.a||x.u));
+
+ let h='<div class="lblbar">'
+  +'<b style="font-size:15px">🧾 전표 인쇄</b>'
+  +'<span style="font-size:12px;color:#6b7c90">'+dts+' · '+list.length+'건 — 날짜는 상단에서 바꾼 뒤 다시 여세요</span>'
+  +'<span style="flex:1"></span>'
+  +'<select onchange="jpSet(\'rt\',this.value)">'
+   +'<option value="">전체 동선</option>'
+   +ROUTES.map(r=>'<option value="'+r.id+'"'+(JPOPT.rt===r.id?' selected':'')+'>'+r.nm+'</option>').join('')
+   +'<option value="_"'+(JPOPT.rt==='_'?' selected':'')+'>미배차</option>'
+  +'</select>'
+  +'<select onchange="jpSet(\'sort\',this.value)">'
+   +'<option value="rt"'+(JPOPT.sort==='rt'?' selected':'')+'>동선순 (색깔끼리)</option>'
+   +'<option value="nm"'+(JPOPT.sort==='nm'?' selected':'')+'>거래처 가나다순</option>'
+  +'</select>'
+  +'<label style="font-size:12px;font-weight:700;color:#5f7086">이 시각 이후 반영분만 '
+   +'<input type="datetime-local" value="'+(JPOPT.since||'')+'" style="padding:5px;border:1px solid #dde5ee;border-radius:6px" onchange="jpSet(\'since\',this.value)">'
+   +(JPOPT.since?' <button class="btn s" style="padding:4px 8px" onclick="jpSet(\'since\',\'\')">전체</button>':'')
+  +'</label>'
+  +'<label style="font-size:12px;font-weight:700;color:#5f7086"><input type="checkbox"'+(JPOPT.sign?' checked':'')+' onchange="jpSet(\'sign\',this.checked?1:0)"> 인수자 서명란</label>'
+  +'<button class="btn" onclick="window.print()">🖨️ 인쇄</button>'
+  +'<button class="btn s" onclick="closeLbl()">닫기</button>'
+  +'</div>';
+
+ if(!list.length){el.innerHTML=h+'<div style="padding:40px;text-align:center;color:#8b9aab;font-weight:700">'
+  +(JPOPT.since?'선택한 시각 이후 새로 들어온 건이 없습니다.':'이 날짜에 전표로 뽑을 건이 없습니다.')+'</div>';return}
+
+ list.forEach(function(o){
+  const rid=ASSIGN[o.i]||'_', c=lblC(rid), r=RID[rid];
+  const rtNm=o.ex?('제외 · '+o.ex):(r?r.nm:'미배차');
+  const band=o.ex?'#8D9BAA':c[0], fg=o.ex?'#fff':c[1];
+  let rows='',tq=0,ta=0,tv=0,tt=0,anyAmt=false;
+  (o.items||[]).forEach(function(x){
+   tq+=(+x.q||0);
+   if(x.a){ta+=x.a;anyAmt=true}if(x.v)tv+=x.v;if(x.t){tt+=x.t;anyAmt=true}
+   rows+='<tr'+(T&&+x._in>=T?' style="background:#eef5fd"':'')+'>'
+    +'<td>'+esc(x.p)+(x.s?' <small>'+esc(x.s)+'</small>':'')+'</td>'
+    +'<td class="r"><b>'+x.q+'</b></td>'
+    +(hasAmt?'<td class="r">'+jpWon(x.u)+'</td><td class="r">'+jpWon(x.a)+'</td><td class="r">'+jpWon(x.v)+'</td><td class="r">'+jpWon(x.t)+'</td>':'')
+    +'</tr>';
+  });
+  rows+='<tr class="tot"><td>합계</td><td class="r">'+tq+'</td>'
+   +(hasAmt?'<td></td><td class="r">'+(anyAmt?jpWon(ta):'')+'</td><td class="r">'+(tv?jpWon(tv):'')+'</td><td class="r">'+(anyAmt?jpWon(tt):'')+'</td>':'')
+   +'</tr>';
+  h+='<div class="jpslip">'
+   +'<div class="jphead" style="background:'+band+';color:'+fg+'"><span class="rt">'+esc(rtNm)+'</span>'
+    +'<span class="dt">'+dts+(DRVOV[o.key]?' · '+esc(DRVOV[o.key]):'')+'</span></div>'
+   +'<div class="jpnm">'+esc(o.n)+'<span class="tg">'+jpTags(o,T)+'</span></div>'
+   +'<table class="jpt"><thead><tr><th style="text-align:left">품목 / 규격</th><th class="r">수량</th>'
+    +(hasAmt?'<th class="r">단가</th><th class="r">공급가액</th><th class="r">부가세</th><th class="r">합계</th>':'')
+   +'</tr></thead><tbody>'+rows+'</tbody></table>'
+   +(o.memo?'<div class="jpmemo">적요: '+esc(o.memo)+'</div>':'')
+   +(JPOPT.sign?'<div class="jpsign">인수자 <i></i> (인)</div>':'')
+   +'</div>';
+ });
+ el.innerHTML=h;
+}
+
+function openLbl(){
+ document.body.classList.add('lblmode');LBLMODE='lbl';
+ drawLbl();
+ window.scrollTo(0,0);
+}
+function closeLbl(){document.body.classList.remove('lblmode');document.getElementById('lblsheet').innerHTML=''}
+function lblSet(k,v){LBLOPT[k]=v;try{localStorage.setItem(UKEY+'_lbl',JSON.stringify(LBLOPT))}catch(e){}drawLbl()}
+
+function lblRows(){
+ const L=ORDERS.filter(o=>o.d===SEL&&ST[o.i]!=='del'&&!o.ex);
+ const ord={};ROUTES.forEach((r,i)=>ord[r.id]=i);
+ const key=o=>{const rid=ASSIGN[o.i]||'_';return rid};
+ let out=L.slice();
+ if(LBLOPT.only)out=out.filter(o=>(ASSIGN[o.i]||'_')===LBLOPT.only);
+ if(LBLOPT.sort==='nm')out.sort((a,b)=>String(a.n).localeCompare(String(b.n),'ko'));
+ else out.sort((a,b)=>{
+  const x=ord[key(a)]==null?99:ord[key(a)], y=ord[key(b)]==null?99:ord[key(b)];
+  return x-y || bySeq(a,b) || String(a.n).localeCompare(String(b.n),'ko');
+ });
+ return out;
+}
+function lblTags(o){
+ let h='';
+ if(o.erp&&(o.od||'')>=ERP_FROM)h+='<em class="e">●수시</em>';
+ if(o.jd)h+='<em class="j">조달</em>';
+ if(isSJ(o))h+=sjAll(o)?'<em class="s">삼정</em>':'<em class="sp">삼정혼합</em>';
+ return h;
+}
+function drawLbl(){
+ const el=document.getElementById('lblsheet');if(!el)return;
+ const G=LBL_GRID[LBLOPT.g]||LBL_GRID['2x6'];
+ const cols=G[0], rows=G[1], per=cols*rows;
+ /* A4 210x297, @page 여백 8mm → 194 x 281 */
+ const cw=(194/cols), ch=(281/rows);
+ const list=lblRows();
+ const skip=Math.max(0,Math.min(per-1,+LBLOPT.skip||0));
+
+ /* --- 조작 막대 (인쇄엔 안 나옴) --- */
+ let h='<div class="lblbar">'
+  +'<b style="font-size:15px">🏷️ 라벨 인쇄</b>'
+  +'<span style="font-size:12px;color:#6b7c90">'+SEL+' · '+list.length+'장</span>'
+  +'<span style="flex:1"></span>'
+  +'<select onchange="lblSet(\'g\',this.value)">'
+   +Object.keys(LBL_GRID).map(k=>'<option value="'+k+'"'+(LBLOPT.g===k?' selected':'')+'>'+k.replace('x','칸 × ')+'줄 ('+(LBL_GRID[k][0]*LBL_GRID[k][1])+'장)</option>').join('')
+  +'</select>'
+  +'<select onchange="lblSet(\'sort\',this.value)">'
+   +'<option value="rt"'+(LBLOPT.sort==='rt'?' selected':'')+'>동선순 (색깔끼리)</option>'
+   +'<option value="nm"'+(LBLOPT.sort==='nm'?' selected':'')+'>거래처 가나다순</option>'
+  +'</select>'
+  +'<select onchange="lblSet(\'only\',this.value)">'
+   +'<option value="">전체 동선</option>'
+   +ROUTES.map(r=>'<option value="'+r.id+'"'+(LBLOPT.only===r.id?' selected':'')+'>'+r.nm+'</option>').join('')
+   +'<option value="_"'+(LBLOPT.only==='_'?' selected':'')+'>미배차</option>'
+  +'</select>'
+  +'<label style="font-size:12px;font-weight:700;color:#5f7086">빈칸부터 <input type="number" min="0" max="'+(per-1)+'" value="'+skip+'" style="width:52px;padding:5px;border:1px solid #dde5ee;border-radius:6px" onchange="lblSet(\'skip\',this.value)"></label>'
+  +'<label style="font-size:12px;font-weight:700;color:#5f7086"><input type="checkbox"'+(LBLOPT.leg?' checked':'')+' onchange="lblSet(\'leg\',this.checked?1:0)"> 색 대조표</label>'
+  +'<button class="btn" onclick="window.print()">🖨️ 인쇄</button>'
+  +'<button class="btn s" onclick="closeLbl()">닫기</button>'
+  +'</div>';
+
+ /* --- 색 대조표 --- */
+ if(LBLOPT.leg){
+  const used={};list.forEach(o=>used[ASSIGN[o.i]||'_']=1);
+  const seq=ROUTES.map(r=>r.id).concat(['_']).filter(id=>used[id]);
+  h+='<div class="lbllegend"><h4>색 대조표 — '+SEL+'</h4><div class="lg">'
+   +seq.map(id=>{const c=lblC(id);const r=RID[id];
+     return '<span><i style="background:'+c[0]+'"></i>'+(r?r.nm:'미배차')+'</span>'}).join('')
+   +'</div></div>';
+ }
+
+ /* --- 라벨 격자 --- */
+ const cells=[];
+ for(let i=0;i<skip;i++)cells.push(null);
+ list.forEach(o=>cells.push(o));
+ while(cells.length%per!==0)cells.push(null);
+
+ for(let p=0;p<cells.length;p+=per){
+  h+='<div class="lblpage"><div class="lblgrid" style="grid-template-columns:repeat('+cols+','+cw.toFixed(2)+'mm)">';
+  for(let k=0;k<per;k++){
+   const o=cells[p+k];
+   if(!o){h+='<div class="lblcell lblempty" style="height:'+ch.toFixed(2)+'mm"></div>';continue}
+   const rid=ASSIGN[o.i]||'_', c=lblC(rid);
+   const nmSize=String(o.n).length>16?'4.2mm':(String(o.n).length>10?'5mm':'6mm');
+   h+='<div class="lblcell" style="height:'+ch.toFixed(2)+'mm">'
+     +'<div class="lblband" style="background:'+c[0]+';height:'+(ch*0.30).toFixed(2)+'mm"></div>'
+     +'<div class="lblbody">'
+       +'<div class="lblnm" style="font-size:'+nmSize+'">'+esc(o.n)+'</div>'
+       +(lblTags(o)?'<div class="lbltags" style="font-size:3.2mm">'+lblTags(o)+'</div>':'')
+     +'</div></div>';
+  }
+  h+='</div></div>';
+ }
+ el.innerHTML=h;
+}
+
+</script>
+<div id="lblsheet"></div>
+</body></html>

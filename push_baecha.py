@@ -96,6 +96,8 @@ def parse_sheet(rows):
     iN, iP, iS, iM, iQ = ix('거래처명'), ix('품목명'), ix('비고'), ix('적요'), ix('수량')
     iD = ix('거래일자')
     iG = ix('거래처구분')   # ERP수시집 = 명세서 지참 / 대금 수령 주의 건
+    # 전표(거래명세서) 인쇄용 금액 컬럼 — 광일·삼정 서식 둘 다 있음
+    iU, iA, iV, iT = ix('단가'), ix('공급가액'), ix('부가세'), ix('합계')
     # 삼정(이카운트) 서식은 '일자-No.' / '회계반영일자' 가 있다 → 비고가 적요 역할
     sj = any(('일자-No' in h) or ('회계반영일자' in h) for h in H)
     if sj:
@@ -126,6 +128,15 @@ def parse_sheet(rows):
             continue
         row = {'n': n, 'p': p, 's': str(g(iS) or '').strip(),
                'q': q, 'm': str(g(iM) or '').strip()[:80], 'd': to_date(g(iD))}
+        # 금액 (있을 때만) — u=단가 a=공급가액 v=부가세 t=합계
+        for fk, ii in (('u', iU), ('a', iA), ('v', iV), ('t', iT)):
+            if ii >= 0:
+                try:
+                    fv = int(round(float(str(g(ii)).replace(',', '') or 0)))
+                    if fv:
+                        row[fk] = fv
+                except Exception:
+                    pass
         if iG >= 0:
             gv = str(g(iG) or '').strip()
             if gv:
