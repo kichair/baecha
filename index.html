@@ -185,6 +185,10 @@ button,select,input{font-family:inherit}
 .sjtag.part{background:#fff5e6;color:#c9761a;border-color:#f0d3a8}
 .ertag{display:inline-block;font-style:normal;background:#e8f1ff;color:#1b62d6;border:1px solid #b9d2f7;
  border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
+.tmtag{display:inline-block;font-style:normal;background:#fff1e0;color:#b3560f;border:1px solid #f2c99a;
+ border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px;
+ font-variant-numeric:tabular-nums;white-space:nowrap}
+.jpnm .tg em.tm{background:#fff1e0;color:#b3560f;border-color:#f2c99a}
 .erpdot{display:inline-block;font-style:normal;color:#e02020;font-size:13px;line-height:1;
  margin-right:3px;vertical-align:1px;text-shadow:0 0 1px rgba(224,32,32,.5)}
 .jdtag{display:inline-block;font-style:normal;background:#eef7ee;color:#1f7a3d;border:1px solid #b8ddc2;
@@ -637,8 +641,9 @@ const ROUTES=[
  {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'대형·원거리 · 1톤의 1.2배 적재',k:[]},
  {id:'as',nm:'A/S 출동',cl:'#F97316',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
  {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]},
- /* 업체가 직접 배송하는 건 — 우리 차가 안 실으므로 배차·적재 계산에서 뺀다 */
- {id:'jn',nm:'직납',cl:'#6B7C8C',days:[1,2,3,4,5],zone:'업체가 직접 배송 · 우리 차 안 나감',k:[]},
+ /* 직납 — 거래처 주소가 아니라 적요에 적힌 곳으로 우리 기사가 직접 간다.
+    배차·적재에 그대로 들어간다 (offRoute 아님) */
+ {id:'jn',nm:'직납',cl:'#6B7C8C',days:[1,2,3,4,5],zone:'적요 주소로 직접 배송 · 우리 기사가 감',k:[]},
  /* 명세서에는 있는데 실제 거래명세서(실물)가 없는 건 — 배차·적재 계산에서 빼고 따로 모아 둔다 */
  {id:'nb',nm:'실거래명세서 없음',cl:'#8D9BAA',days:[1,2,3,4,5],zone:'실물 명세서 확인 필요 · 배차 제외',k:[]}
 ];
@@ -794,6 +799,9 @@ let EXP={};
 function toggleExp(k){EXP[k]=EXP[k]===false?true:false;render()}
 const bySeq=(a,b)=>{const x=SEQ[a.key],y=SEQ[b.key];
  if(x!=null||y!=null)return (x??1e9)-(y??1e9);
+ /* 적요에 도착 시각이 적힌 건은 시각 순으로 — 시각 있는 건이 없는 건보다 먼저 */
+ const ta=mtMin(a),tb=mtMin(b);
+ if(ta!=null||tb!=null){if(ta==null)return 1;if(tb==null)return -1;if(ta!==tb)return ta-tb}
  const ea=isEarly(a)?0:1,eb=isEarly(b)?0:1;
  if(ea!==eb)return ea-eb;
  const p=seqRank(a),q=seqRank(b);
@@ -853,7 +861,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260825d';
+const APPVER='20260826';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1123,6 +1131,37 @@ function sjAll(o){const L=(o.items||[]);return L.length>0&&L.every(sjItem)}
 /* 적요에 일찍·오전·새벽 이 있으면 그 동선에서 맨 앞으로 보내고 표에 [일찍] 을 붙인다 */
 const EARLY_RE=/일찍|오전중|오전|새벽|아침|빨리|급건|9시|10시까지/;
 function isEarly(o){return EARLY_RE.test(o&&o.memo||'')}
+/* ===== 적요에 적힌 '도착 시각' 읽기 =====
+   예) 오후2시경 · 8시반도착 · 1시30분 · 12시전 도착필 · 9시까지 · 오전 8시 도착
+   배송 시각이 아닌 것은 뺀다 — 상차/차량입고/근무시간/점심시간, 그리고 '9시~6시' 같은 범위 */
+const TM_SKIP=/(상차|입고|근무|점심|출근|퇴근|영업시간)/;
+/* '시' 뒤에 시각을 뜻하는 말이나 구분기호가 와야 한다 —
+   '21 시티가구', '시흥', '시화' 처럼 다른 낱말의 첫 글자인 경우를 막는다 */
+const TM_RE=/(오전|오후|아침|새벽|낮|저녁)?\s*(\d{1,2})\s*(?::\s*(\d{2})(?!\d)|시\s*(반|\d{1,2}\s*분)?(?=$|[\s,;.\/)\]}!?~'"·|]|전|까지|까진|이전|이후|경|도착|출발|요망|부터|넘어|께|쯤|엔|에|는|만))/g;
+function mtMin(o){
+ const raw=String((o&&o.memo)||'');if(!raw)return null;
+ /* 시각 범위(9시~6시, 11시40분~1시)는 근무·점심시간이라 안 쓴다 */
+ const clean=raw.replace(/\d{1,2}\s*시(\s*\d{1,2}\s*분)?\s*[~-]\s*\d{1,2}\s*시?/g,' ');
+ let best=null,m;TM_RE.lastIndex=0;
+ while((m=TM_RE.exec(clean))!==null){
+  const near=clean.slice(Math.max(0,m.index-8),m.index+m[0].length+8);
+  if(TM_SKIP.test(near))continue;
+  let h=+m[2];if(!(h>=1&&h<=24))continue;
+  let mi=0;
+  if(m[3])mi=+m[3];
+  else if(m[4]){mi=(m[4]==='반')?30:(parseInt(m[4],10)||0)}
+  const ap=m[1];
+  if(ap==='오후'||ap==='저녁'){if(h<12)h+=12}
+  else if(ap==='오전'||ap==='아침'||ap==='새벽'){if(h===12)h=0}
+  else if(h<7)h+=12;          /* '3시'='오후 3시' — 새벽 배송은 없음 */
+  if(h>=24)h-=24;
+  const v=h*60+mi;
+  if(best==null||v<best)best=v;   /* 여러 개면 가장 이른 시각 */
+ }
+ return best;
+}
+function mtTxt(v){if(v==null)return '';const h=Math.floor(v/60),m=v%60;return h+':'+('0'+m).slice(-2)}
+function tmTag(o){const v=mtMin(o);return v==null?'':'<em class="tmtag" title="적요에 적힌 도착 시각">\u23F0'+mtTxt(v)+'</em>'}
 function erTag(o){return isEarly(o)?'<em class="ertag" title="적요에 일찍·오전 표시 - 먼저 배송">일찍</em>':''}
 function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
 /* 일시성거래처 = 전부 조달 건. 거래처명 대신 [조달] 표시를 붙이고 납품처만 보여준다 */
@@ -1496,7 +1535,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
@@ -2156,7 +2195,7 @@ function nbRow(o,j){
  return '<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+'">'
   +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
   +'<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-   +'<u>'+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
+   +'<u>'+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
    +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'
   +'<i>'+o.qty+'개</i>'
   +'<button class="chipbtn rt" title="동선 바꾸기 — 명세서 확인되면 동선으로 보내세요" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
@@ -2213,7 +2252,7 @@ function tabRoute(today){
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const A=rowAddr(o);const ad=A.t;
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-          +'<u>'+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
+          +'<u>'+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
           +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'})()
        +'<i>'+o.qty+'개</i>'
        +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'
@@ -2350,7 +2389,9 @@ function bind(){
 let pkM,pkA;
 function locNm(a){return a==='_'?'배차 필요':a==='x'?'제외':(RID[a]?RID[a].nm:'?')}
 /* 배차·적재 계산에서 빼는 칸 */
-function offRoute(r){return r==='x'||r==='nb'||r==='jn'}
+/* 배차·적재에서 빼는 동선 — 택배/제외(x)와 실물 명세서 없는 건(nb)만.
+   직납(jn)은 우리 기사가 적요 주소로 직접 가는 것이므로 반드시 포함한다. */
+function offRoute(r){return r==='x'||r==='nb'}
 function openPick(id){pkM='pull';pkA=id;
  document.getElementById('pkT').textContent=RID[id].nm+' 로 가져오기';
  document.getElementById('q').value='';drawPick();
@@ -2732,6 +2773,7 @@ function jpRows(){
 }
 function jpTags(o,T){
  let h='';
+ const _tv=mtMin(o);if(_tv!=null)h+='<em class="tm">\u23F0'+mtTxt(_tv)+'</em>';
  if(o.erp&&(o.od||'')>=ERP_FROM)h+='<em class="e">● 수시·수금</em>';
  if(o.jd)h+='<em class="j">조달</em>';
  if(isSJ(o))h+=sjAll(o)?'<em class="s">삼정</em>':'<em class="sp">삼정혼합</em>';
