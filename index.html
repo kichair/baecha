@@ -908,7 +908,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260827';
+const APPVER='20260827b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1132,6 +1132,8 @@ function resolveCust(t){
  if(t.length>=3)for(const k in ADDR){if(k.replace(/[\s()（）:;·.\-]/g,'').indexOf(t)>=0)return k}
  return null}
 function destOf(o){
+ /* 적요 주소로 쪼개진 건은 그 주소가 곧 목적지 */
+ if(o&&o.dst)return{t:o.dst,src:'적요'};
  const m=o.memo||'';
  const a=m.match(ADRE);if(a)return{t:a[0].trim(),src:'적요'};
  const b=m.match(/([가-힣A-Za-z0-9]{2,12})\s*(?:으로|로)\s*(?:배송|배달)/);
@@ -1326,17 +1328,25 @@ function autoRotate(dateStr){
  return o}
 function build(fresh){
  ORDERS=[];const g={};
+ /* 같은 거래처라도 적요에 서로 다른 배송 주소가 적혀 있으면 따로 떼어낸다.
+    예) 뷰럭스 8/28 — 본점 / 송도 아카데미로 119 / 송도과학로 32 세 곳이 한 줄로 뭉쳐 있었음.
+    주소가 다르면 가는 곳도 시간도 다르므로 카드·전표를 나눠야 한다. */
+ const dsub=function(m){
+  const t=String(m||'');if(!t)return '';
+  const a=t.match(ADRE);if(a)return a[0].replace(/\s+/g,' ').trim().slice(0,40);
+  return '';
+ };
  RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';
   const jd=ILSI_RE.test(l.n);
-  const sub=jd?ilsiLabel(l.m):'';   /* 일시성이면 적요의 기관명(조달 납품처)으로 분리 */
+  const sub=jd?ilsiLabel(l.m):dsub(l.m);   /* 일시성=기관명, 그 외=적요의 배송주소 */
   const k=dkey(l.n,ex,l.d)+(sub?'§'+sub:'');
   /* 일시성거래처는 전부 조달 건이라 상호는 의미가 없다 → 납품처 이름만 남기고 [조달] 로 표시 */
-  if(!g[k])g[k]={n:jd?(sub&&sub!=='적요없음'?sub:'조달 (납품처 미기재)'):l.n,jd:jd?1:0,ex:ex||null,od:l.d,items:[]};
+  if(!g[k])g[k]={n:jd?(sub&&sub!=='적요없음'?sub:'조달 (납품처 미기재)'):l.n,jd:jd?1:0,ex:ex||null,od:l.d,items:[],dst:jd?'':sub};
   g[k].items.push(l)});
  Object.keys(g).forEach(k=>{const c=g[k];
   const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
   const erp=c.items.some(function(x){return ERP_RE.test(x.g||'')})?1:0;
-  ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / ')})});
+  ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / '),dst:c.dst||''})});
  CUSTOM.forEach((c,j)=>{const k='cu'+j;
   ORDERS.push({n:c.n,ex:null,od:c.d||SEL,key:k,d:DOVR[k]||c.d||SEL,items:c.items,memo:c.memo||'',cu:1})});
  ORDERS.forEach((o,i)=>{o.i=i;o.qty=o.items.reduce((a,b)=>a+b.q,0);o.load=loadOf(o);
