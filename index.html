@@ -588,7 +588,10 @@ const CAP_DEF=[
  {id:'s4',  l:'광일신타공 4인',k:['신타공4인','타공4인'],c:20},
  {id:'s3u', l:'신타공 3인 팔유',k:['신타공3인등유','타공3인등유'],c:42},
  {id:'s3m', l:'신타공 3인·장의자',k:['신타공3인','타공3인','타공2인','칸초','3인장의자','4인장의자'],c:24},
- {id:'cab', l:'캐비닛',k:['캐비닛','SJHC'],c:10},
+ /* 800*600 장 = 흑로 의자 6개 분량 (신부장님 기준) → 69/6 ≒ 12개/대.
+    치수가 적힌 품목은 아래 capOf 의 사이즈 계산이 우선이며 800*600*1197 → 12개/대 로 같은 값이 나온다.
+    여기 값은 치수가 안 적힌 품목용 */
+ {id:'cab', l:'캐비닛·사물함·장 (800*600 기준)',k:['캐비닛','사물함','퍼니온','책장'],c:12},
  {id:'podA',l:'강연대 A',k:['강연대'],c:30},
  {id:'podB',l:'강연대 B',k:['교수용'],c:12},
  {id:'half',l:'절반수량 (루트·매틱·매직·시소)',k:['루트','매틱','매직','시소'],c:120},
@@ -671,6 +674,15 @@ let FEE=Object.assign({},SEED_FEE,LSU('_fe',{}));
 let CAPS=LSU('_c',null)||Object.fromEntries(CAP_DEF.map(c=>[c.id,c.c]));
 /* 새로 추가된 적재기준 항목은 저장된 값에 없으므로 기본값을 채워 넣는다 */
 CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
+/* ⚠️ 기준이 바뀌면(CAP_VER 올림) 저장돼 있던 옛 값을 한 번 싹 갈아끼운다.
+   안 그러면 예전에 저장된 값이 새 기준을 계속 덮어서 적재량 개정이 무효가 된다.
+   (2026-08-26 발견 — 신부장님 기준이 배포됐는데 실제로는 옛 값으로 계산되고 있었음) */
+const CAP_VER=20260826;
+if(LSU('_cver',0)<CAP_VER){
+ CAP_DEF.forEach(function(c){CAPS[c.id]=c.c});
+ try{localStorage.setItem(UKEY+'_cver',JSON.stringify(CAP_VER));
+     localStorage.setItem(UKEY+'_c',JSON.stringify(CAPS))}catch(e){}
+}
 let CAPU=LSU('_capu',[]);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
 let TRIP=LSU('_trip',{});
@@ -861,7 +873,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260826b';
+const APPVER='20260826c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1981,7 +1993,6 @@ function driverTrips(list){
  rows.forEach(r=>r.ri=ord.indexOf(r.rid));
  rows.sort((a,b)=>a.ri-b.ri);
  return mergeSame(rows)}
-const SYM={r1:'[1]',r2:'[2]',r3:'[3]',r4:'[4]',r5:'[5]',r6:'[6]',r7:'[7]',rw:'[8]',rc:'[9]'};
 function secHTML(id,nm,cl,zone,list,dvs){
  const n=CAR[id+'_n']||1,L=list.reduce((a,o)=>a+o.load,0),p=L/(n*capFactor(id))*100;
  const qty=list.reduce((a,o)=>a+o.qty,0);
@@ -1989,7 +2000,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  const dv=CAR[id]||'',dr=DRVS.filter(d=>d[0]===dv)[0],ph=dr?dr[1]:'';
  const opts='<option value="">— 기사 지정 —</option>'+DRVS.map(d=>'<option value="'+d[0]+'"'+(dv===d[0]?' selected':'')+'>'+d[0]+'</option>').join('');
  let h='<div class="sec"><h3 onclick="tg(\''+id+'\')">'
- +'<div class="ic" style="background:'+cl+'">'+(SYM[id]||nm.slice(0,2))+'</div>'
+ +'<div class="ic" style="background:'+cl+'">'+nm.slice(0,2)+'</div>'
  +'<div class="t"><b>'+nm+'</b><span>'+(dv?dv+vehTag(dv)+asTag(dv)+(ph?' · '+ph:'')+(isRain(SEL)&&!covered(dv)?'<span class="vtag vw">☔개방</span>':''):zone)+'</span></div>'
  +'<div class="rt"><b>'+list.length+'곳</b><span>'+qty+'개</span></div>'
  +'<span style="color:#c3ceda;font-size:12px">'+(op?'▾':'▸')+'</span></h3>';
@@ -2241,7 +2252,7 @@ function tabRoute(today){
   const open=ROPEN[x.id]!==false;
   h+='<div class="dcard dvrow" onclick="ROPEN[\''+x.id+'\']=ROPEN[\''+x.id+'\']===false?true:false;render()">'
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
-   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+(SYM[x.id]||x.nm.slice(0,2))+'</span>'
+   +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
    +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'
    +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
