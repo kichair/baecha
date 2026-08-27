@@ -678,11 +678,20 @@ CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
    안 그러면 예전에 저장된 값이 새 기준을 계속 덮어서 적재량 개정이 무효가 된다.
    (2026-08-26 발견 — 신부장님 기준이 배포됐는데 실제로는 옛 값으로 계산되고 있었음) */
 const CAP_VER=20260826;
-if(LSU('_cver',0)<CAP_VER){
- CAP_DEF.forEach(function(c){CAPS[c.id]=c.c});
- try{localStorage.setItem(UKEY+'_cver',JSON.stringify(CAP_VER));
-     localStorage.setItem(UKEY+'_c',JSON.stringify(CAPS))}catch(e){}
+/* 버전 도장을 CAPS 안에 넣어 둔다 — 그래야 Supabase 로 들어오는 옛 CAPS 도 걸러진다.
+   (localStorage 에만 두면 applySnap 이 CAPS 를 통째로 갈아끼워서 무효가 된다) */
+function capEnforce(){
+ if(!CAPS||typeof CAPS!=='object')CAPS={};
+ CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
+ if((+CAPS._v||0)<CAP_VER){
+  CAP_DEF.forEach(function(c){CAPS[c.id]=c.c});
+  CAPS._v=CAP_VER;
+  try{localStorage.setItem(UKEY+'_c',JSON.stringify(CAPS))}catch(e){}
+  return true;
+ }
+ return false;
 }
+capEnforce();
 let CAPU=LSU('_capu',[]);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
 let TRIP=LSU('_trip',{});
@@ -873,7 +882,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260826c';
+const APPVER='20260826d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -905,7 +914,7 @@ function applySnap(o){applying=true;try{
  if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];
  /* DRVOV는 통째로 안 바꾼다 — 아래에서 키별 시각 비교로 합친다 */if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
  if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];
- if(o['_cu'])CUSTOM=o['_cu'];if(o['_c'])CAPS=o['_c'];
+ if(o['_cu'])CUSTOM=o['_cu'];if(o['_c']){CAPS=o['_c'];capEnforce()}
  if(o['_wxd'])WXD=o['_wxd'];if(o['_wxr'])WXR=o['_wxr'];if(o['_rno'])RNO=o['_rno'];if(o['_rwm'])RWMK=o['_rwm'];if(o['_as'])ASV=o['_as'];if(o['_note']!=null)NOTE=o['_note'];
  /* 다른 컴퓨터에서 온 배차는 통째로 덮어쓰지 않는다.
     손으로 바꾼 시각(ASGV)을 비교해 '더 나중에 바꾼 쪽'만 남긴다.
