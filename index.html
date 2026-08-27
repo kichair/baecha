@@ -433,6 +433,8 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .yctb.rate th:first-child{text-align:left}
 .ycout b,.ycout span,.ycout em,.yctb b,.yctb span{display:inline}
 .ycbig span{display:inline}
+.ycnote{background:#fffaf0;border:1px solid #f0dfbd;border-radius:10px;padding:9px 12px;font-size:12px;color:#7a5a17;line-height:1.6;margin:0 0 10px}
+.ycnote b{display:inline;color:#5c430f}
 .ycsc{overflow-x:auto}
 .yctb td.ycn{white-space:nowrap}
 .yctb td{white-space:nowrap}
@@ -440,6 +442,9 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 /* ===== 회차 뱃지 · GPS 순서 학습 ===== */
 .slottag{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:11px;margin-left:6px;vertical-align:middle}
 .slottag.am{background:#fff2e0;color:#b96b12;border:1px solid #f0cf9e}
+.rt2{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:11px;margin-left:5px;vertical-align:middle;cursor:pointer}
+.rt2.on{background:#e6f7ee;color:#0b7a45;border:1px solid #b6e3cc}
+.rt2.off{background:#f1f3f6;color:#8b9aab;border:1px solid #dde3ea}
 .slottag.pm{background:#e9f0ff;color:#2b55b8;border:1px solid #c2d2f5}
 #gpsIn{width:100%;height:150px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;border:1px solid #d7dee8;border-radius:10px;padding:9px;line-height:1.45}
 #gpsOut{margin-top:10px;max-height:46vh;overflow:auto}
@@ -759,6 +764,11 @@ function capEnforce(){
 }
 capEnforce();
 let CAPU=LSU('_capu',[]);
+/* ===== 동선별 2차 직납 (＋) — 사장님 8/28 코스표 =====
+   ＋ = 배송 끝내고 본사로 들어와서 2차로 직납을 돌고 온다 / ✕ = 한 회전만
+   가까운 동선(인천·부천·일산·수원·사당·시흥)이 ＋, 먼 동선이 ✕ */
+const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
+let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
 let TRIP=LSU('_trip',{});
 const TRIP_MAX=3;
@@ -957,7 +967,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
+ SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -965,7 +975,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260827d';
+const APPVER='20260827e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -989,13 +999,14 @@ let SB=null,SB_ON=false,pushT=null,applying=false;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;
+ o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
 function applySnap(o){applying=true;try{
  if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];
  /* DRVOV는 통째로 안 바꾼다 — 아래에서 키별 시각 비교로 합친다 */if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
+ if(o['_rt2'])RT2=o['_rt2'];
  if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_c']){CAPS=o['_c'];capEnforce()}
  if(o['_wxd'])WXD=o['_wxd'];if(o['_wxr'])WXR=o['_wxr'];if(o['_rno'])RNO=o['_rno'];if(o['_rwm'])RWMK=o['_rwm'];if(o['_as'])ASV=o['_as'];if(o['_note']!=null)NOTE=o['_note'];
@@ -2371,7 +2382,7 @@ function tabRoute(today){
   h+='<div class="dcard dvrow" onclick="ROPEN[\''+x.id+'\']=ROPEN[\''+x.id+'\']===false?true:false;render()">'
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
    +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
-   +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'+slotTag(x)
+   +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'+slotTag(x)+rt2Tag(x)
    +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · 의자 '+list.reduce((a,o)=>a+o.qty,0)+'개':'배차 없음')+'</span></div>'
    +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
@@ -2978,6 +2989,8 @@ function tabYc(today){
  const jn=today.filter(function(o){return ASSIGN[o.i]==='jn'&&(o.load||0)>0.5});
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
+ h+='<div class="ycnote">차종별 <b>1톤차 대비 적재량</b>은 <b>적재함 바닥 면적</b>으로 잡았습니다 (실지급 운임 비율과 거의 일치).<br>'
+  +'우리 <b>3.5톤 대형</b> 동선의 적재 기준은 <b>신부장님 기준 그대로 1톤의 1.2배</b>로 두었습니다 — 바꾸지 않았습니다.</div>';
 
  /* ---- 직접 계산 ---- */
  h+='<div class="dcard yccalc"><b>직접 계산</b>'
@@ -3055,7 +3068,20 @@ function drawYcOne(){
    · 1차는 무조건 탑차 장세훈 기사님
    · 서울차는 출고일 전날 상차
    · 직납인데 우리 차에 못 실으면 용차 위주 */
-const FLEET_N=9;
+const FLEET_N=10;   /* 8/28 기준 10대 */
+/* ===== 동선별 2차 직납 (＋) =====
+   사장님 8/28 코스표: 동선 옆 ＋ = 배송 끝내고 본사로 다시 들어와서
+   2차로 직납을 돌고 온다. ✕ = 한 회전만 돌고 끝.
+   가까운 동선(인천·부천·일산·수원·사당·시흥)이 ＋, 먼 동선이 ✕. */
+function rt2On(rid){return !!RT2[rid]}
+function rt2Toggle(rid){RT2[rid]=rt2On(rid)?0:1;save();render();
+ toast(rt2On(rid)?'＋ 2차 직납 도는 동선으로 표시':'1회전만 도는 동선으로 표시')}
+function rt2Tag(x){
+ if(!x||RT2[x.id]===undefined)return '';
+ return rt2On(x.id)
+  ?'<em class="rt2 on" title="배송 끝내고 들어와서 2차로 직납 — 눌러서 바꾸기" onclick="event.stopPropagation();rt2Toggle(\''+x.id+'\')">＋ 2차 직납</em>'
+  :'<em class="rt2 off" title="1회전만 — 눌러서 바꾸기" onclick="event.stopPropagation();rt2Toggle(\''+x.id+'\')">✕ 1회전</em>';
+}
 function slotTag(x){
  if(!x||!x.slot)return '';
  if(x.slot==='am')return '<em class="slottag am" title="지방 — 오전 일찍 출발">오전 1차</em>';
