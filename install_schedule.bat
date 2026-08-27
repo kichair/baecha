@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 echo.
 echo ==========================================
-echo   BAECHA - schedule installer
+echo   BAECHA - schedule installer  (v2)
 echo ==========================================
 echo.
 echo Folder : %~dp0
@@ -17,11 +17,9 @@ if errorlevel 1 (
   exit /b 1
 )
 echo [OK] administrator
-echo.
 
 if not exist "%~dp0run.bat" (
   echo [X] run.bat NOT found in this folder.
-  echo     Put install_schedule.bat in the same folder as run.bat
   echo.
   pause
   exit /b 1
@@ -47,15 +45,32 @@ for %%T in (%TIMES%) do (
   set "MM=!T:~2,2!"
   echo --- creating !HH!:!MM! ---
   schtasks /Create /TN "baecha %%T" /TR "cmd /c \"%BAT%\"" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST !HH!:!MM! /RL HIGHEST /F
-  echo.
 )
+echo.
+
+rem ==========================================
+rem   catch up missed runs, ignore battery,
+rem   wake the PC, 30 min limit
+rem ==========================================
+echo --- applying catch-up settings ---
+for %%T in (%TIMES%) do (
+  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew; Set-ScheduledTask -TaskName 'baecha %%T' -Settings $s | Out-Null; Write-Host '  [OK] baecha %%T'" 2>nul
+  if errorlevel 1 echo   [!] baecha %%T - could not apply settings
+)
+echo.
 
 echo ==========================================
 echo   registered list
 echo ==========================================
-for %%T in (%TIMES%) do schtasks /Query /TN "baecha %%T"
+for %%T in (%TIMES%) do (
+  for /f "tokens=1,* delims=:" %%A in ('schtasks /Query /TN "baecha %%T" /FO LIST 2^>nul ^| findstr /i "TaskName Next Last Status"') do echo   %%A:%%B
+  echo   ---
+)
 echo.
-echo   To run it right now, type:
+echo   Run one right now:
 echo       schtasks /Run /TN "baecha 1530"
+echo.
+echo   Check status later:  check.bat
 echo.
 pause
