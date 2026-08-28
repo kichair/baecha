@@ -797,7 +797,13 @@ const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
 let TRIP=LSU('_trip',{});
-const TRIP_MAX=3;
+/* ===== 회차 규칙 (2026-08-31 사장님 지시) =====
+   · 3차는 절대 안 간다. 최대 2회전.
+   · 2회전(약 2.3대분)으로도 안 담기면 → 회차를 늘리지 말고 다른 기사를 넣는다.
+   · 그래도 안 되면(단일 건이 한 차를 넘는 등) 용차.
+   · 배진성·정석윤은 1회전만. */
+const TRIP_MAX=2;
+const DRV_MAX=TRIP_MAX*1.15;   /* 기사 한 명이 하루에 감당하는 최대 = 2.30대분 */
 let ASGK=LSU('_asg',null),STK=LSU('_stk',{});   /* 배차·상태를 거래처+날짜 키로 저장 */
 let ASGV=LSU('_asgv',{});   /* 손으로 바꾼 시각 — 두 컴퓨터가 동시에 켜져 있어도 안 덮이게 */
 let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{}),DRV2=LSU('_dv2',{});
@@ -1014,7 +1020,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260828m';
+const APPVER='20260828p';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2061,7 +2067,7 @@ const NO_2ND=['배진성','정석윤'];
 function can2nd(drv){return NO_2ND.indexOf(String(drv||''))<0}
 /* ===== 배차 대상이 아닌 사람 ===== */
 const NOT_DRIVER=['박상민','신윤철','김진영'];
-/* 회차 직접 지정 (1　3차) — 빈 값이면 적재량 기준 자동 */
+/* 회차 직접 지정 (1·2차) — 빈 값이면 적재량 기준 자동 */
 /* ===== 물방울 선택 — 터치 화면에서 크게 고르기 ===== */
 /* 짝! 소리 — 파일 없이 그때그때 만들어 낸다 (기기마다 따로 저장) */
 let SND=LSU('_snd',1), ACTX=null;
@@ -2504,7 +2510,7 @@ function shortAddr(a){
   .replace(/^제주특별자치도/,'제주')
   .replace(/\s*\(([^)]*)\)/g,function(m,g){const d=(g.split(',')[0]||'').trim();return d?' '+d:''})
   .replace(/\s+/g,' ').trim()}
-/* 회차 선택 옵션 — 1　3차까지만 */
+/* 회차 선택 옵션 — 2차까지만 */
 function tropt(o){
  const cur=TRIP[o.key]||0;
  let h='<option value=""'+(cur?'':' selected')+'>\u23F1</option>';
@@ -3430,7 +3436,7 @@ function gbuild(rows){
    const m=gmatchDay(r.to,r.d);
    if(!m){miss[gnorm(r.to)]=(miss[gnorm(r.to)]||0)+1;return}
    hit++;seenCust=true;
-   (day[k]=day[k]||[]).push({t:r.e||r.s,n:m.n,tp:trip>3?3:trip,alt:m.alt||null,w:m.w||1});
+   (day[k]=day[k]||[]).push({t:r.e||r.s,n:m.n,tp:trip>2?2:trip,alt:m.alt||null,w:m.w||1});
   });
  });
  const vote={},dayList=[],dv={},tp={};
