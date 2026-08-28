@@ -1001,7 +1001,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260828f';
+const APPVER='20260828g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1422,8 +1422,9 @@ function autoRotate(dateStr){
   rts.forEach((r,k)=>{o[r]=mixed[k]});
  }else rts.forEach((r,k)=>{o[r]=base[k]});
  return o}
+let DUPN=0;   /* 자동조회 재입력으로 걷어낸 줄 수 */
 function build(fresh){
- ORDERS=[];const g={};
+ ORDERS=[];const g={};DUPN=0;
  /* 같은 거래처라도 적요에 서로 다른 배송 주소가 적혀 있으면 따로 떼어낸다.
     예) 뷰럭스 8/28 — 본점 / 송도 아카데미로 119 / 송도과학로 32 세 곳이 한 줄로 뭉쳐 있었음.
     주소가 다르면 가는 곳도 시간도 다르므로 카드·전표를 나눠야 한다. */
@@ -1439,6 +1440,31 @@ function build(fresh){
   /* 일시성거래처는 전부 조달 건이라 상호는 의미가 없다 → 납품처 이름만 남기고 [조달] 로 표시 */
   if(!g[k])g[k]={n:jd?(sub&&sub!=='적요없음'?sub:'조달 (납품처 미기재)'):l.n,jd:jd?1:0,ex:ex||null,od:l.d,items:[],dst:jd?'':sub};
   g[k].items.push(l)});
+ /* ===== 자동조회 재입력 중복 걷어내기 (2026-08-28) =====
+    자동조회가 하루 5번 도는데, 같은 건이 적요만 바뀌어 다시 들어오면
+    품목·규격·수량이 똑같은 줄이 두 개가 된다. 물량이 10~17% 부풀어 배차가 어긋났다.
+    판별: 같은 (품목·규격·수량) 인데 한쪽에 금액이 없으면 그 줄이 재입력분이다.
+    (실제 자료 확인 — 둘 다 금액이 있는 진짜 중복은 한 건도 없었다) */
+ Object.keys(g).forEach(function(k){
+  const it=g[k].items;if(it.length<2)return;
+  const grp={};
+  it.forEach(function(x){const kk=[x.p,x.s||'',x.q].join('\u00a7');(grp[kk]=grp[kk]||[]).push(x)});
+  const drop=[];
+  Object.keys(grp).forEach(function(kk){
+   const a=grp[kk];if(a.length<2)return;
+   const paid=a.filter(function(x){return !!(x.u||x.a||x.t)});
+   if(!paid.length||paid.length===a.length)return;      /* 판단 못하면 그대로 둔다 */
+   a.forEach(function(x){if(!(x.u||x.a||x.t))drop.push(x)});
+  });
+  if(drop.length){
+   /* 적요는 살려서 옮긴다 — 도착시간이 새 줄에만 있을 수 있다 */
+   drop.forEach(function(x){if(!x.m)return;
+    const keep=it.filter(function(y){return drop.indexOf(y)<0&&y.p===x.p&&y.q===x.q})[0];
+    if(keep&&!String(keep.m||'').includes(x.m))keep.m=(keep.m?keep.m+' / ':'')+x.m});
+   g[k].items=it.filter(function(x){return drop.indexOf(x)<0});
+   DUPN+=drop.length;
+  }
+ });
  Object.keys(g).forEach(k=>{const c=g[k];
   const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
   const erp=c.items.some(function(x){return ERP_RE.test(x.g||'')})?1:0;
