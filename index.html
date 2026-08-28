@@ -443,6 +443,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .slottag{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:11px;margin-left:6px;vertical-align:middle}
 .slottag.am{background:#fff2e0;color:#b96b12;border:1px solid #f0cf9e}
 .gwhy{display:inline-block;font-style:normal;font-size:10px;font-weight:800;padding:1px 5px;border-radius:9px;margin-left:4px;vertical-align:middle;white-space:nowrap}
+.gwhy.go{background:#e9f7ef;color:#12784a;border:1px solid #bfe5cf}
 .gwhy.gs{background:#eef2f7;color:#67788c;border:1px solid #dbe2ea}
 .gwhy.gt{background:#fff5e6;color:#b8730f;border:1px solid #f0d6a8}
 .gwhy.gr{background:#fdecea;color:#c0392b;border:1px solid #f3bdb8}
@@ -992,7 +993,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_jbn',JBN);SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
+ SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -1000,7 +1001,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260828e';
+const APPVER='20260828f';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1816,15 +1817,40 @@ function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
 /* ===== 이 기사 배정은 무엇을 근거로 한 것인가 =====
    2026-08-28 사고: 근거 없는 추측 배정을 그대로 인쇄해 기사님들께 나갔다.
    그 뒤로 근거를 화면에 반드시 같이 띄운다. */
+/* ===== 우리가 실제로 배차했던 이력 =====
+   GPS 없이도, 앱에 쌓인 '기사 지정(DRVOV)' 을 거래처별로 세어 두면 그게 가장 확실한 근거다. */
+let _cdrv=null,_cdrvD='';
+function cdrvBuild(){
+ if(_cdrv&&_cdrvD===SEL)return _cdrv;
+ const m={};
+ Object.keys(DRVOV).forEach(function(k){
+  const p=k.split('\u00a7'),dt=p[p.length-1],nm=p[0],dv=DRVOV[k];
+  if(!/^\d{4}-\d\d-\d\d$/.test(dt)||!dv||dv==='용차')return;
+  if(SEL&&dt>=SEL)return;                 /* 그날 것은 근거로 안 쓴다 */
+  (m[nm]=m[nm]||{});m[nm][dv]=(m[nm][dv]||0)+1;
+ });
+ _cdrvD=SEL;return _cdrv=m;
+}
+function cdrvClear(){_cdrv=null}
+function cdrvOf(n){
+ const m=cdrvBuild()[n];if(!m)return null;
+ let b=null,bc=0,t=0;
+ for(const k in m){t+=m[k];if(m[k]>bc){bc=m[k];b=k}}
+ return b?{drv:b,c:bc,tot:t,p:Math.round(bc/t*100)}:null;
+}
 function drvWhy(o){
  if(!o)return null;
  const n=o.n;
  if(DRVOV[o.key]){
-  /* 손으로 정했는지, GPS 이력이 뒷받침하는지 */
-  const h=(typeof drvOfCust==='function')?drvOfCust(n):null;
-  if(h&&h.drv===DRVOV[o.key]&&h.c>=2&&h.p>=60)return {k:'ok',t:'이력 '+h.c+'회 '+h.p+'%',c:h.c};
-  if(h&&h.drv===DRVOV[o.key])return {k:'thin',t:'이력 '+h.c+'회'+(h.p<60?' '+h.p+'%':''),c:h.c};
-  return {k:'hand',t:'손배정'};
+  const dv=DRVOV[o.key];
+  const c=cdrvOf(n);                       /* ① 실제 배차 이력 */
+  if(c&&c.drv===dv&&c.c>=2&&c.p>=60)return {k:'ok',t:'배차 '+c.c+'회 '+c.p+'%',c:c.c};
+  if(c&&c.drv===dv)return {k:'thin',t:'배차 '+c.c+'회'+(c.p<60?' '+c.p+'%':''),c:c.c};
+  const h=(typeof drvOfCust==='function')?drvOfCust(n):null;   /* ② GPS */
+  if(h&&h.drv===dv&&h.c>=2&&h.p>=60)return {k:'ok',t:'GPS '+h.c+'회 '+h.p+'%',c:h.c};
+  if(h&&h.drv===dv)return {k:'thin',t:'GPS '+h.c+'회',c:h.c};
+  if(c)return {k:'diff',t:'전엔 '+c.drv+' '+c.c+'회'};          /* ③ 전엔 다른 기사 — 위험 */
+  return {k:'hand',t:'근거없음'};
  }
  if(CAR[ASSIGN[o.i]])return {k:'rt',t:'동선 기사'};
  return {k:'none',t:'미지정'};
@@ -1833,7 +1859,7 @@ function drvWhy(o){
 function weakBar(list){
  const w=(list||[]).filter(function(o){
   if(ASSIGN[o.i]==='x'||ASSIGN[o.i]==='nb')return false;
-  const q=drvWhy(o);return q&&(q.k==='thin'||q.k==='rt'||q.k==='none')});
+  const q=drvWhy(o);return q&&q.k!=='ok'});
  if(!w.length)return '';
  return '<div id="wkbar">\u26A0\uFE0F 기사 배정 근거가 약한 곳 <b>'+w.length+'곳</b>'
   +' <span style="color:#8b5b56;font-size:12px">— GPS 이력이 2회 이상 쌓인 곳만 믿을 수 있습니다. 인쇄 전에 확인하세요.</span>'
@@ -1843,22 +1869,22 @@ function srchWeak(){
  const t=ORDERS.filter(function(o){return o.d===SEL&&ST[o.i]!=='del'});
  const w=t.filter(function(o){
   if(ASSIGN[o.i]==='x'||ASSIGN[o.i]==='nb')return false;
-  const q=drvWhy(o);return q&&(q.k==='thin'||q.k==='rt'||q.k==='none')});
+  const q=drvWhy(o);return q&&q.k!=='ok'});
  SHIT=w.map(function(o){return o.i});
  toast('근거 약한 '+w.length+'곳을 표시했습니다');
  applySrch(true);
 }
 function drvTag(o){
  const w=drvWhy(o);if(!w)return '';
- if(w.k==='ok')return '';                       /* 근거 충분 — 조용히 */
+ if(w.k==='ok')return '<em class="gwhy go" title="근거 충분">'+w.t+'</em>';
  if(w.k==='none')return '';
- const cl=w.k==='hand'?'gs':(w.k==='thin'?'gt':'gr');
+ const cl=(w.k==='thin')?'gt':'gr';
  return '<em class="gwhy '+cl+'" title="이 기사 배정의 근거">'+w.t+'</em>';
 }
 /* 그날 배차 중 근거가 약한 곳 세기 */
 function weakCount(list){
  let n=0;(list||[]).forEach(function(o){
-  const w=drvWhy(o);if(w&&(w.k==='thin'||w.k==='rt'||w.k==='none'))n++});
+  const w=drvWhy(o);if(w&&w.k!=='ok')n++});
  return n;
 }
 let PEND={};
