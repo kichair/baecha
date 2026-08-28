@@ -442,6 +442,13 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 /* ===== 회차 뱃지 · GPS 순서 학습 ===== */
 .slottag{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:11px;margin-left:6px;vertical-align:middle}
 .slottag.am{background:#fff2e0;color:#b96b12;border:1px solid #f0cf9e}
+.gwhy{display:inline-block;font-style:normal;font-size:10px;font-weight:800;padding:1px 5px;border-radius:9px;margin-left:4px;vertical-align:middle;white-space:nowrap}
+.gwhy.gs{background:#eef2f7;color:#67788c;border:1px solid #dbe2ea}
+.gwhy.gt{background:#fff5e6;color:#b8730f;border:1px solid #f0d6a8}
+.gwhy.gr{background:#fdecea;color:#c0392b;border:1px solid #f3bdb8}
+#wkbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:0 10px 8px;padding:10px 13px;border-radius:12px;background:#fdecea;border:1px solid #f3bdb8;color:#a5372f;font-size:13px;line-height:1.5}
+#wkbar b{display:inline;font-weight:800}
+#wkbar button{border:0;background:#c0392b;color:#fff;font-weight:800;font-size:12px;padding:5px 11px;border-radius:9px;cursor:pointer}
 .rt2{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:11px;margin-left:5px;vertical-align:middle;cursor:pointer}
 .rt2.on{background:#e6f7ee;color:#0b7a45;border:1px solid #b6e3cc}
 .rt2.off{background:#f1f3f6;color:#8b9aab;border:1px solid #dde3ea}
@@ -983,7 +990,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260828a';
+const APPVER='20260828b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1795,6 +1802,54 @@ function tripMins(rows){
 function estRoute(id,list){if(!list.length)return 0;const d=driveFor(id,list);return d[0]+list.length*d[1]}
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||234)>mx)mx=DRIVE_MIN[r]||234});return mx+stops*22}
 function effDrv(o){return DRVOV[o.key]||CAR[ASSIGN[o.i]]||''}
+/* ===== 이 기사 배정은 무엇을 근거로 한 것인가 =====
+   2026-08-28 사고: 근거 없는 추측 배정을 그대로 인쇄해 기사님들께 나갔다.
+   그 뒤로 근거를 화면에 반드시 같이 띄운다. */
+function drvWhy(o){
+ if(!o)return null;
+ const n=o.n;
+ if(DRVOV[o.key]){
+  /* 손으로 정했는지, GPS 이력이 뒷받침하는지 */
+  const h=(typeof drvOfCust==='function')?drvOfCust(n):null;
+  if(h&&h.drv===DRVOV[o.key]&&h.c>=2)return {k:'ok',t:'이력 '+h.c+'회',c:h.c};
+  if(h&&h.drv===DRVOV[o.key])return {k:'thin',t:'이력 1회',c:1};
+  return {k:'hand',t:'손배정'};
+ }
+ if(CAR[ASSIGN[o.i]])return {k:'rt',t:'동선 기사'};
+ return {k:'none',t:'미지정'};
+}
+/* 인쇄 전 경고줄 — 근거 없는 배정이 몇 곳인지 */
+function weakBar(list){
+ const w=(list||[]).filter(function(o){
+  if(ASSIGN[o.i]==='x'||ASSIGN[o.i]==='nb')return false;
+  const q=drvWhy(o);return q&&(q.k==='thin'||q.k==='rt'||q.k==='none')});
+ if(!w.length)return '';
+ return '<div id="wkbar">\u26A0\uFE0F 기사 배정 근거가 약한 곳 <b>'+w.length+'곳</b>'
+  +' <span style="color:#8b5b56;font-size:12px">— GPS 이력이 2회 이상 쌓인 곳만 믿을 수 있습니다. 인쇄 전에 확인하세요.</span>'
+  +'<button onclick="srchWeak()">이곳만 보기</button></div>';
+}
+function srchWeak(){
+ const t=ORDERS.filter(function(o){return o.d===SEL&&ST[o.i]!=='del'});
+ const w=t.filter(function(o){
+  if(ASSIGN[o.i]==='x'||ASSIGN[o.i]==='nb')return false;
+  const q=drvWhy(o);return q&&(q.k==='thin'||q.k==='rt'||q.k==='none')});
+ SHIT=w.map(function(o){return o.i});
+ toast('근거 약한 '+w.length+'곳을 표시했습니다');
+ applySrch(true);
+}
+function drvTag(o){
+ const w=drvWhy(o);if(!w)return '';
+ if(w.k==='ok')return '';                       /* 근거 충분 — 조용히 */
+ if(w.k==='none')return '';
+ const cl=w.k==='hand'?'gs':(w.k==='thin'?'gt':'gr');
+ return '<em class="gwhy '+cl+'" title="이 기사 배정의 근거">'+w.t+'</em>';
+}
+/* 그날 배차 중 근거가 약한 곳 세기 */
+function weakCount(list){
+ let n=0;(list||[]).forEach(function(o){
+  const w=drvWhy(o);if(w&&(w.k==='thin'||w.k==='rt'||w.k==='none'))n++});
+ return n;
+}
 let PEND={};
 function pendDrv(i,v){PEND[i]=v;render();toast((v||'동선 기사')+' 선택 — 카드를 오른쪽으로 밀면 이동합니다')}
 /* 직납으로 빼기 — 우리 차가 안 나가므로 기사 지정을 지우고 직납 칸으로 옮긴다 */
@@ -2381,6 +2436,7 @@ function tabRoute(today){
   }
   h+='</div>';
  })();
+ h+=weakBar(today);
  h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
   const list=by[x.id];
@@ -2430,7 +2486,7 @@ function tabRoute(today){
           +'<u>'+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
           +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'})()
        +'<i>'+o.qty+'개</i>'
-       +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'
+       +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'+drvTag(o)
        +'<button class="chipbtn rt" title="동선 바꾸기" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
        +'<button class="chipbtn tr" title="몇 차로 나갈지" onclick="event.stopPropagation();openBub(\'tr\','+o.i+')">'+(TRIP[o.key]?TRIP[o.key]+'차':'\u23F1')+'</button>'
        +'</div>').join('')}).join('')+'</div>'})():'')
