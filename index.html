@@ -795,7 +795,7 @@ let DRVH=LSU('_drvh',{}), TRPH=LSU('_trph',{});
 let JBN=LSU('_jbn',{});   /* 거래처 → 지번주소 (GPS 대조용) */
 /* 용차 계산기 화면 상태 — 앱이 켜질 때 render() 가 바로 쓰므로 위쪽에 선언해 둔다.
    (2026-08-28: 아래쪽에 있어서 마지막 탭이 '용차'면 켜자마자 오류가 났다) */
-let YCT='1',YCR='',YCQ=1;
+let YCT='1',YCR='',YCQ=1,YCC=0,YCF=0;
 const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
@@ -1023,7 +1023,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260828s';
+const APPVER='20260828t';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3097,19 +3097,26 @@ fetchWx();
    금액은 부가세 별도. 표시할 때 10% 붙인 값도 같이 보여준다. */
 const YC_RATE={"강남구":{"0.5":[50000,16],"1":[78000,10],"2.5":[140000,4],"5":[240000,4]},"강동구":{"0.5":[48000,2],"1":[85000,2]},"강릉":{"1":[205000,6],"5":[450000,8],"11":[450000,2]},"강서구":{"0.5":[35000,4]},"계양구":{"0.5":[25000,4],"5":[150000,3]},"고양":{"0.5":[40000,5],"1":[52000,4]},"과천":{"0.5":[48000,2],"3.5":[130000,3]},"관악구":{"1":[58000,2]},"광명":{"0.5":[32000,4],"1":[50000,3]},"광주":{"5":[440000,7]},"광진구":{"0.5":[48000,2],"3.5":[155000,2]},"구로구":{"0.5":[35000,8],"1":[50000,3]},"군포":{"0.5":[40000,2],"1":[65000,2]},"금천구":{"0.5":[35000,7],"3.5":[125000,2]},"김포":{"0.5":[32000,4]},"남동구":{"0.5":[20000,9]},"당진":{"1":[100000,3],"3.5":[195000,2],"5":[180000,3]},"대구":{"1":[200000,3],"5":[400000,3]},"대전":{"0.5":[130000,7],"1":[140000,9],"2.5":[260000,5],"3.5":[260000,16],"5":[310000,18]},"도봉구":{"0.5":[48000,2],"1":[78000,2]},"동대문구":{"0.5":[48000,2],"1":[70000,2],"5":[200000,3]},"동작구":{"0.5":[42000,2],"3.5":[140000,2],"5":[170000,5]},"동해":{"2.5":[380000,3]},"마포구":{"0.5":[42000,2]},"미추홀구":{"0.5":[25000,6]},"보령":{"0.5":[120000,2]},"부산":{"3.5":[400000,2],"5":[525000,6]},"부천":{"0.5":[25000,15],"1":[45000,5],"5":[160000,3]},"부평구":{"0.5":[20000,11],"2.5":[90000,2],"3.5":[100000,5]},"삼척":{"1":[230000,2]},"서대문구":{"0.5":[48000,2],"3.5":[160000,2],"5":[205000,2]},"서천":{"1":[200000,2]},"서초구":{"0.5":[45000,8],"1":[65000,5],"2.5":[130000,3],"5":[220000,3]},"성남":{"0.5":[50000,14],"1":[65000,6],"2.5":[145000,2],"3.5":[140000,2],"5":[210000,6]},"성동구":{"0.5":[50000,5]},"성북구":{"0.5":[50000,4],"1":[70000,2]},"세종":{"1":[150000,3]},"송파구":{"0.5":[50000,19],"1":[68000,8],"2.5":[155000,2],"5":[225000,2]},"수원":{"0.5":[50000,5]},"시흥":{"0.5":[35000,7],"3.5":[120000,6],"5":[175000,4]},"아산":{"0.5":[68000,8],"1":[100000,8],"2.5":[165000,4]},"안산":{"0.5":[40000,12],"1":[50000,3]},"안성":{"1":[95000,2],"5":[210000,2]},"안양":{"0.5":[35000,3],"5":[170000,2]},"양주":{"0.5":[55000,3],"5":[220000,2]},"여주":{"0.5":[80000,4]},"연수구":{"0.5":[30000,8],"1":[40000,3]},"연천":{"5":[150000,2]},"영등포구":{"0.5":[38000,4],"1":[55000,6],"5":[150000,2]},"오산":{"0.5":[55000,3],"1":[80000,2]},"용인":{"0.5":[55000,7],"1":[80000,4],"3.5":[170000,2],"5":[240000,12]},"원주":{"0.5":[115000,4],"1":[135000,4],"3.5":[205000,2]},"음성":{"1":[120000,2]},"의정부":{"2.5":[130000,2]},"인천서구":{"0.5":[25000,11]},"전주":{"3.5":[250000,2],"5":[320000,3]},"종로구":{"0.5":[45000,3],"1":[70000,2],"3.5":[160000,5],"5":[180000,3]},"중구":{"0.5":[45000,15],"1":[65000,15],"3.5":[120000,2],"5":[170000,6]},"중랑구":{"0.5":[52000,2]},"창원":{"3.5":[405000,2],"5":[530000,2]},"천안":{"0.5":[85000,10],"1":[100000,8],"5":[210000,15]},"청주":{"0.5":[120000,6],"1":[130000,7],"5":[240000,8]},"춘천":{"0.5":[160000,2],"1":[150000,2]},"충주":{"0.5":[130000,3],"1":[135000,2]},"태백":{"2.5":[405000,2],"3.5":[380000,7],"5":[430000,10]},"통영":{"2.5":[400000,2]},"파주":{"0.5":[50000,6],"1":[65000,3]},"평택":{"0.5":[65000,11],"1":[85000,11],"2.5":[175000,2],"3.5":[170000,9],"5":[200000,10]},"포천":{"0.5":[68000,2],"1":[70000,2]},"하남":{"0.5":[45000,3]},"해남":{"5":[530000,2]},"홍성":{"1":[135000,2],"3.5":[200000,2]},"홍천":{"0.5":[120000,2]},"화성":{"0.5":[55000,10],"1":[70000,7],"3.5":[140000,4],"5":[330000,7]}};
 /* 차종 — c = 1톤차 1대를 1.0 으로 봤을 때 실을 수 있는 양 (적재함 바닥 면적 기준) */
+/* 차종 — c = 1톤차 1대를 1.0 으로 봤을 때 실을 수 있는 양 (적재함 바닥 면적 기준)
+   L/W = 적재함 길이·폭(m). 용차 부를 때 "몇 톤, 몇 m" 를 그대로 불러줄 수 있게 같이 들고 있는다. */
 const YC_TRUCK=[
- {t:'0.5',nm:'다마스·라보',c:0.45},
- {t:'1',  nm:'1톤',        c:1.00},
- {t:'1.4',nm:'1.4톤',      c:1.35},
- {t:'2.5',nm:'2.5톤',      c:1.75},
- {t:'3.5',nm:'3.5톤',      c:2.15},
- {t:'5',  nm:'5톤',        c:3.20},
- {t:'5L', nm:'5톤 초장축',  c:3.70},
- {t:'11', nm:'11톤',       c:4.80}];
-const YC_BASE={'0.5':45000,'1':80000,'1.4':110000,'2.5':160000,'3.5':170000,'5':240000,'5L':290000,'11':365000};
+ {t:'0.5',nm:'다마스',      c:0.28,L:1.7,W:1.3},
+ {t:'0.6',nm:'라보',        c:0.45,L:2.2,W:1.3},
+ {t:'1',  nm:'1톤',         c:1.00,L:2.8,W:1.6},
+ {t:'1L', nm:'1톤 초장축',   c:1.15,L:3.1,W:1.6},
+ {t:'1.4',nm:'1.4톤',       c:1.35,L:3.1,W:1.7},
+ {t:'2.5',nm:'2.5톤',       c:1.75,L:4.3,W:1.8},
+ {t:'3.5',nm:'3.5톤',       c:2.15,L:4.8,W:2.0},
+ {t:'5',  nm:'5톤',         c:3.20,L:6.2,W:2.3},
+ {t:'5L', nm:'5톤 초장축',   c:3.70,L:7.2,W:2.3},
+ {t:'11', nm:'11톤',        c:4.80,L:9.1,W:2.35}];
+/* 1톤차 바닥 면적 = 2.8 x 1.6 = 4.48㎡ — '대분' 을 ㎡ 로 바꿀 때 쓴다 */
+const YC_M2=4.48;
+function ycSpec(x){return x?(x.nm+' (적재함 '+x.L+'m×'+x.W+'m)'):''}
+const YC_BASE={'0.5':38000,'0.6':45000,'1':80000,'1L':90000,'1.4':110000,'2.5':160000,'3.5':170000,'5':240000,'5L':290000,'11':365000};
 /* 초장축은 5톤 값에 20% 더 붙는다 (장부상 5톤초장축 실지급 기준) */
-function ycTon(t){return t==='5L'?'5':t}
-function ycUp(t){return t==='5L'?1.2:1}
+function ycTon(t){return t==='5L'?'5':(t==='1L'?'1':(t==='0.6'?'0.5':t))}
+function ycUp(t){return t==='5L'?1.2:(t==='1L'?1.12:1)}
 /* 주소·거래처 이름에서 운임 장부의 지역명을 찾는다 */
 let _ycKeys=null;
 function ycRegion(txt){
@@ -3161,7 +3168,7 @@ function ycPlan(load,reg){
   if(last&&last.tk.t===tk.t)last.q++;else plan.push({tk:tk,q:1,how:f.how,n:f.n});
  }
  return {plan:plan,fee:fee,
-  txt:plan.map(function(x){return x.tk.nm+(x.q>1?' \u00d7'+x.q:'')}).join(' + '),
+  txt:plan.map(function(x){return x.tk.nm+(x.tk.L?' '+x.tk.L+'m':'')+(x.q>1?' \u00d7'+x.q:'')}).join(' + '),
   how:(plan[0]||{}).how||'',n:(plan[0]||{}).n||0};
 }
 function ycSet(k,v){if(k==='t')YCT=v;else if(k==='r')YCR=v;else YCQ=Math.max(1,+v||1);render()}
@@ -3179,17 +3186,21 @@ function tabYc(today){
  const jn=today.filter(function(o){return ASSIGN[o.i]==='jn'&&(o.load||0)>0.5});
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
- h+='<div class="ycnote">차종별 <b>1톤차 대비 적재량</b>은 <b>적재함 바닥 면적</b>으로 잡았습니다 (실지급 운임 비율과 거의 일치).<br>'
+ h+='<div class="ycnote"><b>의자·장 개수를 넣으면 몇 톤·몇 m 차를 불러야 하는지</b> 나옵니다. 거래처를 고르면 오늘 물량이 자동으로 들어갑니다.<br>'
   +'우리 <b>3.5톤 대형</b> 동선의 적재 기준은 <b>신부장님 기준 그대로 1톤의 1.2배</b>로 두었습니다 — 바꾸지 않았습니다.</div>';
 
- /* ---- 직접 계산 ---- */
- h+='<div class="dcard yccalc"><b>직접 계산</b>'
+ /* ---- 물량 넣으면 어떤 차를 불러야 하는지 ---- */
+ h+='<div class="dcard yccalc"><b>어떤 차를 불러야 하나</b>'
   +'<div class="ycrow"><label>지역</label><input id="ycreg" value="'+(YCR||'').replace(/"/g,'')+'" placeholder="평택 · 강남구 · 대전 …" oninput="YCR=this.value;drawYcOne()"></div>'
-  +'<div class="ycrow"><label>차종</label><select onchange="ycSet(\'t\',this.value)">'
-  +YC_TRUCK.map(function(x){return '<option value="'+x.t+'"'+(x.t===YCT?' selected':'')+'>'+x.nm+' (1톤차 '+x.c.toFixed(2)+'대분)</option>'}).join('')
+  +'<div class="ycrow"><label>거래처</label><select id="yccu" onchange="ycPick2(this.value)">'
+  +'<option value="">— 오늘 배차에서 고르기 —</option>'
+  +today.slice().sort(function(a,b){return b.load-a.load}).map(function(o,k){
+     return '<option value="'+k+'">'+o.n.slice(0,18)+' · 의자 '+o.qty+'개</option>'}).join('')
   +'</select></div>'
-  +'<div class="ycrow"><label>대수</label><input type="number" min="1" value="'+YCQ+'" oninput="YCQ=Math.max(1,+this.value||1);drawYcOne()"></div>'
+  +'<div class="ycrow"><label>의자</label><input type="number" id="ycq" min="0" value="'+(YCC||0)+'" oninput="YCC=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개</span></div>'
+  +'<div class="ycrow"><label>장·캐비닛</label><input type="number" id="ycf" min="0" value="'+(YCF||0)+'" oninput="YCF=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개 (800×600 기준)</span></div>'
   +'<div id="ycone"></div></div>';
+ window._YCT=today;
 
  /* ---- 오늘 넘치는 물량 ---- */
  h+='<div class="hd2">🚨 한 차를 넘는 곳 — 용차 검토 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+SEL+'</span></div>';
@@ -3228,7 +3239,7 @@ function tabYc(today){
  /* ---- 지역별 단가표 ---- */
  h+='<div class="hd2">📋 지역별 실지급 단가 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 같은 지역·톤수로 2번 이상 나간 것만</span></div>';
  h+='<div class="dcard ycsc"><table class="yctb rate"><tr><th>지역</th>'
-  +['0.5','1','2.5','3.5','5','11'].map(function(t){return '<th>'+(t==='0.5'?'다마스':t+'톤')+'</th>'}).join('')+'</tr>';
+  +['0.5','1','2.5','3.5','5','11'].map(function(t){return '<th>'+(t==='0.5'?'다마스<br>1.7m':t==='1'?'1톤<br>2.8m':t==='2.5'?'2.5톤<br>4.3m':t==='3.5'?'3.5톤<br>4.8m':t==='5'?'5톤<br>6.2m':'11톤<br>9.1m')+'</th>'}).join('')+'</tr>';
  Object.keys(YC_RATE).sort(function(a,b){return a.localeCompare(b,'ko')}).forEach(function(r){
   h+='<tr><td>'+r+'</td>'+['0.5','1','2.5','3.5','5','11'].map(function(t){
    const v=YC_RATE[r][t];
@@ -3237,18 +3248,44 @@ function tabYc(today){
  h+='</table></div></div>';
  return h;
 }
+function ycPick2(k){
+ const o=(window._YCT||[])[+k];
+ if(!o){return}
+ /* 의자와 장을 나눠 센다 */
+ let ch=0,fu=0;
+ (o.items||[]).forEach(function(it){
+  const c=capOf(it.p||'');
+  if(c&&/캐비닛|사물함|장 |책장|800\*600/.test(c.l||''))fu+=it.q;else ch+=it.q;
+ });
+ YCC=ch;YCF=fu;
+ const ad=(ADDR[o.n]||'')+' '+(o.memo||'')+' '+o.n;
+ YCR=ycRegion(ad)||YCR;
+ render();
+}
+/* 의자·장 개수 → 몇 대분 → 어떤 차 */
+function ycLoad(){
+ const ch=+YCC||0, fu=+YCF||0;
+ /* 의자는 1톤에 60개(기타 기준), 800×600 장은 1톤에 12대 */
+ return ch/60 + fu/12;
+}
 function drawYcOne(){
  const el=document.getElementById('ycone');if(!el)return;
+ const L=ycLoad();
+ if(L<=0){el.innerHTML='<div class="ycout" style="background:#f7f9fc;border-color:#e5eaf1"><div class="ycsub">의자나 장 개수를 넣으면 <b>어떤 차를 불러야 하는지</b> 알려드립니다.</div></div>';return}
  const reg=ycRegion(YCR)||null;
- const tk=YC_TRUCK.filter(function(x){return x.t===YCT})[0]||YC_TRUCK[1];
- const f=ycFee(reg,YCT);
- const tot=f.v*YCQ;
- el.innerHTML='<div class="ycout"><div class="ycbig">'+won(tot)+'<span>원</span></div>'
-  +'<div class="ycsub">부가세 포함 <b>'+won(Math.round(tot*1.1))+'원</b></div>'
-  +'<div class="ycsub">'+(reg?'<b>'+reg+'</b>':'<span style="color:#c00">지역을 못 찾음 — 전체 평균</span>')
-  +' · '+tk.nm+' × '+YCQ+'대 · '+f.how+(f.n?' ('+f.n+'건)':'')+'</div>'
-  +'<div class="ycsub">실을 수 있는 양 약 <b>'+(tk.c*YCQ).toFixed(2)+'대분</b> (1톤차 기준)</div></div>';
+ const P=ycPlan(L,reg);
+ const first=(P.plan&&P.plan[0])?P.plan[0].tk:null;
+ const need=(L*YC_M2).toFixed(1);
+ el.innerHTML='<div class="ycout">'
+  +'<div class="ycbig">'+(first?ycSpec(first):'-')+(P.plan&&P.plan.length>1?' 외':'')+'</div>'
+  +'<div class="ycsub" style="margin-top:6px">필요한 짐칸 약 <b>'+need+'㎡</b> · <b>'+L.toFixed(2)+'대분</b> (1톤차 기준)</div>'
+  +'<div class="ycsub">'+(P.plan||[]).map(function(x){return ycSpec(x.tk)+(x.q>1?' × '+x.q+'대':'')}).join(' + ')+'</div>'
+  +'<div class="ycsub" style="margin-top:8px">예상 운임 <b style="font-size:17px;color:#1b4fa8">'+won(P.fee)+'원</b>'
+  +' <span style="color:#8b9aab">(부가세 포함 '+won(Math.round(P.fee*1.1))+'원)</span></div>'
+  +'<div class="ycsub">'+(reg?'<b>'+reg+'</b> 실지급 기준':'<span style="color:#c00">지역을 못 찾음 — 전체 평균</span>')+' · '+P.how+'</div>'
+  +'</div>';
 }
+
 
 /* ============ 회차 안내 뱃지 ============
    사장님 운영 규칙 (2026-08-27)
