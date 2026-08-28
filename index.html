@@ -587,11 +587,14 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 <dialog id="gps"><div class="dh"><h3>📍 GPS 순서 학습</h3><button class="btn g" onclick="gps.close()">닫기</button></div>
 <div class="db">
  <div style="font-size:12.5px;color:#5f7086;line-height:1.6;margin-bottom:8px">
-  LGU+ FMS 운행기록 표를 <b>제목줄까지 통째로</b> 복사해서 아래에 붙여넣으세요.<br>
+  LGU+ FMS에서 받은 <b>엑셀 파일을 그대로 골라 넣으세요</b> — 여러 개 한 번에 됩니다.<br>
+  (표를 복사해 아래 칸에 붙여넣어도 됩니다.)<br>
   기사님들이 <b>실제로 들른 순서</b>를 읽어 동선별 <b>기억된 순서</b>로 저장합니다. 본사(석남동) 왕복은 빼고 셉니다.
  </div>
  <textarea id="gpsIn" placeholder="차량번호&#9;차량명&#9;메모&#9;… 운행시작 시간&#9;운행종료 시간&#9;… 출발위치&#9;최종위치"></textarea>
  <div style="display:flex;gap:8px;margin-top:8px">
+  <button class="btn" onclick="gpsF.click()">📂 FMS 파일 고르기</button>
+  <input type="file" id="gpsF" accept=".xlsx,.xls,.csv" multiple hidden onchange="gpsFiles(this.files);this.value=''">
   <button class="btn" onclick="runGps()">🔎 읽어보기</button>
   <button class="btn" style="background:#0FA958;color:#fff" onclick="gapply()">✅ 저장 (순서·기사·회차)</button>
  </div>
@@ -990,7 +993,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260828c';
+const APPVER='20260828d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3409,6 +3412,46 @@ function gpsFill(){
  });
  save();render();
  toast(ok?('GPS 이력으로 '+ok+'곳 채웠습니다'+(skip?' (이력 없음 '+skip+'곳)':'')):'채울 이력이 없습니다');
+}
+/* FMS 엑셀 파일을 그대로 읽어들인다 — 붙여넣기 안 해도 됨. 여러 개 한 번에 가능 */
+function gpsFiles(fl){
+ if(!fl||!fl.length)return;
+ const files=Array.prototype.slice.call(fl);
+ const out=[];let left=files.length,bad=0;
+ const B=document.getElementById('gpsOut');
+ if(B)B.innerHTML='<div class="gsum">파일 '+files.length+'개 읽는 중…</div>';
+ files.forEach(function(f){
+  readSheets(f,function(sheets){
+   try{
+    (sheets||[]).forEach(function(sh){
+     const rows=sh[1]||[];if(!rows.length)return;
+     /* 제목줄 찾기 */
+     let hi=-1;
+     for(let i=0;i<Math.min(rows.length,15);i++){
+      const c=rows[i].map(function(x){return String(x||'')});
+      if(c.some(function(x){return /운행\s*시작/.test(x)})&&c.some(function(x){return /최종\s*위치/.test(x)})){hi=i;break}
+     }
+     if(hi<0)return;
+     rows.slice(hi).forEach(function(r){out.push(r.map(function(x){return String(x==null?'':x).replace(/\t/g,' ')}).join('\t'))});
+    });
+   }catch(e){bad++}
+   if(--left===0)gpsFilesDone(out,files.length,bad);
+  });
+ });
+}
+function gpsFilesDone(lines,nf,bad){
+ if(!lines.length){document.getElementById('gpsOut').innerHTML='<div class="gwarn">운행 이력 표를 찾지 못했습니다. FMS에서 받은 파일이 맞는지 확인해 주세요.</div>';return}
+ /* 여러 파일의 제목줄이 섞이지 않게 첫 제목줄만 남기고 중복 줄 제거 */
+ let hdr=null;const seen={},body=[];
+ lines.forEach(function(l){
+  if(/운행\s*시작/.test(l)&&/최종\s*위치/.test(l)){if(!hdr)hdr=l;return}
+  if(seen[l])return;seen[l]=1;body.push(l);
+ });
+ const txt=[hdr].concat(body).join('\n');
+ const t=document.getElementById('gpsIn');if(t)t.value=txt;
+ runGps();
+ const B=document.getElementById('gpsOut');
+ if(B)B.insertAdjacentHTML('afterbegin','<div class="gsum">파일 '+nf+'개에서 <b>'+body.length+'</b>줄을 읽었습니다'+(bad?' (못 읽은 파일 '+bad+'개)':'')+'</div>');
 }
 function openGps(){gps.showModal();
  const st=document.getElementById('gpsStat');
