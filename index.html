@@ -586,7 +586,11 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <textarea id="gpsIn" placeholder="차량번호&#9;차량명&#9;메모&#9;… 운행시작 시간&#9;운행종료 시간&#9;… 출발위치&#9;최종위치"></textarea>
  <div style="display:flex;gap:8px;margin-top:8px">
   <button class="btn" onclick="runGps()">🔎 읽어보기</button>
-  <button class="btn" style="background:#0FA958;color:#fff" onclick="gapply()">✅ 이 순서로 저장</button>
+  <button class="btn" style="background:#0FA958;color:#fff" onclick="gapply()">✅ 저장 (순서·기사·회차)</button>
+ </div>
+ <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+  <button class="btn" onclick="gpsFill()">🚚 오늘 배차를 GPS 이력으로 채우기</button>
+  <span id="gpsStat" style="font-size:12px;color:#8b9aab"></span>
  </div>
  <div id="gpsOut"></div>
 </div></dialog>
@@ -767,6 +771,10 @@ let CAPU=LSU('_capu',[]);
 /* ===== 동선별 2차 직납 (＋) — 사장님 8/28 코스표 =====
    ＋ = 배송 끝내고 본사로 들어와서 2차로 직납을 돌고 온다 / ✕ = 한 회전만
    가까운 동선(인천·부천·일산·수원·사당·시흥)이 ＋, 먼 동선이 ✕ */
+/* ===== GPS로 배운 기사·회차 이력 =====
+   DRVH[거래처][기사] = 실제로 간 횟수   ·   TRPH[거래처][회차] = 그 회차로 간 횟수
+   본사(석남동)에 다시 들어왔다 나가면 회차가 하나 올라간다 */
+let DRVH=LSU('_drvh',{}), TRPH=LSU('_trph',{});
 const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
@@ -967,7 +975,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
+ SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -975,7 +983,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260827e';
+const APPVER='20260828a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -999,13 +1007,14 @@ let SB=null,SB_ON=false,pushT=null,applying=false;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;
+ o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
 function applySnap(o){applying=true;try{
  if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];
  /* DRVOV는 통째로 안 바꾼다 — 아래에서 키별 시각 비교로 합친다 */if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
+ if(o['_drvh'])DRVH=o['_drvh'];if(o['_trph'])TRPH=o['_trph'];
  if(o['_rt2'])RT2=o['_rt2'];
  if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_c']){CAPS=o['_c'];capEnforce()}
@@ -3181,19 +3190,36 @@ function gparse(txt){
 function gbuild(rows){
  const day={},miss={},noDrv={n:0};
  let hit=0,tot=0,depot=0;
- rows.forEach(function(r){
-  if(!r.drv){noDrv.n++;return}
-  if(GPS_DEPOT.test(gnorm(r.to))){depot++;return}
-  tot++;
-  const m=gmatch(r.to);
-  if(!m){miss[gnorm(r.to)]=(miss[gnorm(r.to)]||0)+1;return}
-  hit++;
-  const k=r.drv+'§'+r.d;(day[k]=day[k]||[]).push({t:r.e||r.s,n:m.n});
+ /* 기사×날짜별로 시각 순으로 훑으면서 본사(석남동) 복귀를 세어 회차를 매긴다
+    = 사장님이 코스표에 적으신 ＋(2차) 가 GPS에 그대로 찍혀 있다 */
+ const byDay={};
+ rows.forEach(function(r){if(!r.drv){noDrv.n++;return}
+  const k=r.drv+'\u00a7'+r.d;(byDay[k]=byDay[k]||[]).push(r)});
+ Object.keys(byDay).forEach(function(k){
+  const l=byDay[k].sort(function(a,b){return (a.s||a.e)-(b.s||b.e)});
+  let trip=1,seenCust=false;
+  l.forEach(function(r){
+   if(GPS_DEPOT.test(gnorm(r.to))){depot++;if(seenCust){trip++;seenCust=false}return}
+   tot++;
+   const m=gmatch(r.to);
+   if(!m){miss[gnorm(r.to)]=(miss[gnorm(r.to)]||0)+1;return}
+   hit++;seenCust=true;
+   (day[k]=day[k]||[]).push({t:r.e||r.s,n:m.n,tp:trip>3?3:trip});
+  });
  });
- const vote={},dayList=[];
+ const vote={},dayList=[],dv={},tp={};
  Object.keys(day).forEach(function(k){
+  const drv=k.split('\u00a7')[0];
   const l=day[k].slice().sort(function(a,b){return a.t-b.t});
   const seq=[];l.forEach(function(x){if(!seq.length||seq[seq.length-1]!==x.n)seq.push(x.n)});
+  /* ① 기사 이력 · ② 회차 이력 */
+  const once={};
+  l.forEach(function(x){
+   const ck=x.n+'\u0001'+x.tp;if(once[ck])return;once[ck]=1;
+   (dv[x.n]=dv[x.n]||{});dv[x.n][drv]=(dv[x.n][drv]||0)+1;
+   (tp[x.n]=tp[x.n]||{});tp[x.n][x.tp]=(tp[x.n][x.tp]||0)+1;
+  });
+  /* ③ 동선별 방문 순서 */
   const byR={};
   seq.forEach(function(n){const rid=ridOfCust(n);if(!rid||rid==='_'||rid==='x')return;(byR[rid]=byR[rid]||[]).push(n)});
   Object.keys(byR).forEach(function(rid){
@@ -3201,10 +3227,22 @@ function gbuild(rows){
     const v=(vote[rid]=vote[rid]||{}),c=(v[n]=v[n]||{s:0,c:0});
     c.s+=i;c.c++;});
   });
-  const p=k.split('§');
+  const p=k.split('\u00a7');
   dayList.push({drv:p[0],d:p[1],n:seq.length,seq:seq});
  });
- return {vote:vote,days:dayList,hit:hit,tot:tot,depot:depot,miss:miss,noDrv:noDrv.n};
+ return {vote:vote,days:dayList,hit:hit,tot:tot,depot:depot,miss:miss,noDrv:noDrv.n,dv:dv,tp:tp};
+}
+/* 거래처 → 가장 많이 간 기사 / 가장 많은 회차 */
+function drvOfCust(n){
+ const m=DRVH[n];if(!m)return null;
+ let b=null,bc=0,tot=0;
+ for(const k in m){tot+=m[k];if(m[k]>bc){bc=m[k];b=k}}
+ return b?{drv:b,c:bc,tot:tot,p:Math.round(bc/tot*100)}:null;
+}
+function tripOfCust(n){
+ const m=TRPH[n];if(!m)return null;
+ let b=null,bc=0;for(const k in m)if(m[k]>bc){bc=m[k];b=+k}
+ return b||null;
 }
 /* 동선별 최종 순서 (평균 순위) */
 function gorder(vote,rid){
@@ -3215,7 +3253,14 @@ function gorder(vote,rid){
 let GPSR=null;
 function gapply(){
  if(!GPSR)return;
- let rn=0,cn=0;
+ let rn=0,cn=0,dn=0;
+ /* ① 기사 이력 · 회차 이력 누적 (덮어쓰지 않고 더한다 — 4월부터 나눠 넣어도 쌓인다) */
+ if(GPSR.dv)Object.keys(GPSR.dv).forEach(function(n){
+  DRVH[n]=DRVH[n]||{};let a=GPSR.dv[n];
+  Object.keys(a).forEach(function(k){DRVH[n][k]=(DRVH[n][k]||0)+a[k]});dn++});
+ if(GPSR.tp)Object.keys(GPSR.tp).forEach(function(n){
+  TRPH[n]=TRPH[n]||{};let a=GPSR.tp[n];
+  Object.keys(a).forEach(function(k){TRPH[n][k]=(TRPH[n][k]||0)+a[k]})});
  Object.keys(GPSR.vote).forEach(function(rid){
   const arr=gorder(GPSR.vote,rid);
   if(arr.length<3)return;                    /* 2곳 이하는 순서를 배울 게 없다 */
@@ -3225,10 +3270,31 @@ function gapply(){
   SEQL[rid]=m;rn++;cn+=arr.length;
  });
  seqLearnClear();save();render();
- toast('GPS 실제 순서를 반영했습니다 — 동선 '+rn+'개 · 거래처 '+cn+'곳');
+ toast('GPS 반영 — 순서 동선 '+rn+'개/'+cn+'곳 · 기사·회차 '+dn+'곳 학습');
  gps.close();
 }
-function openGps(){gps.showModal();const t=document.getElementById('gpsIn');if(t)t.focus()}
+/* GPS로 배운 '이 거래처는 보통 누가, 몇 차에 간다'로 그날 배차를 채운다 */
+function gpsFill(){
+ if(!SEL)return toast('날짜를 먼저 고르세요');
+ const list=ORDERS.filter(function(o){return o.d===SEL&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='x'&&ASSIGN[o.i]!=='nb'});
+ if(!list.length)return toast('이 날짜에 배차할 건이 없습니다');
+ let ok=0,skip=0;
+ list.forEach(function(o){
+  if(DRVOV[o.key])return;                       /* 손으로 정한 건 건드리지 않는다 */
+  const d=drvOfCust(o.n);
+  if(!d||d.c<2){skip++;return}                  /* 2번 이상 간 기사만 인정 */
+  setDov(o.key,d.drv);
+  const t=tripOfCust(o.n);if(t)setTripK(o.key,t);
+  ok++;
+ });
+ save();render();
+ toast(ok?('GPS 이력으로 '+ok+'곳 채웠습니다'+(skip?' (이력 없음 '+skip+'곳)':'')):'채울 이력이 없습니다');
+}
+function openGps(){gps.showModal();
+ const st=document.getElementById('gpsStat');
+ if(st){const n=Object.keys(DRVH||{}).length;
+  st.innerHTML=n?('학습된 거래처 <b>'+n+'</b>곳'):'아직 학습된 이력이 없습니다'}
+ const t=document.getElementById('gpsIn');if(t)t.focus()}
 function runGps(){
  const t=document.getElementById('gpsIn').value;
  const B=document.getElementById('gpsOut');
