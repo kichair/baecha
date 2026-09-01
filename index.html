@@ -1037,7 +1037,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260902g';
+const APPVER='20260902h';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3155,22 +3155,22 @@ const YC_TRUCK=[
  {t:'5',  nm:'5톤 기본',  c:3.20,L:6.2,W:2.3},
  {t:'5L', nm:'5톤 초장축', c:3.70,L:7.2,W:2.3},
  {t:'11', nm:'11톤',      c:4.80,L:9.1,W:2.35},
- /* ===== 원거리 혼적(합짐) — 장부에 '부산(2.5m)' 처럼 적는 것 =====
+ /* ===== 합바차 — 큰 차에 우리 짐 몇 m만 싣고 같이 가는 것 (장부: '부산(2.5m)') =====
     차를 통째로 부르는 게 아니라 큰 차에 몇 미터를 싣는 것이라 값이 따로 논다.
     부산 기준 1m 140,000 / 2.5m 230,000 / 4m 305,000 — 차 크기가 아니라 실은 길이로 매긴다. */
- {t:'m1',  nm:'1m 혼적',  c:0.51,L:1.0,W:2.3,mx:1},
- {t:'m1.5',nm:'1.5m 혼적',c:0.77,L:1.5,W:2.3,mx:1},
- {t:'m2',  nm:'2m 혼적',  c:1.03,L:2.0,W:2.3,mx:1},
- {t:'m2.5',nm:'2.5m 혼적',c:1.28,L:2.5,W:2.3,mx:1},
- {t:'m3',  nm:'3m 혼적',  c:1.54,L:3.0,W:2.3,mx:1},
- {t:'m3.5',nm:'3.5m 혼적',c:1.80,L:3.5,W:2.3,mx:1},
- {t:'m4',  nm:'4m 혼적',  c:2.05,L:4.0,W:2.3,mx:1},
- {t:'m4.5',nm:'4.5m 혼적',c:2.31,L:4.5,W:2.3,mx:1},
- {t:'m5',  nm:'5m 혼적',  c:2.57,L:5.0,W:2.3,mx:1},
- {t:'m5.5',nm:'5.5m 혼적',c:2.82,L:5.5,W:2.3,mx:1},
- {t:'m6',  nm:'6m 혼적',  c:3.08,L:6.0,W:2.3,mx:1},
- {t:'m7',  nm:'7m 혼적',  c:3.59,L:7.0,W:2.3,mx:1},
- {t:'m7.5',nm:'7.5m 혼적',c:3.85,L:7.5,W:2.3,mx:1}];
+ {t:'m1',  nm:'1m (합바차)',  c:0.51,L:1.0,W:2.3,mx:1},
+ {t:'m1.5',nm:'1.5m (합바차)',c:0.77,L:1.5,W:2.3,mx:1},
+ {t:'m2',  nm:'2m (합바차)',  c:1.03,L:2.0,W:2.3,mx:1},
+ {t:'m2.5',nm:'2.5m (합바차)',c:1.28,L:2.5,W:2.3,mx:1},
+ {t:'m3',  nm:'3m (합바차)',  c:1.54,L:3.0,W:2.3,mx:1},
+ {t:'m3.5',nm:'3.5m (합바차)',c:1.80,L:3.5,W:2.3,mx:1},
+ {t:'m4',  nm:'4m (합바차)',  c:2.05,L:4.0,W:2.3,mx:1},
+ {t:'m4.5',nm:'4.5m (합바차)',c:2.31,L:4.5,W:2.3,mx:1},
+ {t:'m5',  nm:'5m (합바차)',  c:2.57,L:5.0,W:2.3,mx:1},
+ {t:'m5.5',nm:'5.5m (합바차)',c:2.82,L:5.5,W:2.3,mx:1},
+ {t:'m6',  nm:'6m (합바차)',  c:3.08,L:6.0,W:2.3,mx:1},
+ {t:'m7',  nm:'7m (합바차)',  c:3.59,L:7.0,W:2.3,mx:1},
+ {t:'m7.5',nm:'7.5m (합바차)',c:3.85,L:7.5,W:2.3,mx:1}];
 const YC_SOLO=YC_TRUCK.filter(function(x){return !x.mx});
 /* 1톤차 바닥 면적 = 2.8 x 1.6 = 4.48㎡ — '대분' 을 ㎡ 로 바꿀 때 쓴다 */
 const YC_M2=4.48;
@@ -3206,7 +3206,7 @@ function ycFee(reg,t){
  if(R&&R[bt])return {v:Math.round(R[bt][0]*up),n:R[bt][1],how:'실적'};
  if(R){
   /* 그 지역의 다른 톤수 실적으로 환산.
-     2026-09-02: 단독 차량(다마스·1톤…)과 원거리 혼적(2.5m·3m…)은 값 매기는 방식이 달라
+     2026-09-02: 차를 통째로 부르는 것과 합바차(2.5m·3m…)는 값 매기는 방식이 달라
      서로 환산하면 안 된다 — 부산 라보가 '3m 실적'에서 38,000원으로 나오던 문제. */
   const fam=(String(t)[0]==='m');
   let best=null;
@@ -3381,7 +3381,7 @@ function tabYcb(){
     +'<td><input value="'+String(x.reg||'').replace(/"/g,'&quot;')+'" onchange="ycbSet('+k+',\'reg\',this.value)" style="width:74px" placeholder="지역"></td>'
     +'<td><select onchange="ycbSet('+k+',\'tk\',this.value)">'
       +'<optgroup label="단독 차량">'+YC_SOLO.map(function(t){return '<option value="'+t.t+'"'+(x.tk===t.t?' selected':'')+'>'+t.nm+'</option>'}).join('')+'</optgroup>'
-      +'<optgroup label="원거리 혼적(m)">'+YC_TRUCK.filter(function(t){return t.mx}).map(function(t){return '<option value="'+t.t+'"'+(x.tk===t.t?' selected':'')+'>'+t.nm+'</option>'}).join('')+'</optgroup>'
+      +'<optgroup label="합바차 — 큰 차에 몇 m만 싣기">'+YC_TRUCK.filter(function(t){return t.mx}).map(function(t){return '<option value="'+t.t+'"'+(x.tk===t.t?' selected':'')+'>'+t.nm+'</option>'}).join('')+'</optgroup>'
     +'</select></td>'
     +'<td><select onchange="ycbSet('+k+',\'co\',this.value)"><option'+(x.co==='광일'?' selected':'')+'>광일</option><option'+(x.co==='장부'?' selected':'')+'>장부</option></select></td>'
     +'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="ycbSet('+k+',\'fee\',this.value)" title="'+(x.hw||'')+'" style="width:78px;text-align:right'+(x.est?';background:#fff3d6;border-color:#e0a63a':'')+'"></td>'
@@ -3459,11 +3459,11 @@ function tabYc(today){
  }
 
  /* ---- 지역별 단가표 ---- */
- h+='<div class="hd2">📋 지역별 실지급 단가 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 같은 지역·톤수로 2번 이상 나간 것만</span></div>';
+ h+='<div class="hd2">📋 지역별 실지급 단가 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 같은 지역·같은 차로 2번 이상 나간 것만 · m 칸은 합바차</span></div>';
  h+='<div class="dcard ycsc"><table class="yctb rate"><tr><th>지역</th>'
-  +['0.5','1','2.5','3.5','5','11'].map(function(t){return '<th>'+(t==='0.5'?'다마스<br>1.7m':t==='1'?'1톤<br>2.8m':t==='2.5'?'2.5톤<br>4.3m':t==='3.5'?'3.5톤<br>4.8m':t==='5'?'5톤<br>6.2m':'11톤<br>9.1m')+'</th>'}).join('')+'</tr>';
+  +['0.5','1','2.5','3.5','5','11','m1','m1.5','m2','m2.5','m3','m4','m5'].map(function(t){return '<th>'+(t==='0.5'?'다마스<br>1.7m':t==='1'?'1톤<br>2.8m':t==='2.5'?'2.5톤<br>4.3m':t==='3.5'?'3.5톤<br>4.8m':t==='5'?'5톤<br>6.2m':t==='11'?'11톤<br>9.1m':(t.slice(1)+'m<br>합바차'))+'</th>'}).join('')+'</tr>';
  Object.keys(YC_RATE).sort(function(a,b){return a.localeCompare(b,'ko')}).forEach(function(r){
-  h+='<tr><td>'+r+'</td>'+['0.5','1','2.5','3.5','5','11'].map(function(t){
+  h+='<tr><td>'+r+'</td>'+['0.5','1','2.5','3.5','5','11','m1','m1.5','m2','m2.5','m3','m4','m5'].map(function(t){
    const v=YC_RATE[r][t];
    return '<td>'+(v?won(v[0])+'<em class="ychow">'+v[1]+'건</em>':'<span style="color:#ccd">–</span>')+'</td>'}).join('')+'</tr>';
  });
