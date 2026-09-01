@@ -674,7 +674,7 @@ const CDN='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 
 /* ============ 적재 기준 ============ */
 const CAP_DEF=[
- {id:'part',l:'부품·자재',k:['좌판만','캐스타','발굽','팔걸이만','코지오발만','사발','A/S','중심봉','조절링'],c:400},
+ {id:'part',l:'부품·자재',k:['좌판만','캐스타','발굽','팔걸이만','코지오발만','사발','A/S','중심봉','조절링','조절발통','발통','전선캡','마스터키','일반장키','방지봉','나사','볼트'],c:400},
  {id:'fold',l:'접의자',k:['접의자'],c:200},
  {id:'gak', l:'각타공 (3단까지)',k:['각타공'],c:12},
  {id:'s4',  l:'광일신타공 4인',k:['신타공4인','타공4인'],c:20},
@@ -683,7 +683,12 @@ const CAP_DEF=[
  /* 800*600 장 = 흑로 의자 6개 분량 (신부장님 기준) → 69/6 ≒ 12개/대.
     치수가 적힌 품목은 아래 capOf 의 사이즈 계산이 우선이며 800*600*1197 → 12개/대 로 같은 값이 나온다.
     여기 값은 치수가 안 적힌 품목용 */
- {id:'cab', l:'캐비닛·사물함·장 (800*600 기준)',k:['캐비닛','사물함','퍼니온','책장'],c:12},
+ /* 2026-09-01: '퍼니온' 을 키워드로 두면 안 된다.
+    [퍼니온] 은 만든 곳 이름이라 조절발통·전선캡·마스터키·스툴까지 전부
+    800*600 장(12개/대)으로 계산돼 물량이 몇 배로 부풀었다.
+    (9/1 그루터기 50개 = 2.77대, 네오스페이스 마이다 20개 = 1.67대)
+    장류는 품목 이름으로 잡는다. */
+ {id:'cab', l:'캐비닛·사물함·장 (800*600 기준)',k:['캐비닛','사물함','책장','수납장','서류장','오픈장','문서장','신발장','올문장'],c:12},
  {id:'podA',l:'강연대 A',k:['강연대'],c:30},
  {id:'podB',l:'강연대 B',k:['교수용'],c:12},
  {id:'half',l:'절반수량 (루트·매틱·매직·시소)',k:['루트','매틱','매직','시소'],c:120},
@@ -1025,7 +1030,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260831a';
+const APPVER='20260901a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1442,17 +1447,23 @@ function ilsiTail(n){return String(n||'').replace(/^[^·]*·\s*/,'').trim()}
    · 용차·용차2·용차3 — 필요할 때만 부르는 차 */
 const NO_AUTO=['배진성','김석호','신윤철'];
 function autoOK(n){return !NO_AUTO.some(function(x){return String(n).indexOf(x)===0})&&String(n).indexOf('용차')!==0}
+/* ===== 기사 배정은 랜덤 (2026-09-01 사장님 지시) =====
+   GPS로 배운 '동선별 담당 기사'는 8/28·8/31 실측에서 27~30%밖에 안 맞았다.
+   같은 코스가 날마다 다른 기사에게 가기 때문이다 (인천: 장세훈→김태용→강효길).
+   맞힐 수 있는 게 아니므로 그냥 돌린다.
+   고정은 둘뿐 — 3.5톤은 배진성, 탑차는 장세훈.
+   날짜를 씨앗으로 섞어서, 같은 날이면 어느 PC에서 열어도 같은 결과가 나온다. */
 function autoRotate(dateStr){
  let pool=DRVS.map(d=>d[0]).filter(autoOK);
  const o={t35:'배진성'};
  if(!pool.length||!dateStr)return o;
- const day=Math.floor(new Date(dateStr+'T00:00:00').getTime()/86400000);
- const off=((day%pool.length)+pool.length)%pool.length;
+ let sd=0;for(let i=0;i<dateStr.length;i++)sd=(sd*131+dateStr.charCodeAt(i))>>>0;
+ const rnd=function(){sd=(sd*1664525+1013904223)>>>0;return sd/4294967296};
+ for(let i=pool.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const t=pool[i];pool[i]=pool[j];pool[j]=t}
  const dow=new Date(dateStr+'T00:00:00').getDay();
  const rts=['r1','r2','r3','r4','r5','r6','r7'];
  if(dow===3)rts.push('rw');if(dow===2||dow===4)rts.push('rc');
- /* 평소 순환 */
- const base=rts.map((r,k)=>pool[(k+off)%pool.length]);
+ const base=rts.map((r,k)=>pool[k%pool.length]);
  if(isRain(dateStr)){
   /* ☔ 우천: 탑차·호로차 기사를 물량 많은 앞 동선(1.인천 · 2.부천 · 4.강남 …)에 우선 배치 */
   const cov=base.filter(covered),opn=base.filter(function(x){return !covered(x)});
