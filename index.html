@@ -805,6 +805,8 @@ let YCT='1',YCR='',YCQ=1,YCC=0,YCF=0;
 /* 용차 내역서 — {날짜:{업체:[줄]}} · 업체 이름 */
 let YCB=LSU('_ycb',{});
 let YCV=localStorage.getItem(KEY+'_ycv')||'대현물류';
+let YCD=localStorage.getItem(KEY+'_ycd')||'';
+let YCBALL=false;
 const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
@@ -1035,7 +1037,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260901b';
+const APPVER='20260902a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1838,7 +1840,7 @@ function render(){
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb(today):tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():tabStat(today);
  bind();if(TAB===6)drawYcOne();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
@@ -3215,86 +3217,132 @@ function ycPlan(load,reg){
   how:(plan[0]||{}).how||'',n:(plan[0]||{}).n||0};
 }
 function ycSet(k,v){if(k==='t')YCT=v;else if(k==='r')YCR=v;else YCQ=Math.max(1,+v||1);render()}
-/* ===== 용차 내역서 (2026-09-01) =====
-   용차를 부를 건을 골라 담아 두면 업체별 내역서가 된다.
-   엑셀 장부와 같은 칸: 날짜 · 거래처 · 지역(차종) · 광일/삼정 · 운임 · 부가세포함 · 누계 */
-const YC_CO=['나눔물류','대현물류','금수레','명진로지스','윤준상기사님','삼정퍼니처(물류비)','스마트로지스'];
-function ycbCo(){return YCV||YC_CO[0]}
-function ycbRows(){const d=YCB[SEL]||{};return d[ycbCo()]||[]}
-function ycbPut(a){if(!YCB[SEL])YCB[SEL]={};YCB[SEL][ycbCo()]=a;ASGV['yb:'+SEL]=Date.now();save();render()}
+/* ===== 용차 내역서 (2026-09-02 개편) =====
+   나눔물류·대현물류 시트와 같은 칸으로 만든다.
+   일자 · 거래처명 · 배송지역(차종) · 적요(장부/광일) · 운임비 · 총계(부가세포함) · 누계
+   결재가 주 단위라 한 주씩 묶고, 주 끝에 '결재완료 (합계)' 줄을 자동으로 넣는다.
+   누계는 주가 바뀌면 0부터 다시 쌓인다 — 시트와 같다. */
+const YC_CO=['나눔물류','대현물류'];
+function ycbCo(){return (YC_CO.indexOf(YCV)>=0?YCV:YC_CO[1])}
+/* 저장 모양을 {업체:[줄]} 로 바꾼다 (예전 {날짜:{업체:[줄]}} 도 살려서 옮김) */
+function ycbFix(){
+ if(!YCB||typeof YCB!=='object')YCB={};
+ let old=false;Object.keys(YCB).forEach(function(k){if(/^\d{4}-\d{2}-\d{2}$/.test(k))old=true});
+ if(old){const nw={};
+  Object.keys(YCB).forEach(function(d){if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
+   const m=YCB[d]||{};Object.keys(m).forEach(function(c){(m[c]||[]).forEach(function(x){
+    x.d=x.d||d;(nw[c]=nw[c]||[]).push(x)})});delete YCB[d]});
+  Object.keys(nw).forEach(function(c){YCB[c]=(YCB[c]||[]).concat(nw[c])});}
+ YC_CO.forEach(function(c){if(!Array.isArray(YCB[c]))YCB[c]=[]});
+}
+function ycbRows(){ycbFix();return YCB[ycbCo()]}
+function ycbPut(a){ycbFix();YCB[ycbCo()]=a;ASGV['yb:'+ycbCo()]=Date.now();save();render()}
 function ycbSetCo(v){YCV=v;localStorage.setItem(KEY+'_ycv',v);render()}
+/* 담을 날짜 — 기본은 내일 (토·일이면 다음 월요일) */
+function ycbTmr(){const t=new Date();t.setDate(t.getDate()+1);
+ while(t.getDay()===0||t.getDay()===6)t.setDate(t.getDate()+1);
+ return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
+function ycbDate(){return YCD||(YCD=ycbTmr())}
+function ycbSetDate(v){YCD=v||ycbTmr();localStorage.setItem(KEY+'_ycd',YCD);render()}
+/* 그 주의 월요일 · 결재일(다음 월요일) */
+function ycbMon(d){const t=new Date(d+'T00:00:00');const g=(t.getDay()+6)%7;t.setDate(t.getDate()-g);
+ return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
+function ycbSun(mon){const t=new Date(mon+'T00:00:00');t.setDate(t.getDate()+6);return (t.getMonth()+1)+'/'+t.getDate()}
+function ycbPay(mon){const t=new Date(mon+'T00:00:00');t.setDate(t.getDate()+7);
+ return (t.getMonth()+1)+'/'+t.getDate()}
+function md(d){return d?(+d.slice(5,7))+'/'+(+d.slice(8,10)):''}
+/* 적요에 용차·상차라고 적힌 건 = 용차로 나갈 건 */
+const YCB_RE=/용차|상차|외주|퀵|화물|택배차/;
+function ycbCand(all){
+ const L=ORDERS.filter(function(o){return o.d===ycbDate()&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='nb'});
+ const hit=L.filter(function(o){return YCB_RE.test(String(o.memo||''))||ASSIGN[o.i]==='x'&&/용차/.test(String(o.memo||''))});
+ const use=(all||!hit.length)?L:hit;
+ return use.slice().sort(function(a,b){return (b.load||0)-(a.load||0)});
+}
 function ycbAdd(i){
  if(i===''||i==null)return;
  const o=window._YCB&&window._YCB[+i];if(!o)return;
  const ad=(ADDR[o.n]||'')+' '+(o.memo||'')+' '+o.n;
  const reg=ycRegion(ad)||'';
- const tk=ycPick(o.load||0.1);
- const f=ycFee(reg,tk.t);
+ const tk=ycPick(o.load||0.1), f=ycFee(reg,tk.t);
  const a=ycbRows().slice();
- a.push({n:o.n,q:o.qty,reg:reg,tk:tk.t,tnm:tk.nm,L:tk.L,co:(typeof isSJ==='function'&&isSJ(o))?'삼정':'광일',fee:f.v,memo:''});
+ a.push({d:ycbDate(),n:o.n,reg:reg,tk:tk.t,tnm:tk.nm,co:'광일',fee:f.v});
  ycbPut(a);
 }
-function ycbBlank(){const a=ycbRows().slice();a.push({n:'',q:0,reg:'',tk:'1',tnm:'1톤',L:2.8,co:'광일',fee:0,memo:''});ycbPut(a)}
+function ycbBlank(){const a=ycbRows().slice();a.push({d:ycbDate(),n:'',reg:'',tk:'1',tnm:'1톤',co:'광일',fee:0});ycbPut(a)}
 function ycbDel(k){const a=ycbRows().slice();a.splice(k,1);ycbPut(a)}
 function ycbSet(k,f,v){
  const a=ycbRows().slice();if(!a[k])return;
  if(f==='fee')a[k].fee=Math.max(0,Math.round(+String(v).replace(/[^0-9]/g,'')||0));
- else if(f==='tk'){const t=YC_TRUCK.filter(function(x){return x.t===v})[0];if(t){a[k].tk=t.t;a[k].tnm=t.nm;a[k].L=t.L;
-   const g=ycFee(a[k].reg,t.t);a[k].fee=g.v}}
- else if(f==='reg'){a[k].reg=v;const g=ycFee(v,a[k].tk);a[k].fee=g.v}
+ else if(f==='tk'){const t=YC_TRUCK.filter(function(x){return x.t===v})[0];
+   if(t){a[k].tk=t.t;a[k].tnm=t.nm;a[k].fee=ycFee(a[k].reg,t.t).v}}
+ else if(f==='reg'){a[k].reg=v;a[k].fee=ycFee(v,a[k].tk).v}
  else a[k][f]=v;
  ycbPut(a);
 }
-function ycbTsv(){
- const a=ycbRows();let acc=0;
- const L=a.map(function(x){acc+=Math.round(x.fee*1.1);
-  return [SEL.slice(5).replace('-','월 ')+'일',x.n,x.reg+'('+(x.L?x.L+'m':x.tnm)+')',x.co,x.fee,Math.round(x.fee*1.1),acc].join('\t')});
- const txt=['날짜\t거래처\t지역(차종)\t구분\t운임\t부가세포함\t누계'].concat(L).join('\n');
- if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){toast('표를 복사했습니다 — 엑셀에 붙여넣으세요')},function(){prompt('복사해서 엑셀에 붙여넣으세요',txt)});
- else prompt('복사해서 엑셀에 붙여넣으세요',txt);
+/* 한 주치를 시트 순서(위→아래)로 복사 */
+function ycbCopyWeek(mon){
+ const a=ycbRows().map(function(x,k){return {x:x,k:k}}).filter(function(r){return ycbMon(r.x.d||ycbDate())===mon});
+ a.sort(function(p,q){return String(p.x.d).localeCompare(String(q.x.d))||p.k-q.k});
+ let acc=0,last='';
+ const L=a.map(function(r){const x=r.x,v=Math.round(x.fee*1.1);acc+=v;
+  const dd=(x.d===last)?'':md(x.d);last=x.d;
+  return [dd,x.n,x.reg+'('+x.tnm+')',x.co,x.fee,v,acc].join('\t')});
+ L.push([ycbPay(mon)+' 결재완료 ('+won(acc)+')','','','','','',''].join('\t'));
+ const txt=['일자\t거래처명\t배송지역\t적요\t운임비\t총계(부가세포함)\t누계'].concat(L).join('\n');
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){toast('이 주 내역을 복사했습니다 — 시트에 붙여넣으세요')},function(){prompt('복사해서 시트에 붙여넣으세요',txt)});
+ else prompt('복사해서 시트에 붙여넣으세요',txt);
 }
-function tabYcb(today){
- window._YCB=today;
- const a=ycbRows();
+function tabYcb(){
+ const cand=ycbCand(YCBALL);window._YCB=cand;
+ const rows=ycbRows();
  let h='<div class="ycwrap">';
- h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+SEL+' · 부가세 별도 단가</span></div>';
- h+='<div class="ycnote">용차를 부를 건을 아래에서 골라 담으면 <b>업체별 내역서</b>가 만들어집니다. 운임은 장부 실적으로 자동으로 채워지고, 손으로 고칠 수 있습니다.</div>';
- /* 업체 고르기 */
- h+='<div class="dcard"><div class="ycrow"><label>용차 업체</label><select onchange="ycbSetCo(this.value)">'
-  +YC_CO.map(function(c){return '<option value="'+c+'"'+(ycbCo()===c?' selected':'')+'>'+c+'</option>'}).join('')
-  +'</select></div>';
- /* 담기 */
- h+='<div class="ycrow"><label>담을 건</label><select onchange="ycbAdd(this.value);this.value=\'\'">'
-  +'<option value="">— 오늘 배차에서 고르기 —</option>'
-  +today.slice().sort(function(x,y){return y.load-x.load}).map(function(o,k){
-    return '<option value="'+k+'">'+o.n.slice(0,20)+' · '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대</option>'}).join('')
-  +'</select></div>';
- h+='<div style="margin-top:8px"><button class="btn g" onclick="ycbBlank()">＋ 빈 줄</button> '
-  +'<button class="btn g" onclick="ycbTsv()">📋 표 복사(엑셀)</button> '
+ h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+ycbCo()+' · 매주 결재 · 부가세 별도 단가</span></div>';
+ h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건만 골라 보여 줍니다. 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.</div>';
+ h+='<div class="dcard">'
+  +'<div class="ycrow"><label>① 날짜</label><input type="date" value="'+ycbDate()+'" onchange="ycbSetDate(this.value)">'
+   +'<span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 내일</span></div>'
+  +'<div class="ycrow"><label>② 담을 건</label><select onchange="ycbAdd(this.value);this.value=\'\'">'
+   +'<option value="">— '+(YCBALL?'그날 전체':'적요에 용차·상차')+' '+cand.length+'건 —</option>'
+   +cand.map(function(o,k){return '<option value="'+k+'">'+o.n.slice(0,20)+' · '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대'
+     +(String(o.memo||'').match(YCB_RE)?' ['+String(o.memo).match(YCB_RE)[0]+']':'')+'</option>'}).join('')
+   +'</select>'
+   +'<label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCBALL?' checked':'')
+   +' onchange="YCBALL=this.checked;render()"> 전체</label></div>'
+  +'<div class="ycrow"><label>③ 업체</label><select onchange="ycbSetCo(this.value)">'
+   +YC_CO.map(function(c){return '<option value="'+c+'"'+(ycbCo()===c?' selected':'')+'>'+c+'</option>'}).join('')
+   +'</select></div>'
+  +'<div style="margin-top:8px"><button class="btn g" onclick="ycbBlank()">＋ 빈 줄</button> '
   +'<button class="btn g" onclick="window.print()">🖨️ 인쇄</button></div></div>';
- if(!a.length){h+='<div class="dcard" style="color:#8b9aab">아직 담은 건이 없습니다.</div></div>';return h}
- let sum=0,vsum=0,acc=0;
- h+='<div class="dcard ycsc"><table class="yctb"><tr><th>날짜</th><th>거래처</th><th>지역</th><th>차종</th><th>구분</th><th style="text-align:right">운임</th><th style="text-align:right">부가세포함</th><th style="text-align:right">누계</th><th></th></tr>';
- a.forEach(function(x,k){
-  const v=Math.round(x.fee*1.1);sum+=x.fee;vsum+=v;acc+=v;
-  h+='<tr><td style="white-space:nowrap">'+SEL.slice(5)+'</td>'
-   +'<td><input value="'+String(x.n).replace(/"/g,'&quot;')+'" onchange="ycbSet('+k+',\'n\',this.value)" style="width:130px"></td>'
-   +'<td><input value="'+String(x.reg||'').replace(/"/g,'&quot;')+'" onchange="ycbSet('+k+',\'reg\',this.value)" style="width:70px" placeholder="지역"></td>'
-   +'<td><select onchange="ycbSet('+k+',\'tk\',this.value)">'
-     +YC_TRUCK.map(function(t){return '<option value="'+t.t+'"'+(x.tk===t.t?' selected':'')+'>'+t.nm+' '+t.L+'m</option>'}).join('')
-   +'</select></td>'
-   +'<td><select onchange="ycbSet('+k+',\'co\',this.value)"><option'+(x.co==='광일'?' selected':'')+'>광일</option><option'+(x.co==='삼정'?' selected':'')+'>삼정</option></select></td>'
-   +'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="ycbSet('+k+',\'fee\',this.value)" style="width:80px;text-align:right"></td>'
-   +'<td style="text-align:right">'+won(v)+'</td>'
-   +'<td style="text-align:right">'+won(acc)+'</td>'
-   +'<td><button class="btn g" onclick="ycbDel('+k+')" title="빼기">✕</button></td></tr>';
+ if(!rows.length){h+='<div class="dcard" style="color:#8b9aab">'+ycbCo()+' 내역이 아직 없습니다.</div></div>';return h}
+ /* 주별로 묶기 — 최근 주가 위 */
+ const wk={};rows.forEach(function(x,k){const m=ycbMon(x.d||ycbDate());(wk[m]=wk[m]||[]).push({x:x,k:k})});
+ Object.keys(wk).sort().reverse().forEach(function(m){
+  const g=wk[m];g.sort(function(p,q){return String(p.x.d).localeCompare(String(q.x.d))||p.k-q.k});
+  let acc=0,sum=0,last='';
+  h+='<div class="hd2" style="margin-top:14px">'+md(m)+' ~ '+ycbSun(m)+' 주'
+   +' <button class="btn g" style="margin-left:8px" onclick="ycbCopyWeek(\''+m+'\')">📋 이 주 복사</button></div>';
+  h+='<div class="dcard ycsc"><table class="yctb"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th>'
+   +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th><th></th></tr>';
+  g.forEach(function(r){const x=r.x,k=r.k,v=Math.round(x.fee*1.1);acc+=v;sum+=x.fee;
+   const dd=(x.d===last)?'':md(x.d);last=x.d;
+   h+='<tr><td style="white-space:nowrap">'+dd+'</td>'
+    +'<td><input value="'+String(x.n).replace(/"/g,'&quot;')+'" onchange="ycbSet('+k+',\'n\',this.value)" style="width:130px"></td>'
+    +'<td><input value="'+String(x.reg||'').replace(/"/g,'&quot;')+'" onchange="ycbSet('+k+',\'reg\',this.value)" style="width:74px" placeholder="지역"></td>'
+    +'<td><select onchange="ycbSet('+k+',\'tk\',this.value)">'
+      +YC_TRUCK.map(function(t){return '<option value="'+t.t+'"'+(x.tk===t.t?' selected':'')+'>'+t.nm+'</option>'}).join('')
+    +'</select></td>'
+    +'<td><select onchange="ycbSet('+k+',\'co\',this.value)"><option'+(x.co==='광일'?' selected':'')+'>광일</option><option'+(x.co==='장부'?' selected':'')+'>장부</option></select></td>'
+    +'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="ycbSet('+k+',\'fee\',this.value)" style="width:78px;text-align:right"></td>'
+    +'<td style="text-align:right">'+won(v)+'</td><td style="text-align:right">'+won(acc)+'</td>'
+    +'<td><button class="btn g" onclick="ycbDel('+k+')" title="빼기">✕</button></td></tr>';
+  });
+  h+='<tr style="background:#fff8d6;font-weight:800"><td colspan="5">'+ycbPay(m)+' 결재완료 &nbsp;('+won(acc)+')</td>'
+   +'<td style="text-align:right">'+won(sum)+'</td><td style="text-align:right">'+won(acc)+'</td><td colspan="2"></td></tr>';
+  h+='</table></div>';
  });
- h+='<tr style="background:#fff8d6;font-weight:800"><td colspan="5">'+ycbCo()+' · '+a.length+'건</td>'
-  +'<td style="text-align:right">'+won(sum)+'</td><td style="text-align:right">'+won(vsum)+'</td><td colspan="2"></td></tr>';
- h+='</table></div></div>';
- return h;
+ return h+'</div>';
 }
-
 function tabYc(today){
  /* ① 오늘 한 차를 넘는 곳 — 용차로 빼야 하는 물량 */
  const over=[];
