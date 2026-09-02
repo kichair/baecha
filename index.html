@@ -536,6 +536,29 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  border-radius:8px;padding:6px 11px;font-weight:800;font-size:12.5px;cursor:pointer}
 .ycwrap .btn.g:hover{background:#dfe9f5}
 .ycwrap .yctb button.btn{padding:4px 8px;color:#b23b3b;border-color:#e6cfcf;background:#fdf0f0}
+.rlbtn{margin:0 4px;background:#eef3f9;color:#33475c;border:1px solid #cfdae6;border-radius:8px;
+ padding:5px 10px;font-weight:800;font-size:12px;cursor:pointer}
+.rlbtn.on{background:#0f5f37;color:#fff;border-color:#0f5f37}
+.rl{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-top:1px solid #eef2f7;background:#fff}
+.rl:first-of-type{border-top:none}
+.rl.dn{background:#f4f8f4;opacity:.62}
+.rl .rlno{flex:none;width:26px;height:26px;border-radius:8px;background:#e8eef6;color:#33475c;
+ display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;cursor:pointer}
+.rlbody{flex:1;min-width:0;cursor:pointer}
+.rlnm{font-size:14.5px;font-weight:800;color:#1f2b38;line-height:1.45;word-break:break-all}
+.rlnm u{text-decoration:none}
+.rlq{font-style:normal;margin-left:8px;font-size:12.5px;font-weight:900;color:#0f5f37;
+ background:#e8f4ec;border-radius:7px;padding:2px 8px;white-space:nowrap}
+.rlad{font-size:12.5px;color:#5f7086;margin-top:3px;word-break:break-all}
+.rlad.rgo{color:#c9761a;font-weight:700}
+.rlad.none{color:#c3ceda}
+.rlits{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 6px}
+.rlits .rlit{font-size:12px;color:#33475c;background:#f4f7fb;border:1px solid #e4ebf3;
+ border-radius:7px;padding:2px 8px;white-space:normal}
+.rlits .rlit b{font-weight:800}
+.rlits .rlit em{font-style:normal;color:#8b9aab}
+.rlbtns{flex:none;display:flex;gap:4px;align-items:center;flex-wrap:wrap;max-width:200px;justify-content:flex-end}
+@media print{.rlbtns,.rlbtn{display:none!important}.rl{page-break-inside:avoid}}
 </style></head><body>
 
 <div class="top">
@@ -958,6 +981,9 @@ function isRain(d){
 }
 let SEL=localStorage.getItem(KEY+'_sel')||'';
 let TAB=+(localStorage.getItem(KEY+'_tab')||0);
+/* 동선별 보기 — 0: 카드(가로 여러 칸) · 1: 목록(1·2·3 세로, 주소·품명 다 보임) */
+let RLIST=+(localStorage.getItem(KEY+'_rlist')||0);
+function rlistSet(v){RLIST=v?1:0;localStorage.setItem(KEY+'_rlist',RLIST);render()}
 let ME=localStorage.getItem(KEY+'_me')||'';
 let OPEN=LS('_op',{});
 let ORDERS=[],DATES=[];
@@ -1041,7 +1067,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260902p';
+const APPVER='20260902r';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2596,6 +2622,30 @@ function nbRow(o,j){
   +'<i>'+o.qty+'개</i>'
   +'<button class="chipbtn rt" title="동선 바꾸기 — 명세서 확인되면 동선으로 보내세요" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
   +'</div>'}
+/* ===== 목록 보기 한 줄 (2026-09-02 대표님 요청) =====
+   1·2·3 세로로 내려가면서 주소와 품명·개수를 전부 보여 준다.
+   카드 보기는 좁아서 주소가 잘리고 품명이 아예 안 보였다. */
+function rlRow(o,j){
+ const A=rowAddr(o);
+ const items=(o.items||[]).map(function(it){
+  const nm=String(it.p||'').trim();
+  const sp=String(it.s||'').trim();
+  return '<span class="rlit"><b>'+nm+'</b>'+(sp?' <em>'+sp+'</em>':'')+' '+it.q+'개</span>';
+ }).join('');
+ return '<div id="hit'+o.i+'" class="rl'+(ST[o.i]==='done'?' dn':'')+addCls(o)+'">'
+  +'<b class="rlno" onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
+  +'<div class="rlbody" onclick="event.stopPropagation();srchGo('+o.i+')">'
+   +'<div class="rlnm">'+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+'<u>'+o.n+'</u>'
+    +'<i class="rlq">'+o.qty+'개</i></div>'
+   +(A.t?'<div class="rlad'+(A.memo?' rgo':'')+'">'+(A.memo?'▶ ':'📍 ')+A.t+'</div>':'<div class="rlad none">주소 없음</div>')
+   +(items?'<div class="rlits">'+items+'</div>':'')
+  +'</div>'
+  +'<div class="rlbtns" onclick="event.stopPropagation()">'
+   +'<button class="chipbtn drv" title="기사 바꾸기" onclick="openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'👤':'🚚')+'</button>'+drvTag(o)
+   +'<button class="chipbtn rt" title="동선 바꾸기" onclick="openBub(\'rt\','+o.i+')">🛣️</button>'
+   +'<button class="chipbtn tr" title="몇 차로 나갈지" onclick="openBub(\'tr\','+o.i+')">'+(TRIP[o.key]?TRIP[o.key]+'차':'⏱')+'</button>'
+  +'</div></div>';
+}
 function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
@@ -2618,7 +2668,10 @@ function tabRoute(today){
   h+='</div>';
  })();
  h+=weakBar(today);
- h+='<div class="hd2">🛣️ 동선별 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
+ h+='<div class="hd2">🛣️ 동선별 '
+  +'<button class="btn g rlbtn'+(RLIST?'':' on')+'" onclick="rlistSet(0)">▦ 카드</button>'
+  +'<button class="btn g rlbtn'+(RLIST?' on':'')+'" onclick="rlistSet(1)">☰ 목록 — 주소·품명 다 보기</button>'
+  +'<span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  ROUTES.forEach(x=>{
   const list=by[x.id];
   const dn=list.filter(o=>ST[o.i]==='done').length;
@@ -2660,7 +2713,8 @@ function tabRoute(today){
        +vehTag(nm)+asTag(nm)
        +(isRain(SEL)&&!covered(nm)?'<em class="rwarn">☔개방</em>':'')
        +'<em class="rcnt">'+gd+'/'+g.items.length+'곳 · '+gq+'개</em></div>'
-      +g.items.map((o,j)=>'<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+addCls(o)+'">'
+      +(RLIST?g.items.map(function(o,j){return rlRow(o,j)}).join(''):
+       g.items.map((o,j)=>'<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+addCls(o)+'">'
        +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
        +(function(){const A=rowAddr(o);const ad=A.t;
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
@@ -2670,7 +2724,7 @@ function tabRoute(today){
        +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'+drvTag(o)
        +'<button class="chipbtn rt" title="동선 바꾸기" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
        +'<button class="chipbtn tr" title="몇 차로 나갈지" onclick="event.stopPropagation();openBub(\'tr\','+o.i+')">'+(TRIP[o.key]?TRIP[o.key]+'차':'\u23F1')+'</button>'
-       +'</div>').join('')}).join('')+'</div>'})():'')
+       +'</div>').join(''))}).join('')+'</div>'})():'')
   +'</div>';
  });
  return h+'</div>'}
