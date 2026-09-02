@@ -1037,7 +1037,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260902i';
+const APPVER='20260902j';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3317,7 +3317,32 @@ function ycbAdd(i){
  ycbPut(a);
 }
 function ycbRows(co){ycbFix();return YCB[co||ycbCo()]}
-function ycbPut(co,a){ycbFix();YCB[co]=a;ASGV['yb:'+co]=Date.now();save();render()}
+/* ===== 되돌리기용 자동 보관 (2026-09-02) =====
+   내역서를 고치기 직전 상태를 이 PC에만 20번까지 남겨 둔다.
+   실수로 줄이 사라져도 '↩︎ 되돌리기' 로 살릴 수 있다. */
+function ycbBackup(){
+ try{const b=JSON.parse(localStorage.getItem(KEY+'_ycbk')||'[]');
+  const cur=JSON.stringify(YCB);
+  if(b.length&&b[b.length-1].v===cur)return;
+  b.push({t:Date.now(),v:cur});while(b.length>20)b.shift();
+  localStorage.setItem(KEY+'_ycbk',JSON.stringify(b));}catch(e){}
+}
+function ycbUndo(){
+ let b=[];try{b=JSON.parse(localStorage.getItem(KEY+'_ycbk')||'[]')}catch(e){}
+ const cur=JSON.stringify(YCB);
+ while(b.length&&b[b.length-1].v===cur)b.pop();
+ if(!b.length)return toast('되돌릴 것이 없습니다');
+ const last=b.pop();
+ const o=JSON.parse(last.v);
+ const n=Object.keys(o).reduce(function(a,k){return a+(o[k]||[]).length},0);
+ const d=new Date(last.t);
+ if(!confirm(d.getHours()+'시 '+String(d.getMinutes()).padStart(2,'0')+'분 상태로 되돌립니다 (총 '+n+'건).\n지금 내역은 사라집니다. 계속할까요?'))return;
+ ycbBackup();
+ YCB=o;ycbFix();Object.keys(YCB).forEach(function(k){ASGV['yb:'+k]=Date.now()});
+ localStorage.setItem(KEY+'_ycbk',JSON.stringify(b));
+ save();render();toast('되돌렸습니다');
+}
+function ycbPut(co,a){ycbFix();ycbBackup();YCB[co]=a;ASGV['yb:'+co]=Date.now();save();render()}
 function ycbSetCo(v){YCV=v;localStorage.setItem(KEY+'_ycv',v);render()}
 function ycbBlank(){const c=ycbCo(),a=ycbRows(c).slice();a.push({d:ycbDate(),n:'',reg:'',tk:'1',tnm:'1톤',co:'광일',fee:0});ycbPut(c,a)}
 function ycbDel(co,k){const a=ycbRows(co).slice();a.splice(k,1);ycbPut(co,a)}
@@ -3398,7 +3423,8 @@ function tabYcb(){
    +['대현물류','나눔물류'].map(function(c){return '<option value="'+c+'"'+(ycbCo()===c?' selected':'')+'>'+c+'</option>'}).join('')
    +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">고른 곳으로 들어갑니다</span></div>'
   +'<div style="margin-top:8px"><button class="btn g" onclick="ycbBlank()">＋ 빈 줄 ('+ycbCo()+')</button> '
-  +'<button class="btn g" onclick="window.print()">🖨️ 인쇄</button></div></div>';
+  +'<button class="btn g" onclick="window.print()">🖨️ 인쇄</button> '
+  +'<button class="btn g" onclick="ycbUndo()" title="이 PC에 남은 직전 상태로 되돌립니다">↩︎ 되돌리기</button></div></div>';
  h+=ycbBlock('대현물류');
  h+=ycbBlock('나눔물류');
  return h+'</div>';
