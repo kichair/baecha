@@ -541,17 +541,21 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 .rlbtn{margin:0 4px;background:#eef3f9;color:#33475c;border:1px solid #cfdae6;border-radius:8px;
  padding:5px 10px;font-weight:800;font-size:12px;cursor:pointer}
 .rlbtn.on{background:#0f5f37;color:#fff;border-color:#0f5f37}
+/* 반드시 .rthd 를 앞에 붙일 것 — .dcard span{font-size:11px;color:#8b9aab;display:block}
+   규칙이 머리띠 글자를 전부 작은 회색으로 눌러버린다 (2026-09-03에 잡음) */
 .rthd{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 14px;background:#0f5f37;color:#fff;
  border-top:3px solid #0b4a2b}
-.rthd b{font-size:21px;font-weight:900;letter-spacing:-.4px}
-.rtno2{display:inline-flex;width:40px;height:40px;border-radius:9px;background:#ffd53d;color:#3b2a00;
- align-items:center;justify-content:center;font-size:21px;font-weight:900;flex:none}
-.rtdrv{font-size:21px;font-weight:900;background:#fff;color:#0b4a2b;border-radius:10px;padding:5px 16px;
- letter-spacing:-.4px;white-space:nowrap}
-.rtcnt{margin-left:auto;background:#ffd53d;color:#3b2a00;border-radius:10px;padding:5px 16px;
- font-weight:900;font-size:15px;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.15)}
-.rtcnt i{font-style:normal;font-size:23px;letter-spacing:-.5px;margin-right:1px}
-.rtcnt em{font-style:normal;opacity:.5;margin:0 7px}
+.rthd b{font-size:24px;font-weight:900;letter-spacing:-.5px;color:#fff}
+.rthd .rtno2{display:inline-flex!important;width:46px;height:46px;border-radius:10px;background:#ffd53d;color:#111;
+ align-items:center;justify-content:center;font-size:26px;font-weight:900;flex:none;margin-top:0;line-height:1}
+.rthd .rtdrv{display:inline-flex!important;align-items:center;gap:6px;font-size:24px;font-weight:900;
+ background:#ffd53d;color:#111;border-radius:10px;padding:5px 18px;margin-top:0;
+ letter-spacing:-.5px;white-space:nowrap;line-height:1.25}
+.rthd .rtcnt{display:inline-flex!important;align-items:baseline;margin-left:auto;margin-top:0;
+ background:#ffd53d;color:#111;border-radius:10px;padding:5px 18px;
+ font-weight:900;font-size:17px;white-space:nowrap;line-height:1.2}
+.rthd .rtcnt i{font-style:normal;font-size:30px;letter-spacing:-.5px;margin-right:2px;color:#111}
+.rthd .rtcnt em{font-style:normal;opacity:.45;margin:0 9px;font-size:20px}
 .rtwrap{overflow-x:auto;background:#fff}
 .rtb{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
 .rtb tr{display:table-row!important}
@@ -1097,7 +1101,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260903b';
+const APPVER='20260903c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
