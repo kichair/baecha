@@ -1041,7 +1041,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260902m';
+const APPVER='20260902n';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3287,10 +3287,40 @@ function ycbSun(mon){const t=new Date(mon+'T00:00:00');t.setDate(t.getDate()+6);
 function ycbPay(mon){const t=new Date(mon+'T00:00:00');t.setDate(t.getDate()+7);
  return (t.getMonth()+1)+'/'+t.getDate()}
 function md(d){return d?(+d.slice(5,7))+'/'+(+d.slice(8,10)):''}
+/* ===== 적요에 적힌 실제 출고일 (2026-09-02) =====
+   판매명세서 거래일자와 실제 나가는 날이 다른 경우가 많다.
+   그때는 적요에 '출고는3일' '8일출고' '8/11배송' 처럼 적어 둔다.
+   그 날짜를 읽어서 그날 나갈 건으로 끌어온다.
+   예) 조재현가구갤러리 — 거래일 9/1, 적요 '출고는3일' → 9/3 출고 */
+function shipDate(o){
+ const t=String(o.memo||'').replace(/\s+/g,'');
+ if(!t)return null;
+ const base=o.od||o.d;if(!base)return null;
+ let mm=null,dd=null;
+ const g=t.match(/([0-9]{1,2})\/([0-9]{1,2})\s*(?:출고|배송|상차|나감|출발|도착)/);
+ if(g){mm=+g[1];dd=+g[2]}
+ else{
+  const r=t.match(/출고는?([0-9]{1,2})일/)||t.match(/([0-9]{1,2})일에?출고/)
+   ||t.match(/([0-9]{1,2})일출고/)||t.match(/([0-9]{1,2})일배송/)
+   ||t.match(/([0-9]{1,2})일나감/)||t.match(/([0-9]{1,2})일출발/)||t.match(/([0-9]{1,2})일상차/);
+  if(r)dd=+r[1];
+ }
+ if(!dd||dd<1||dd>31)return null;
+ let y=+base.slice(0,4),M=mm||+base.slice(5,7);
+ if(!mm&&dd<+base.slice(8,10)){M++;if(M>12){M=1;y++}}
+ return y+'-'+String(M).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+}
+function shipTag(o){const d=shipDate(o);return d&&d!==o.d?md(d)+' 출고':''}
 /* 적요에 이 말이 있으면 용차로 나갈 건 */
 const YCB_RE=/용차|상차|외주|퀵|화물|택배차/;
 function ycbCand(all){
- const L=ORDERS.filter(function(o){return o.d===ycbDate()&&ST[o.i]!=='del'&&ASSIGN[o.i]!=='nb'});
+ const D=ycbDate();
+ /* 그날 거래일인 건 + 적요에 '그날 출고'라고 적혀 다른 날에서 넘어오는 건 */
+ const L=ORDERS.filter(function(o){
+  if(ST[o.i]==='del'||ASSIGN[o.i]==='nb')return false;
+  if(o.d===D)return true;
+  if(Math.abs(new Date(o.d+'T00:00:00')-new Date(D+'T00:00:00'))>40*864e5)return false;
+  return shipDate(o)===D;});
  const hit=L.filter(function(o){return YCB_RE.test(String(o.memo||''))||ASSIGN[o.i]==='x'&&/용차/.test(String(o.memo||''))});
  const use=(all||!hit.length)?L:hit;
  return use.slice().sort(function(a,b){return (b.load||0)-(a.load||0)});
@@ -3420,14 +3450,16 @@ function tabYcb(){
  const cand=ycbCand(YCBALL);window._YCB=cand;
  let h='<div class="ycwrap">';
  h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">대현물류 · 나눔물류 · 매주 결재 · 부가세 별도 단가</span></div>';
- h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건만 골라 보여 줍니다. 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.<br>'
+ h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건만 골라 보여 줍니다. 거래일이 달라도 적요에 <b>3일 출고</b> 처럼 적혀 있으면 그날 목록으로 끌어옵니다(★ 표시). 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.<br>'
   +'<span style="color:#a8791d">노란 운임 칸 = 장부에 그 지역·그 차 실적이 없어 <b>추정한 값</b>입니다. 실제 부른 금액으로 고쳐 주세요.</span></div>';
  h+='<div class="dcard">'
   +'<div class="ycrow"><label>① 날짜</label><input type="date" value="'+ycbDate()+'" onchange="ycbSetDate(this.value)">'
    +'<span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 내일</span></div>'
   +'<div class="ycrow"><label>② 담을 건</label><select onchange="ycbAdd(this.value);this.value=\'\'">'
    +'<option value="">— '+(YCBALL?'그날 전체':'적요에 용차·상차')+' '+cand.length+'건 —</option>'
-   +cand.map(function(o,k){return '<option value="'+k+'">'+o.n.slice(0,20)+' · '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대'
+   +cand.map(function(o,k){const st=shipTag(o);
+     return '<option value="'+k+'">'+(st?'★ ':'')+o.n.slice(0,20)+' · '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대'
+     +(st?' ['+st+']':'')
      +(String(o.memo||'').match(YCB_RE)?' ['+String(o.memo).match(YCB_RE)[0]+']':'')+'</option>'}).join('')
    +'</select>'
    +'<label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCBALL?' checked':'')
