@@ -1037,7 +1037,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260902j';
+const APPVER='20260902k';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1074,7 +1074,16 @@ function applySnap(o){applying=true;try{
  if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_c']){CAPS=o['_c'];capEnforce()}
  if(o['_wxd'])WXD=o['_wxd'];if(o['_wxr'])WXR=o['_wxr'];if(o['_rno'])RNO=o['_rno'];if(o['_rwm'])RWMK=o['_rwm'];if(o['_as'])ASV=o['_as'];if(o['_note']!=null)NOTE=o['_note'];
- if(o['_ycb'])YCB=o['_ycb'];
+ /* ===== 용차 내역서는 통째로 덮어쓰지 않는다 (2026-09-02) =====
+    사고: 사무실 다른 PC에 아직 내역이 없는 상태로 켜져 있었는데,
+    그 PC가 저장하면서 빈 내역을 서버에 밀어 넣어 6건이 통째로 사라졌다.
+    배차와 같은 방식으로 업체별 '고친 시각'을 비교해 나중에 고친 쪽만 남긴다. */
+ if(o['_ycb']){const IY=o['_ycb'],IV=o['_asgv']||{};
+  if(!YCB||typeof YCB!=='object')YCB={};
+  Object.keys(IY).forEach(function(c){
+   const mine=+(ASGV['yb:'+c]||0), yours=+(IV['yb:'+c]||0);
+   if(YCB[c]===undefined||yours>mine){YCB[c]=IY[c];if(yours)ASGV['yb:'+c]=yours}
+  });}
  if(o['_seen']){const I=o['_seen'];for(const k in I){if((+I[k]||0)>(+SEEN[k]||0))SEEN[k]=+I[k]}}
  /* 다른 컴퓨터에서 온 배차는 통째로 덮어쓰지 않는다.
     손으로 바꾼 시각(ASGV)을 비교해 '더 나중에 바꾼 쪽'만 남긴다.
