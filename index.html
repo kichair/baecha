@@ -897,6 +897,11 @@ let ASGV=LSU('_asgv',{});   /* 손으로 바꾼 시각 — 두 컴퓨터가 동�
 let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{}),DRV2=LSU('_dv2',{});
 let CUSTOM=LSU('_cu',[]);
 let SEQ=LSU('_sq',{});
+/* ===== 순서 잠금 (2026-09-03 지시) =====
+   '여기까지 전표 정리함' 을 누르면 그날 순서를 그대로 얼려 둔다.
+   그 뒤에 판매명세서가 더 들어와도 1-1, 1-2 … 이미 정한 번호는 절대 안 바뀌고
+   새 건은 맨 뒤에 붙는다. {날짜:{동선id:[건열쇠,…]}} */
+let SEQF=LSU('_seqf',{});
 /* 동선별로 '들르는 순서'를 기억해 둔다 — {동선id:{거래처명:순번}}
    그날 손으로 옮긴 순서(SEQ)가 1순위, 여기 기억해 둔 순서가 2순위, 주소 정렬이 3순위 */
 let SEQL=LSU('_sql',{});
@@ -959,9 +964,32 @@ let NOTE=LSU('_note','');      /* 공지·메모 — 저장·공유됨 */
    그 뒤에 명세서로 새로 들어온 건은 주황색 [추가] 로 표시해서
    종이 정리를 다시 안 하고 추가분만 끼워넣게 한다. */
 let SEEN=LSU('_seen',{});
-function seenMark(d){SEEN[d]=Date.now();save();render();
- toast('\u2705 '+d.slice(5)+' 여기까지 정리 완료 — 이후 들어오는 건은 주황 [추가] 로 표시됩니다')}
-function seenClear(d){delete SEEN[d];save();render();toast('추가 표시를 껐습니다')}
+function sortLocked(rid,list){
+ const F=((SEQF||{})[SEL]||{})[rid];
+ if(!F||!F.length){list.sort(bySeq);return list}
+ const idx={};F.forEach(function(k,i){idx[k]=i});
+ const old=[],nw=[];
+ list.forEach(function(o){(idx[o.key]!==undefined?old:nw).push(o)});
+ old.sort(function(a,b){return idx[a.key]-idx[b.key]});
+ nw.sort(bySeq);
+ return old.concat(nw);
+}
+function seqLocked(){const F=(SEQF||{})[SEL];return !!(F&&Object.keys(F).length)}
+/* 지금 화면의 순서를 그대로 얼린다 */
+function seqFreeze(d){
+ const L=ORDERS.filter(function(o){return o.d===d&&ST[o.i]!=='del'});
+ const by={};L.forEach(function(o){const r=ASSIGN[o.i]||'_';(by[r]=by[r]||[]).push(o)});
+ const F={};
+ Object.keys(by).forEach(function(r){
+  const a=sortLocked(r,by[r].slice());
+  F[r]=a.map(function(o){return o.key});
+ });
+ SEQF[d]=F;ASGV['sf:'+d]=Date.now();
+}
+function seqUnfreeze(d){delete SEQF[d];ASGV['sf:'+d]=Date.now();save();render();toast('순서 잠금을 풀었습니다 — 다시 자동 순서로 돌아갑니다')}
+function seenMark(d){SEEN[d]=Date.now();seqFreeze(d);save();render();
+ toast('\u2705 '+d.slice(5)+' 여기까지 정리 완료 — 순서를 잠갔습니다. 뒤에 들어오는 건은 맨 아래에 주황 [추가] 로 붙습니다')}
+function seenClear(d){delete SEEN[d];delete SEQF[d];ASGV['sf:'+d]=Date.now();save();render();toast('추가 표시와 순서 잠금을 껐습니다')}
 function isAdd(o){
  if(!o)return false;
  const b=+SEEN[o.od||o.d]||0;if(!b)return false;
@@ -1103,7 +1131,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
+ SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_seqf',SEQF);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -1112,7 +1140,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260903e';
+const APPVER='20260903f';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1133,10 +1161,10 @@ setTimeout(chkVer,4000);setInterval(chkVer,600000);
 const SB_URL=localStorage.getItem('SB_URL')||'https://eirnudzaysvvqfjzhwni.supabase.co';
 const SB_KEY=localStorage.getItem('SB_KEY')||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
 let SB=null,SB_ON=false,pushT=null,applying=false;
-const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb'];
+const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;
+ o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -1146,7 +1174,12 @@ function applySnap(o){applying=true;try{
  if(o['_jbn']){JBN=o['_jbn'];_gidx=null;_ginv=null;_dongIdx=null}
  if(o['_drvh'])DRVH=o['_drvh'];if(o['_trph'])TRPH=o['_trph'];
  if(o['_rt2'])RT2=o['_rt2'];
- if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];
+ if(o['_dv2'])DRV2=o['_dv2'];if(o['_sq'])SEQ=o['_sq'];if(o['_seqf']){const IF=o['_seqf'],IV2=o['_asgv']||{};
+  /* 순서 잠금도 통째로 덮어쓰지 않는다 — 날짜별로 나중에 잠근 쪽만 남긴다 */
+  if(!SEQF||typeof SEQF!=='object')SEQF={};
+  Object.keys(IF).forEach(function(d){
+   const mine=+(ASGV['sf:'+d]||0),yours=+(IV2['sf:'+d]||0);
+   if(SEQF[d]===undefined||yours>mine){SEQF[d]=IF[d];if(yours)ASGV['sf:'+d]=yours}});}if(o['_sql']){SEQL=o['_sql'];seqLearnClear()}if(o['_capu'])CAPU=o['_capu'];
  if(o['_cu'])CUSTOM=o['_cu'];if(o['_c']){CAPS=o['_c'];capEnforce()}
  if(o['_wxd'])WXD=o['_wxd'];if(o['_wxr'])WXR=o['_wxr'];if(o['_rno'])RNO=o['_rno'];if(o['_rwm'])RWMK=o['_rwm'];if(o['_as'])ASV=o['_as'];if(o['_note']!=null)NOTE=o['_note'];
  /* ===== 용차 내역서는 통째로 덮어쓰지 않는다 (2026-09-02) =====
@@ -2498,7 +2531,7 @@ function drvRows(car){
   const k=drv+'§'+rid+'§'+tp;(grp[k]=grp[k]||{d:drv,rid:rid,tp:tp,list:[]}).list.push(o);});
  const rows=[];
  Object.values(grp).sort((a,b)=>(a.tp||9)-(b.tp||9)).forEach(g=>{
-  g.list.sort(bySeq);
+  g.list=sortLocked(g.rid,g.list);
   const cf=capFactor(g.rid)||1;
   const tot=g.list.reduce((a,o)=>a+loadOfFor(o),0);
   const totq=g.list.reduce((a,o)=>a+(DRV2[o.key]?Math.round(o.qty/2):o.qty),0);
@@ -2565,7 +2598,7 @@ function tabBoard(today){
    return h}}
  const by={_:[],x:[]};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{(by[ASSIGN[o.i]]||by._).push(o)});
- Object.values(by).forEach(l=>l.sort(bySeq));
+ Object.keys(by).forEach(function(r){by[r]=sortLocked(r,by[r])});   /* 잠긴 순서 우선 */
  const car=today.filter(o=>!offRoute(ASSIGN[o.i]));
  const totL=car.reduce((a,o)=>a+o.load,0);
  const dn=car.filter(o=>ST[o.i]==='done').length;
@@ -2732,7 +2765,7 @@ function rlTable(x,g,nm,rlc){
 function tabRoute(today){
  const by={};ROUTES.forEach(r=>by[r.id]=[]);
  today.forEach(o=>{if(by[ASSIGN[o.i]])by[ASSIGN[o.i]].push(o)});
- Object.values(by).forEach(l=>l.sort(bySeq));
+ Object.keys(by).forEach(function(r){by[r]=sortLocked(r,by[r])});   /* 잠긴 순서 우선 */
  const tl=tripLabels(today);
  let h='<div class="srchbar">🔍<input id="srchq" placeholder="거래처·품목 검색 — 흑로, 침대, 대전성신 다 됩니다" oninput="srchType(this)" onkeydown="if(event.keyCode===13){SCOMP=0;srchNow(this)}" autocomplete="off"><div id="srchres"></div></div>';
  /* 전표 정리 기준 — 누른 뒤 새로 들어온 건은 주황 [추가] */
@@ -2746,7 +2779,8 @@ function tabRoute(today){
   }else{
    h+='<em>'+ft(b)+' 정리 기준 · 이후 추가 <b>'+nAdd+'곳</b></em>'
     +'<button class="go" onclick="seenMark(SEL)">\u21BB 지금까지 정리함</button>'
-    +'<button onclick="seenClear(SEL)">\u2715 표시 끄기</button>';
+    +'<button onclick="seenClear(SEL)">\u2715 표시 끄기</button>'
+    +(seqLocked()?'<em style="color:#0f5f37;font-weight:800">🔒 순서 잠김 — 새로 들어온 건은 맨 아래</em>':'');
   }
   h+='</div>';
  })();
