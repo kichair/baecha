@@ -434,6 +434,27 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .ycout b,.ycout span,.ycout em,.yctb b,.yctb span{display:inline}
 .ycbig span{display:inline}
 .ycnote{background:#fffaf0;border:1px solid #f0dfbd;border-radius:10px;padding:9px 12px;font-size:12px;color:#7a5a17;line-height:1.6;margin:0 0 10px}
+/* 적재길이 자 (2026-09-03) */
+.ycruler{position:relative;height:76px;margin:12px 0 4px;background:#eef2f8;border:1px solid #d8e1ee;border-radius:9px}
+.ycrbar{position:absolute;left:0;top:0;height:32px;min-width:2px;background:linear-gradient(90deg,#1b7f4f,#2fb573);border-radius:8px 0 0 0;border-right:3px solid #0f5f37}
+.ycrbar em{position:absolute;right:5px;top:7px;color:#fff;font-weight:800;font-size:13.5px;font-style:normal;white-space:nowrap;display:inline}
+.ycrm{position:absolute;top:32px;width:0;border-left:1px solid #c2cedd;height:22px;font-size:9.5px;color:#93a2b5;white-space:nowrap;padding-left:3px;line-height:1.1}
+.ycrm.lo{top:54px;height:22px}
+.ycrm b{display:block;font-size:10.5px;color:#5f7086;font-weight:800}
+.ycrm.ok{border-left-color:#0f5f37;color:#1b7f4f}
+.ycrm.ok b{color:#0f5f37}
+.ycrm.rt{left:auto!important;right:0;border-left:none;border-right:1px solid #c2cedd;padding-left:0;padding-right:4px;text-align:right}
+.ycrm.rt.ok{border-right-color:#0f5f37}
+.ycout .ycsub{white-space:normal;line-height:1.55}
+.ycmode{display:flex;gap:6px;margin-bottom:10px}
+.ycmode button{flex:1;font-size:12.5px;padding:8px 0;border-radius:9px;border:1px solid #d7dee8;background:#fff;color:#5f7086;font-weight:800}
+.ycmode button.on{background:#0f5f37;border-color:#0f5f37;color:#fff}
+.ycbx{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.ycbx input{width:100%;min-width:0;font-size:13.5px;padding:7px 6px;border:1px solid #d7dee8;border-radius:9px;text-align:center}
+.ycbx span{font-size:12px;color:#8b9aab;flex:none}
+.yctb.cap td{text-align:right;white-space:nowrap}
+.yctb.cap td:first-child,.yctb.cap th:first-child{text-align:left;font-weight:700}
+.yctb.cap th{text-align:right}
 .ycnote b{display:inline;color:#5c430f}
 .ycsc{overflow-x:auto}
 .yctb td.ycn{white-space:nowrap}
@@ -877,6 +898,10 @@ let JBN=LSU('_jbn',{});   /* 거래처 → 지번주소 (GPS 대조용) */
 /* 용차 계산기 화면 상태 — 앱이 켜질 때 render() 가 바로 쓰므로 위쪽에 선언해 둔다.
    (2026-08-28: 아래쪽에 있어서 마지막 탭이 '용차'면 켜자마자 오류가 났다) */
 let YCT='1',YCR='',YCQ=1,YCC=0,YCF=0;
+/* 용차계산기 입력 방식 — 0: 개수로(신부장님 기준) / 1: 직접 재서(가로×세로×높이) */
+let YCMD=0,YCBW=60,YCBD=60,YCBH=90,YCBQ=0,YCBT=0;
+function ycMode(m){YCMD=+m||0;render()}
+function ycBox(k,v){const n=Math.max(0,+v||0);if(k==='w')YCBW=n;else if(k==='d')YCBD=n;else if(k==='h')YCBH=n;else if(k==='t')YCBT=n;else YCBQ=n;drawYcOne()}
 /* 용차 내역서 — {날짜:{업체:[줄]}} · 업체 이름 */
 let YCB=LSU('_ycb',{});
 let YCV=localStorage.getItem(KEY+'_ycv')||'대현물류';
@@ -1143,7 +1168,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260903h';
+const APPVER='20260903n';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3331,37 +3356,56 @@ const YC_RATE={"태백":{"5L":[450000,4],"5":[400000,15]},"당진":{"5":[180000,
 /* 차종 — c = 1톤차 1대를 1.0 으로 봤을 때 실을 수 있는 양 (적재함 바닥 면적 기준) */
 /* 차종 — c = 1톤차 1대를 1.0 으로 봤을 때 실을 수 있는 양 (적재함 바닥 면적 기준)
    L/W = 적재함 길이·폭(m). 용차 부를 때 "몇 톤, 몇 m" 를 그대로 불러줄 수 있게 같이 들고 있는다. */
+/* L/W/H = 적재함 길이·폭·높이(m) — 화물차 적재함 규격표(cm) 그대로.
+   c(적재량)는 신부장님 기준이라 손대지 않는다. 치수는 '몇 m 짜리 차인가'를 보여주는 값. */
 const YC_TRUCK=[
- {t:'0.5',nm:'다마스',    c:0.28,L:1.7,W:1.3},
- {t:'0.6',nm:'라보',      c:0.45,L:2.2,W:1.3},
- {t:'1',  nm:'1톤',       c:1.00,L:2.8,W:1.6},
- {t:'1L', nm:'1톤 초장축', c:1.15,L:3.1,W:1.6},
- {t:'1.4',nm:'1.4톤(1.5톤)',c:1.35,L:3.1,W:1.7},
- {t:'2.5',nm:'2.5톤',     c:1.75,L:4.3,W:1.8},
- {t:'3.5',nm:'3.5톤(탑)', c:2.15,L:4.8,W:2.0},
- {t:'5',  nm:'5톤 기본',  c:3.20,L:6.2,W:2.3},
- {t:'5L', nm:'5톤 초장축', c:3.70,L:7.2,W:2.3},
- {t:'11', nm:'11톤',      c:4.80,L:9.1,W:2.35},
+ {t:'0.5',nm:'다마스',    c:0.28,L:1.7,W:1.3,H:1.2,cbm:2, pal:1},
+ {t:'0.6',nm:'라보',      c:0.45,L:2.2,W:1.3,H:1.2,cbm:3, pal:1},
+ {t:'1',  nm:'1톤',       c:1.00,L:2.8,W:1.6,H:1.7,cbm:6, pal:2},
+ {t:'1L', nm:'1톤 초장축', c:1.15,L:3.0,W:1.6,H:1.7,cbm:6, pal:3},
+ {t:'1.4',nm:'1.4톤(1.5톤)',c:1.35,L:3.1,W:1.7,H:1.9,cbm:6, pal:3},
+ {t:'2.5',nm:'2.5톤',     c:1.75,L:4.3,W:1.8,H:2.0,cbm:14,pal:3},
+ {t:'3.5',nm:'3.5톤(탑)', c:2.15,L:4.6,W:2.0,H:2.0,cbm:18,pal:4},
+ {t:'5',  nm:'5톤 기본',  c:3.20,L:6.2,W:2.3,H:2.3,cbm:26,pal:10},
+ {t:'5L', nm:'5톤 초장축', c:3.70,L:7.3,W:2.3,H:2.3,cbm:33,pal:13},
+ {t:'11', nm:'11톤',      c:4.80,L:9.0,W:2.35,H:2.5,cbm:50,pal:16},
  /* ===== 합바차 — 큰 차에 우리 짐 몇 m만 싣고 같이 가는 것 (장부: '부산(2.5m)') =====
     차를 통째로 부르는 게 아니라 큰 차에 몇 미터를 싣는 것이라 값이 따로 논다.
     부산 기준 1m 140,000 / 2.5m 230,000 / 4m 305,000 — 차 크기가 아니라 실은 길이로 매긴다. */
- {t:'m1',  nm:'1m (합바차)',  c:0.51,L:1.0,W:2.3,mx:1},
- {t:'m1.5',nm:'1.5m (합바차)',c:0.77,L:1.5,W:2.3,mx:1},
- {t:'m2',  nm:'2m (합바차)',  c:1.03,L:2.0,W:2.3,mx:1},
- {t:'m2.5',nm:'2.5m (합바차)',c:1.28,L:2.5,W:2.3,mx:1},
- {t:'m3',  nm:'3m (합바차)',  c:1.54,L:3.0,W:2.3,mx:1},
- {t:'m3.5',nm:'3.5m (합바차)',c:1.80,L:3.5,W:2.3,mx:1},
- {t:'m4',  nm:'4m (합바차)',  c:2.05,L:4.0,W:2.3,mx:1},
- {t:'m4.5',nm:'4.5m (합바차)',c:2.31,L:4.5,W:2.3,mx:1},
- {t:'m5',  nm:'5m (합바차)',  c:2.57,L:5.0,W:2.3,mx:1},
- {t:'m5.5',nm:'5.5m (합바차)',c:2.82,L:5.5,W:2.3,mx:1},
- {t:'m6',  nm:'6m (합바차)',  c:3.08,L:6.0,W:2.3,mx:1},
- {t:'m7',  nm:'7m (합바차)',  c:3.59,L:7.0,W:2.3,mx:1},
- {t:'m7.5',nm:'7.5m (합바차)',c:3.85,L:7.5,W:2.3,mx:1}];
+ {t:'m1',  nm:'1m (합바차)',  c:0.51,L:1.0,W:2.3,H:2.4,mx:1},
+ {t:'m1.5',nm:'1.5m (합바차)',c:0.77,L:1.5,W:2.3,H:2.4,mx:1},
+ {t:'m2',  nm:'2m (합바차)',  c:1.03,L:2.0,W:2.3,H:2.4,mx:1},
+ {t:'m2.5',nm:'2.5m (합바차)',c:1.28,L:2.5,W:2.3,H:2.4,mx:1},
+ {t:'m3',  nm:'3m (합바차)',  c:1.54,L:3.0,W:2.3,H:2.4,mx:1},
+ {t:'m3.5',nm:'3.5m (합바차)',c:1.80,L:3.5,W:2.3,H:2.4,mx:1},
+ {t:'m4',  nm:'4m (합바차)',  c:2.05,L:4.0,W:2.3,H:2.4,mx:1},
+ {t:'m4.5',nm:'4.5m (합바차)',c:2.31,L:4.5,W:2.3,H:2.4,mx:1},
+ {t:'m5',  nm:'5m (합바차)',  c:2.57,L:5.0,W:2.3,H:2.4,mx:1},
+ {t:'m5.5',nm:'5.5m (합바차)',c:2.82,L:5.5,W:2.3,H:2.4,mx:1},
+ {t:'m6',  nm:'6m (합바차)',  c:3.08,L:6.0,W:2.3,H:2.4,mx:1},
+ {t:'m7',  nm:'7m (합바차)',  c:3.59,L:7.0,W:2.3,H:2.4,mx:1},
+ {t:'m7.5',nm:'7.5m (합바차)',c:3.85,L:7.5,W:2.3,H:2.4,mx:1}];
 const YC_SOLO=YC_TRUCK.filter(function(x){return !x.mx});
 /* 1톤차 바닥 면적 = 2.8 x 1.6 = 4.48㎡ — '대분' 을 ㎡ 로 바꿀 때 쓴다 */
 const YC_M2=4.48;
 function ycSpec(x){return x?(x.nm+' (적재함 '+x.L+'m×'+x.W+'m)'):''}
+/* ===== 적재길이(m) — 2026-09-03 =====
+   화물 계산기들이 'CBM' 을 쓰는데 우리 의자는 부피보다 '짐칸 몇 m 를 먹느냐'가 중요하다.
+   합바차도 '부산 3m' 처럼 실은 길이로 값을 매기니 길이가 곧 주문 단위다.
+   1톤분(신부장님 기준 의자 60개) = 바닥 4.48㎡ → 폭 2.3m 짐칸에 깔면 1.95m. */
+const YC_W=2.3;
+function ycLen(load){return (+load||0)*YC_M2/YC_W}
+function ycFromLen(len){return (+len||0)*YC_W/YC_M2}
+/* 자 눈금 — 적재함 길이 (표 기준) */
+const YC_MARK=[[1.7,'다마스'],[2.2,'라보'],[2.8,'1톤'],[3.1,'1.4톤'],[4.3,'2.5톤'],[4.6,'3.5톤'],[6.2,'5톤'],[7.3,'5톤축'],[9.0,'11톤']];
+function ycRuler(len){
+ const MAXL=10, w=Math.min(len,MAXL), pct=function(v){return (v/MAXL*100).toFixed(2)+'%'};
+ let h='<div class="ycruler"><div class="ycrbar" style="width:'+pct(w)+'"><em>'+len.toFixed(2)+' m'+(len>MAXL?' \u2192':'')+'</em></div>';
+ YC_MARK.forEach(function(m,i){
+  h+='<div class="ycrm'+(i%2?' lo':'')+(m[0]>=MAXL-0.2?' rt':'')+(len>=m[0]?' ok':'')+'" style="left:'+pct(m[0])+'"><b>'+m[0].toFixed(1)+'</b>'+m[1]+'</div>';
+ });
+ return h+'</div>';
+}
 const YC_BASE={'0.5':38000,'0.6':45000,'1':80000,'1L':90000,'1.4':110000,'2.5':160000,'3.5':170000,'5':240000,'5L':290000,'11':365000,'m1':135000,'m1.5':170000,'m2':200000,'m2.5':230000,'m3':260000,'m3.5':290000,'m4':305000,'m4.5':350000,'m5':350000,'m5.5':405000,'m6':460000,'m7':537000,'m7.5':575000};
 /* 초장축은 5톤 값에 20% 더 붙는다 (장부상 5톤초장축 실지급 기준) */
 function ycTon(t){if(String(t)[0]==='m')return t;return t==='5L'?'5':(t==='1L'?'1':(t==='0.6'?'0.5':t))}
@@ -3686,7 +3730,8 @@ function tabYc(today){
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
  h+='<div class="ycnote"><b>의자·장 개수를 넣으면 몇 톤·몇 m 차를 불러야 하는지</b> 나옵니다. 거래처를 고르면 오늘 물량이 자동으로 들어갑니다.<br>'
-  +'우리 <b>3.5톤 대형</b> 동선의 적재 기준은 <b>신부장님 기준 그대로 1톤의 1.2배</b>로 두었습니다 — 바꾸지 않았습니다.</div>';
+  +'우리 <b>3.5톤 대형</b> 동선의 적재 기준은 <b>신부장님 기준 그대로 1톤의 1.2배</b>로 두었습니다 — 바꾸지 않았습니다.<br>'
+  +'<b>직접 재서 넣기</b>를 누르면 가로×세로×높이(cm)와 개수로 CBM·적재길이를 계산합니다. 합바차는 이 <b>적재길이(m)</b>가 곧 부르는 단위입니다.</div>';
 
  /* ---- 물량 넣으면 어떤 차를 불러야 하는지 ---- */
  h+='<div class="dcard yccalc"><b>어떤 차를 불러야 하나</b>'
@@ -3703,8 +3748,19 @@ function tabYc(today){
       return '<option value="'+k+'">'+o.n.slice(0,18)+' · 의자 '+o.qty+'개</option>'}).join('');
    })()
   +'</select></div>'
-  +'<div class="ycrow"><label>의자</label><input type="number" id="ycq" min="0" value="'+(YCC||0)+'" oninput="YCC=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개</span></div>'
-  +'<div class="ycrow"><label>장·캐비닛</label><input type="number" id="ycf" min="0" value="'+(YCF||0)+'" oninput="YCF=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개 (800×600 기준)</span></div>'
+  +'<div class="ycmode"><button class="'+(YCMD?'':'on')+'" onclick="ycMode(0)">개수로 넣기</button>'
+  +'<button class="'+(YCMD?'on':'')+'" onclick="ycMode(1)">직접 재서 넣기</button></div>'
+  +(YCMD?(
+     '<div class="ycrow"><label>한 개<br>크기</label><div class="ycbx">'
+     +'<input type="number" min="0" value="'+YCBW+'" oninput="ycBox(\'w\',this.value)"><span>×</span>'
+     +'<input type="number" min="0" value="'+YCBD+'" oninput="ycBox(\'d\',this.value)"><span>×</span>'
+     +'<input type="number" min="0" value="'+YCBH+'" oninput="ycBox(\'h\',this.value)"><span>cm</span></div></div>'
+     +'<div class="ycrow"><label>개수</label><input type="number" min="0" value="'+YCBQ+'" oninput="ycBox(\'q\',this.value)"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개</span></div>'
+     +'<div class="ycrow"><label>쌓기</label><input type="number" min="0" value="'+YCBT+'" oninput="ycBox(\'t\',this.value)"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">단 (0 = 높이로 알아서)</span></div>'
+   ):(
+     '<div class="ycrow"><label>의자</label><input type="number" id="ycq" min="0" value="'+(YCC||0)+'" oninput="YCC=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개</span></div>'
+     +'<div class="ycrow"><label>장·캐비닛</label><input type="number" id="ycf" min="0" value="'+(YCF||0)+'" oninput="YCF=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개 (800×600 기준)</span></div>'
+   ))
   +'<div id="ycone"></div></div>';
  if(!window._YCT)window._YCT=today;
 
@@ -3743,9 +3799,10 @@ function tabYc(today){
  }
 
  /* ---- 지역별 단가표 ---- */
+ h+=ycCapTb();
  h+='<div class="hd2">📋 지역별 실지급 단가 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 같은 지역·같은 차로 2번 이상 나간 것만 · m 칸은 합바차</span></div>';
  h+='<div class="dcard ycsc"><table class="yctb rate"><tr><th>지역</th>'
-  +['0.5','1','2.5','3.5','5','11','m1','m1.5','m2','m2.5','m3','m4','m5'].map(function(t){return '<th>'+(t==='0.5'?'다마스<br>1.7m':t==='1'?'1톤<br>2.8m':t==='2.5'?'2.5톤<br>4.3m':t==='3.5'?'3.5톤<br>4.8m':t==='5'?'5톤<br>6.2m':t==='11'?'11톤<br>9.1m':(t.slice(1)+'m<br>합바차'))+'</th>'}).join('')+'</tr>';
+  +['0.5','1','2.5','3.5','5','11','m1','m1.5','m2','m2.5','m3','m4','m5'].map(function(t){return '<th>'+(t==='0.5'?'다마스<br>1.7m':t==='1'?'1톤<br>2.8m':t==='2.5'?'2.5톤<br>4.3m':t==='3.5'?'3.5톤<br>4.6m':t==='5'?'5톤<br>6.2m':t==='11'?'11톤<br>9.0m':(t.slice(1)+'m<br>합바차'))+'</th>'}).join('')+'</tr>';
  Object.keys(YC_RATE).sort(function(a,b){return a.localeCompare(b,'ko')}).forEach(function(r){
   h+='<tr><td>'+r+'</td>'+['0.5','1','2.5','3.5','5','11','m1','m1.5','m2','m2.5','m3','m4','m5'].map(function(t){
    const v=YC_RATE[r][t];
@@ -3776,22 +3833,64 @@ function ycLoad(){
 }
 function drawYcOne(){
  const el=document.getElementById('ycone');if(!el)return;
- const L=ycLoad();
- if(L<=0){el.innerHTML='<div class="ycout" style="background:#f7f9fc;border-color:#e5eaf1"><div class="ycsub">의자나 장 개수를 넣으면 <b>어떤 차를 불러야 하는지</b> 알려드립니다.</div></div>';return}
+ /* ① 물량 구하기 — 개수 방식이면 신부장님 기준, 직접 재기면 실제 격자로 쌓아 본다 */
+ let L=0,detail='';
+ if(YCMD){
+  const W=(+YCBW||0)/100, D=(+YCBD||0)/100, H=(+YCBH||0)/100, Q=+YCBQ||0;
+  if(W>0&&D>0&&Q>0){
+   /* 폭 2.3m 짐칸에 눕히는 두 방향 중 한 줄에 더 많이 들어가는 쪽 */
+   const a=Math.floor(YC_W/W), b=Math.floor(YC_W/D);
+   let per,run;
+   if(a*1/D >= b*1/W){per=Math.max(1,a);run=D}else{per=Math.max(1,b);run=W}
+   /* 쌓는 단수 — 직접 넣었으면 그대로, 아니면 짐칸 높이 2.2m 로 나눈다 */
+   const tier=YCBT>0?YCBT:(H>0?Math.max(1,Math.floor(2.2/H)):1);
+   const rows=Math.ceil(Q/(per*tier));
+   const len=rows*run;
+   L=ycFromLen(len);
+   const cbm=W*D*H*Q;
+   window._YCBM=cbm;
+   detail='<div class="ycsub">한 줄에 <b>'+per+'개</b> × <b>'+tier+'단</b> → '+rows+'줄 · 부피 <b>'+cbm.toFixed(2)+' CBM</b>'
+    +(YCBT>0?'':' <span style="color:#8b9aab">(단수는 짐칸 높이 2.2m 기준)</span>')+'</div>'
+    +(YCBT>0?'':'<div class="ycsub" style="color:#a8710f">의자는 포개져서 높이로 나눈 단수보다 훨씬 많이 올라갑니다 — <b>실제 쌓는 단수(보통 5~6단)</b>를 넣어 주세요.</div>');
+  }else{window._YCBM=0}
+ }else{window._YCBM=0;
+  L=ycLoad();
+  if(L>0)detail='<div class="ycsub">의자 60개 = 1톤차 1대 · 800×600 장 12대 = 1톤차 1대 <span style="color:#8b9aab">(신부장님 기준)</span></div>';
+ }
+ if(L<=0){el.innerHTML='<div class="ycout" style="background:#f7f9fc;border-color:#e5eaf1"><div class="ycsub">'
+  +(YCMD?'크기와 개수를 넣으면':'의자나 장 개수를 넣으면')+' <b>짐칸 몇 m 를 먹는지 · 어떤 차를 불러야 하는지</b> 알려드립니다.</div></div>';return}
+ const len=ycLen(L);
  const reg=ycRegion(YCR)||null;
  const P=ycPlan(L,reg);
  const first=(P.plan&&P.plan[0])?P.plan[0].tk:null;
- const need=(L*YC_M2).toFixed(1);
+ /* 합바차로 부르면 몇 m 인가 — 0.5m 단위로 올림 */
+ const mkey='m'+(Math.ceil(len*2)/2);
+ const mtk=YC_TRUCK.filter(function(x){return x.t===mkey})[0];
+ const mf=mtk?ycFee(reg,mtk.t):null;
  el.innerHTML='<div class="ycout">'
   +'<div class="ycbig">'+(first?ycSpec(first):'-')+(P.plan&&P.plan.length>1?' 외':'')+'</div>'
-  +'<div class="ycsub" style="margin-top:6px">필요한 짐칸 약 <b>'+need+'㎡</b> · <b>'+L.toFixed(2)+'대분</b> (1톤차 기준)</div>'
-  +'<div class="ycsub">'+(P.plan||[]).map(function(x){return ycSpec(x.tk)+(x.q>1?' × '+x.q+'대':'')}).join(' + ')+'</div>'
-  +'<div class="ycsub" style="margin-top:8px">예상 운임 <b style="font-size:17px;color:#1b4fa8">'+won(P.fee)+'원</b>'
+  +'<div class="ycsub" style="margin-top:6px">짐칸 <b style="font-size:15px;color:#0f5f37">'+len.toFixed(2)+'m</b> 차지 · 바닥 <b>'+(L*YC_M2).toFixed(1)+'㎡</b> · <b>'+L.toFixed(2)+'대분</b> (1톤차 기준)</div>'
+  +detail
+  +ycRuler(len)
+  +'<div class="ycsub" style="margin-top:8px">차 한 대 부르면 <b>'+(P.plan||[]).map(function(x){return ycSpec(x.tk)+(x.q>1?' \u00d7 '+x.q+'대':'')}).join(' + ')+'</b>'
+  +(first&&first.cbm?' <span style="color:#8b9aab">· 이 차 '+first.cbm+'CBM'+(window._YCBM>0?' / 짐 '+window._YCBM.toFixed(1)+'CBM':'')+'</span>':'')+'</div>'
+  +'<div class="ycsub">예상 운임 <b style="font-size:17px;color:#1b4fa8">'+won(P.fee)+'원</b>'
   +' <span style="color:#8b9aab">(부가세 포함 '+won(Math.round(P.fee*1.1))+'원)</span></div>'
+  +(mtk?('<div class="ycsub" style="margin-top:7px;padding-top:7px;border-top:1px dashed #cfdcef">합바차로 같이 보내면 <b>'+mtk.nm+'</b> · 예상 <b style="color:#1b4fa8">'+won(mf.v)+'원</b> <span style="color:#8b9aab">'+mf.how+(mf.n?' '+mf.n+'건':'')+'</span></div>'):'')
   +'<div class="ycsub">'+(reg?'<b>'+reg+'</b> 실지급 기준':'<span style="color:#c00">지역을 못 찾음 — 전체 평균</span>')+' · '+P.how+'</div>'
   +'</div>';
 }
-
+/* 차종별로 의자·장이 몇 개나 들어가는지 — 적재함 규격표 + 신부장님 기준 */
+function ycCapTb(){
+ let h='<div class="hd2">📦 차종별 적재 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 적재함 규격·CBM·파렛트는 화물차 제원 기준 · 의자/장 개수는 신부장님 적재 기준</span></div>';
+ h+='<div class="dcard ycsc"><table class="yctb cap"><tr><th>차종</th><th>적재함<br>길이×폭×높이(m)</th><th>부피<br>(CBM)</th><th>파렛트<br>(개)</th><th>의자<br>(개)</th><th>800×600 장<br>(대)</th><th>1톤차<br>환산</th></tr>';
+ YC_SOLO.forEach(function(x){
+  h+='<tr><td>'+x.nm+'</td><td>'+x.L+' × '+x.W+' × '+(x.H||'-')+'</td><td>'+(x.cbm||'-')+'</td><td>'+(x.pal||'-')+'</td>'
+   +'<td><b>'+Math.floor(x.c*60)+'</b></td><td>'+Math.floor(x.c*12)+'</td><td>'+x.c.toFixed(2)+'대</td></tr>';
+ });
+ h+='</table></div>';
+ return h;
+}
 
 /* ============ 회차 안내 뱃지 ============
    사장님 운영 규칙 (2026-08-27)
