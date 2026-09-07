@@ -75,6 +75,13 @@ button,select,input{font-family:inherit}
 .items li{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:#54637a;line-height:1.65}
 .items li b{color:#16202c;font-variant-numeric:tabular-nums;font-weight:800}
 .items li i{color:#9aa8b8;font-style:normal;font-size:11.5px}
+.items li u{text-decoration:none}
+.items li .itxb{flex:none;width:19px;text-align:center;color:#c9ced8;font-size:12px;cursor:pointer;border-radius:6px}
+.items li .itxb:hover{background:#fdeaea;color:#c0392b}
+.items li.itxoff{opacity:.5}
+.items li.itxoff>span,.items li.itxoff>b{text-decoration:line-through}
+.items li.itxoff .itxb{color:#c9761a}
+.items li .itxtag{color:#c9761a;font-weight:800;text-decoration:none;display:inline-block}
 .cdrv{display:flex;align-items:center;gap:7px;margin-top:8px;background:#f5f8fb;border-radius:9px;padding:6px 10px}
 .cdrv span{font-size:11px;font-weight:800;color:#8b9aab}
 .cdrv select{flex:1;padding:6px 8px;border:1px solid #dde5ee;border-radius:7px;font-size:12.5px;font-weight:700;background:#fff}
@@ -930,6 +937,19 @@ let SEQ=LSU('_sq',{});
    그 뒤에 판매명세서가 더 들어와도 1-1, 1-2 … 이미 정한 번호는 절대 안 바뀌고
    새 건은 맨 뒤에 붙는다. {날짜:{동선id:[건열쇠,…]}} */
 let SEQF=LSU('_seqf',{});
+/* ===== 따로 가는 품목 빼기 (2026-09-07) =====
+   9/8 평택삼성 세미나테이블처럼 한 거래처 안에서 그 품목만 따로 나가는 경우가 있다.
+   거래처를 통째로 지우면 같이 가는 의자까지 없어지므로, 품목 줄만 빼도록 한다.
+   빠진 줄은 개수·적재량·동선 목록에서 모두 빠지고, 카드에는 흐리게 남아 되돌릴 수 있다. */
+let ITX=LSU('_itx',{});
+function itxKey(o,it){return o.key+'\u00a7'+String(it.p||'').trim()+'\u00a7'+String(it.s||'').trim()}
+function itxTog(i,k){
+ const o=ORDERS[i];if(!o||!o.items||!o.items[k])return;
+ const key=itxKey(o,o.items[k]);
+ if(ITX[key])delete ITX[key];else ITX[key]=1;
+ ASGV['ix:'+key]=Date.now();
+ localStorage.setItem(UKEY+'_itx',JSON.stringify(ITX));
+ save();build();render();}
 /* 동선별로 '들르는 순서'를 기억해 둔다 — {동선id:{거래처명:순번}}
    그날 손으로 옮긴 순서(SEQ)가 1순위, 여기 기억해 둔 순서가 2순위, 주소 정렬이 3순위 */
 let SEQL=LSU('_sql',{});
@@ -1159,7 +1179,7 @@ function wxHTML(){
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const SU=(k,v)=>localStorage.setItem(UKEY+k,JSON.stringify(v));
  S('',ASSIGN);S('_s',ST);S('_card',CARD);S('_raw',RAW);S('_rawv',RAWV);S('_op',OPEN);
- SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_seqf',SEQF);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);
+ SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_seqf',SEQF);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);SU('_itx',ITX);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -1168,7 +1188,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260903n';
+const APPVER='20260907a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1189,10 +1209,10 @@ setTimeout(chkVer,4000);setInterval(chkVer,600000);
 const SB_URL=localStorage.getItem('SB_URL')||'https://eirnudzaysvvqfjzhwni.supabase.co';
 const SB_KEY=localStorage.getItem('SB_KEY')||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
 let SB=null,SB_ON=false,pushT=null,applying=false;
-const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf'];
+const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;
+ o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_itx']=ITX;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -1220,6 +1240,14 @@ function applySnap(o){applying=true;try{
    const mine=+(ASGV['yb:'+c]||0), yours=+(IV['yb:'+c]||0);
    if(YCB[c]===undefined||yours>mine){YCB[c]=IY[c];if(yours)ASGV['yb:'+c]=yours}
   });}
+ /* 따로 뺀 품목도 통째로 덮어쓰지 않는다 — 나중에 손댄 쪽만 남긴다 */
+ if(o['_itx']){const IX=o['_itx'],IV3=o['_asgv']||{};
+  if(!ITX||typeof ITX!=='object')ITX={};
+  const ks={};Object.keys(IX).forEach(k=>ks[k]=1);Object.keys(ITX).forEach(k=>ks[k]=1);
+  Object.keys(ks).forEach(function(k){
+   const mine=+(ASGV['ix:'+k]||0), yours=+(IV3['ix:'+k]||0);
+   if(yours>mine){if(IX[k])ITX[k]=1;else delete ITX[k];ASGV['ix:'+k]=yours}
+   else if(!mine&&!yours&&IX[k])ITX[k]=1;});}
  if(o['_seen']){const I=o['_seen'];for(const k in I){if((+I[k]||0)>(+SEEN[k]||0))SEEN[k]=+I[k]}}
  /* 다른 컴퓨터에서 온 배차는 통째로 덮어쓰지 않는다.
     손으로 바꾼 시각(ASGV)을 비교해 '더 나중에 바꾼 쪽'만 남긴다.
@@ -1706,7 +1734,12 @@ function build(fresh){
   ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / '),dst:c.dst||''})});
  CUSTOM.forEach((c,j)=>{const k='cu'+j;
   ORDERS.push({n:c.n,ex:null,od:c.d||SEL,key:k,d:DOVR[k]||c.d||SEL,items:c.items,memo:c.memo||'',cu:1})});
- ORDERS.forEach((o,i)=>{o.i=i;o.qty=o.items.reduce((a,b)=>a+b.q,0);o.load=loadOf(o);
+ ORDERS.forEach((o,i)=>{o.i=i;
+  /* 따로 가는 줄은 표시만 해 두고 개수·적재량에서 뺀다 */
+  o.items.forEach(function(it){it.x=ITX[itxKey(o,it)]?1:0});
+  const use=o.items.filter(function(it){return !it.x});
+  o.nx=o.items.length-use.length;
+  o.qty=use.reduce((a,b)=>a+b.q,0);o.load=loadOf({items:use});
   o.urg=/일찍|오전|새벽|아침/.test(o.memo||'')?0:1;
   o.sk=o.urg+'|'+((ADDR[o.n]||'힣힣').slice(0,14))});
  DATES=[];ORDERS.forEach(o=>{if(o.d&&DATES.indexOf(o.d)<0)DATES.push(o.d)});DATES.sort();
@@ -1959,10 +1992,13 @@ function card(o,big){
   o.cu?'<span class="chip c">직접추가</span>':'',
   w?'<span class="chip l">'+w+'</span>':'',
   '<span class="chip q">'+o.qty+'개</span>',
+  o.nx?'<span class="chip x" style="background:#fdf1e2;color:#c9761a">따로 '+o.nx+'건 뺌</span>':'',
   o.d!==SEL?'<span class="chip d">'+o.d+'</span>':'',
   DOVR[o.key]?'<span class="chip c">일자변경</span>':''].join('');
  const items=o.items.map(function(it){const c=capOf(it.p);
-  return '<li><span title="'+c.l+' · 1톤 '+c.c+'개 만재">'+it.p+(it.s==='[삼정가구]'?' <i style="color:#b5651d;font-weight:700">삼정</i>':(it.s?' <i>'+it.s+'</i>':''))+'</span><b>'+it.q+'</b></li>'}).join('');
+  const k=o.items.indexOf(it);
+  return '<li'+(it.x?' class="itxoff"':'')+'><span title="'+c.l+' · 1톤 '+c.c+'개 만재">'+it.p+(it.s==='[삼정가구]'?' <i style="color:#b5651d;font-weight:700">삼정</i>':(it.s?' <i>'+it.s+'</i>':''))+(it.x?' <i class="itxtag">따로 감</i>':'')+'</span><b>'+it.q+'</b>'
+   +'<u class="itxb" title="'+(it.x?'다시 목록에 넣기':'따로 가는 건 — 목록에서 빼기')+'" onclick="event.stopPropagation();itxTog('+o.i+','+k+')">'+(it.x?'\u21a9':'\u2715')+'</u></li>'}).join('');
  let acts;
  if(big){acts='<div class="acts">'+(done
    ?'<button class="undo" onclick="event.stopPropagation();act('+o.i+',\'undone\',\'되돌림\')">↺ 완료 취소</button>'
@@ -2766,7 +2802,8 @@ function rlTable(x,g,nm,rlc){
   +'<tr><th>순서</th><th>가구점명 / 주소</th><th>품명</th><th>수량</th><th>아이콘</th></tr>';
  g.items.forEach(function(o,j){
   const A=rowAddr(o);
-  const its=(o.items&&o.items.length)?o.items:[{p:'(품목 없음)',s:'',q:o.qty}];
+  const iu=(o.items||[]).filter(function(z){return !z.x});
+  const its=iu.length?iu:[{p:o.nx?'(따로 감 — 목록에서 뺌)':'(품목 없음)',s:'',q:o.qty}];
   const rs=its.length+1;
   const btn='<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'👤':'🚚')+'</button>'+drvTag(o)
    +'<button class="chipbtn rt" title="동선 바꾸기" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">🛣️</button>'
