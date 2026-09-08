@@ -208,6 +208,8 @@ button,select,input{font-family:inherit}
 .jpnm .tg em.tm{background:#fff1e0;color:#b3560f;border-color:#f2c99a}
 .erpdot{display:inline-block;font-style:normal;color:#e02020;font-size:13px;line-height:1;
  margin-right:3px;vertical-align:1px;text-shadow:0 0 1px rgba(224,32,32,.5)}
+.t35tag{display:inline-block;font-style:normal;background:#fdecea;color:#c0392b;border:1px solid #f3b7ae;
+ border-radius:4px;padding:0 5px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
 .jdtag{display:inline-block;font-style:normal;background:#eef7ee;color:#1f7a3d;border:1px solid #b8ddc2;
  border-radius:4px;padding:0 4px;margin-right:4px;font-size:10px;font-weight:900;line-height:1.5;vertical-align:1px;letter-spacing:-.3px}
 .drowtop{display:flex;gap:10px;align-items:baseline}
@@ -878,7 +880,7 @@ const ROUTES=[
   k:['남양주','마석','원주','춘천','가평','만종','양평']},
  {id:'rc',slot:'am',nm:'화·목. 충청·평택',cl:'#FF7A45',days:[2,4],zone:'오산 평택 아산 천안 홍성 예산 보령 서산 당진 / 음성 진천 청주 대전 안성',
   k:['평택','천안','아산','당진','청주','음성','대전','진천','홍성','예산','보령','서산','안성','충주','계룡','대덕','유성','세종','청북','지제','공주','논산','서천','태안','제천','금산']},
- {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'대형·원거리 · 1톤의 1.2배 적재',k:[]},
+ {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'지방 위주 · 장·캐비닛 등 가구 위주 · 서울 시내(골목·높이바) 제외 · 1톤의 1.2배 적재',k:[]},
  {id:'as',nm:'A/S 출동',cl:'#F97316',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
  {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]},
  /* 직납 — 거래처 주소가 아니라 적요에 적힌 곳으로 우리 기사가 직접 간다.
@@ -1224,7 +1226,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260908a';
+const APPVER='20260908b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1616,6 +1618,16 @@ function erTag(o){return isEarly(o)?'<em class="ertag" title="적요에 일찍·
 function sjTag(o){return isSJ(o)?'<em class="sjtag'+(sjAll(o)?'':' part')+'" title="'+(sjAll(o)?'삼정퍼니처 물량':'광일+삼정 혼합')+'">삼정</em>':''}
 /* 일시성거래처 = 전부 조달 건. 거래처명 대신 [조달] 표시를 붙이고 납품처만 보여준다 */
 function jdTag(o){return (o&&o.jd)?'<em class="jdtag" title="조달 납품 건 (일시성거래처)">조달</em>':''}
+/* ===== 배진성 기사님 (3.5톤 대형) 운영 규칙 — 2026-09-08 사장님 =====
+   차가 커서 서울 시내 골목·높이 제한 바가 있는 곳은 드나들기 어렵다.
+   → 지방 위주로 돌리고, 의자보다 장·캐비닛·테이블 같은 부피 큰 가구를 주로 싣는다.
+   자동으로 옮기지는 않는다. 서울 건이 이 동선에 들어오면 눈에 띄게 표시만 해서
+   사람이 보고 다른 동선으로 빼도록 한다. */
+const T35_SEOUL=/서울/;
+function t35Tag(o){
+ if(!o||ASSIGN[o.i]!=='t35')return '';
+ const ad=(ADDR[o.n]||'')+' '+(o.memo||'')+' '+(o.dst||'')+' '+(o.n||'');
+ return T35_SEOUL.test(ad)?'<em class="t35tag" title="배진성 기사님 차는 서울 시내 골목·높이 제한 바가 있는 곳은 들어가기 어렵습니다 — 다른 동선으로 빼 주세요">⚠ 서울</em>':''}
 /* 거래처구분이 'ERP수시집' 이면 빨간 동그라미 — 거래명세서를 들고 나가거나 돈을 받아야 하는 건 */
 const ERP_RE=/ERP\s*수시/i;   /* 실제 명세서 값은 'ERP수시' · 'ERP수시(운임비별도)' — '집'이 없다 */
 const ERP_FROM='2026-08-25';
@@ -2047,7 +2059,7 @@ function card(o,big){
    +'<button onclick="event.stopPropagation();if(confirm(\''+o.n.replace(/'/g,'')+' — 배차에서 삭제할까요?\'))act('+o.i+',\'del\',\'🗑 삭제 — 아래 되돌리기로 복구 가능\')">🗑</button>'+'</div>'}
  return '<div class="sw swb" data-i="'+o.i+'"><div class="bg"><span>⏭ 나중에</span><span>'+((PEND[o.i]!==undefined&&PEND[o.i]!=='')?PEND[o.i]+' ➜ 이동':'➜ 이동')+'</span></div>'
   +'<div class="c '+cls+'" draggable="true" data-i="'+o.i+'">'
-  +'<div class="hd"><div class="nm">'+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
+  +'<div class="hd"><div class="nm">'+t35Tag(o)+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+(o.split?' <span style="font-weight:600;color:#9aa8b8;font-size:11px">('+(o.ex?o.ex:'차량분')+')</span>':'')+'</div>'
  +(big?'':'<span class="mvv" onclick="event.stopPropagation()"><b onclick="seqMove('+o.i+',-1)">▲</b><b onclick="seqMove('+o.i+',1)">▼</b></span>')+'<div class="pct">'+(o.load*100).toFixed(0)+'%</div></div>'
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
@@ -2818,7 +2830,7 @@ function nbRow(o,j){
  return '<div id="hit'+o.i+'" class="ritem'+(ST[o.i]==='done'?' dn':'')+addCls(o)+'">'
   +'<b onclick="event.stopPropagation();srchGo('+o.i+')">'+(j+1)+'</b>'
   +'<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
-   +'<u>'+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
+   +'<u>'+t35Tag(o)+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
    +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'
   +'<i>'+o.qty+'개</i>'
   +'<button class="chipbtn rt" title="동선 바꾸기 — 명세서 확인되면 동선으로 보내세요" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
@@ -2850,7 +2862,7 @@ function rlTable(x,g,nm,rlc){
    if(k===0){
     h+='<td class="c1" rowspan="'+rs+'">'+no+'-'+(rlc?++rlc.n:(j+1))+'</td>'
      +'<td class="c2" rowspan="'+rs+'" onclick="event.stopPropagation();srchGo('+o.i+')">'
-      +'<div class="c2n">'+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</div>'
+      +'<div class="c2n">'+t35Tag(o)+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</div>'
       +(A.t?'<div class="c2a'+(A.memo?' rgo':'')+'">'+(A.memo?'▶ ':'')+A.t+'</div>':'<div class="c2a none">주소 없음</div>')
      +'</td>';
    }
