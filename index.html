@@ -445,9 +445,13 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .ycbig span{display:inline}
 .ycnote{background:#fffaf0;border:1px solid #f0dfbd;border-radius:10px;padding:9px 12px;font-size:12px;color:#7a5a17;line-height:1.6;margin:0 0 10px}
 /* 용차내역서 적요 — 7시도착 / 8일상차9일도착(주소) 같은 걸 붙여넣는 칸 */
-.yctb input.ycmm{width:210px;font-size:12px;padding:4px 6px;border:1px solid #d7dee8;border-radius:7px;background:#fffef7}
-.yctb input.ycmm:focus{background:#fff;border-color:#0f5f37;outline:none}
-@media print{#ycbprt table.pw td.mm{font-size:11px;max-width:150px;word-break:keep-all;overflow-wrap:anywhere}}
+.yctb td.mmc{width:34%;min-width:230px}
+.yctb textarea.ycmm{width:100%;box-sizing:border-box;font-size:11.5px;line-height:1.45;padding:5px 7px;
+ border:1px solid #d7dee8;border-radius:7px;background:#fffef7;resize:vertical;font-family:inherit;color:#33475c;
+ word-break:keep-all;overflow-wrap:anywhere}
+.yctb textarea.ycmm:focus{background:#fff;border-color:#0f5f37;outline:none}
+.yctb td.mmc{vertical-align:middle}
+@media print{#ycbprt table.pw td.mm{font-size:10.5px;max-width:210px;word-break:keep-all;overflow-wrap:anywhere;line-height:1.35}}
 /* 용차내역서 — 이 주만 인쇄 */
 #ycbprt{display:none}
 @media print{
@@ -1218,7 +1222,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260907d';
+const APPVER='20260907e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3777,7 +3781,11 @@ function ycbBlock(co){
       +'<optgroup label="합바차 — 큰 차에 몇 m만 싣기">'+YC_TRUCK.filter(function(t){return t.mx}).map(function(t){return '<option value="'+t.t+'"'+(x.tk===t.t?' selected':'')+'>'+t.nm+'</option>'}).join('')+'</optgroup>'
     +'</select></td>')
     /* 적요 — 붙여넣는 칸. 예) 7시도착 · 8일상차9일도착(부산 동구 범일동 252-1691) */
-    +'<td><input class="ycmm" value="'+String(x.mm||'').replace(/"/g,'&quot;')+'" onchange="ycbSet(\''+co+'\','+k+',\'mm\',this.value)" placeholder="7시도착 · 8일상차9일도착(주소)" title="'+String(x.mm||'').replace(/"/g,'&quot;')+'"></td>'
+    +(function(){const t=String(x.mm||'');
+      /* 주소까지 다 보이게 — 한 줄 입력칸이 아니라 줄바꿈되는 칸으로 두고, 글자 수만큼 늘린다 */
+      const rw=Math.min(5,Math.max(2,Math.ceil(t.length/28)));
+      return '<td class="mmc"><textarea class="ycmm" rows="'+rw+'" onchange="ycbSet(\''+co+'\','+k+',\'mm\',this.value)" placeholder="7시도착 · 8일상차9일도착(주소)">'
+       +t.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</textarea></td>'})()
     +(x.link?'<td class="lnk">—</td>'
      :'<td><select class="cosel'+(x.co==='착불'?' chak':'')+'" onchange="ycbSet(\''+co+'\','+k+',\'co\',this.value)">'
       +'<option'+(x.co==='광일'?' selected':'')+'>광일</option>'
