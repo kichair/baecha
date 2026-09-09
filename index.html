@@ -1228,7 +1228,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260909a';
+const APPVER='20260909b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3709,11 +3709,16 @@ function ycbSet(co,k,f,v){
  const a=ycbRows(co).slice();if(!a[k])return;
  if(f==='fee'){a[k].fee=Math.max(0,Math.round(+String(v).replace(/[^0-9]/g,'')||0));a[k].est=0;a[k].hw='손으로 넣음'}
  else if(f==='tk'){const t=YC_TRUCK.filter(function(x){return x.t===v})[0];
-   if(t){a[k].tk=t.t;a[k].tnm=t.nm;const g=ycFee(a[k].reg,t.t);a[k].fee=g.v;a[k].est=(g.how==='실적'?0:1);a[k].hw=g.how}}
- else if(f==='reg'){a[k].reg=v;const g=ycFee(v,a[k].tk);a[k].fee=g.v;a[k].est=(g.how==='실적'?0:1);a[k].hw=g.how}
+   /* 착불 줄은 손으로 적은 실제 금액을 지키기 위해 자동 재계산하지 않는다 (2026-09-09) */
+   if(t){a[k].tk=t.t;a[k].tnm=t.nm;
+     if(a[k].co!=='착불'){const g=ycFee(a[k].reg,t.t);a[k].fee=g.v;a[k].est=(g.how==='실적'?0:1);a[k].hw=g.how}}}
+ else if(f==='reg'){a[k].reg=v;
+   if(a[k].co!=='착불'){const g=ycFee(v,a[k].tk);a[k].fee=g.v;a[k].est=(g.how==='실적'?0:1);a[k].hw=g.how}}
  else if(f==='co'){a[k].co=v;
-   /* 착불 = 우리는 차만 불러 주고 돈은 받는 곳에서 낸다 → 우리 지출 0원 (2026-09-03) */
-   if(v==='착불'){a[k].fee=0;a[k].est=0;a[k].hw='착불 — 받는 곳에서 냄'}}
+   /* 착불 = 우리는 차만 불러 주고 돈은 받는 곳에서 낸다.
+      금액은 얼마짜리 차를 불렀는지 알아야 하니 지우지 않고 그대로 두되,
+      우리 결재 합계에서만 뺀다. (2026-09-03 → 2026-09-09 수정) */
+   if(v==='착불'){a[k].est=0;a[k].hw='착불 — 받는 곳에서 냄'}}
  else a[k][f]=v;
  ycbPut(co,a);
 }
@@ -3774,7 +3779,7 @@ function ycbPrintWeek(co,m){
  let t='<table class="pw"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
   +'<th class="r">운임비</th><th class="r">총계<br>(부가세포함)</th><th class="r">누계</th></tr>';
  g.forEach(function(x){
-  const fee=x.link?0:(+x.fee||0), v=Math.round(fee*1.1);
+  const fee=(x.link||x.co==='착불')?0:(+x.fee||0), v=Math.round(fee*1.1);
   acc+=v;sup+=fee;
   const dd=(x.d===last)?'':md(x.d);last=x.d;
   const tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
@@ -3782,8 +3787,8 @@ function ycbPrintWeek(co,m){
    +(x.link?'<td class="lk">↳ 위 줄과 같은 차</td>':'<td>'+tk+'</td>')
    +'<td class="mm">'+String(x.mm||'')+'</td>'
    +(x.link?'<td class="lk">—</td>':'<td>'+(x.co||'광일')+'</td>')
-   +'<td class="r">'+(x.link?'—':(x.co==='착불'?'착불':won(fee)))+'</td>'
-   +'<td class="r">'+won(v)+'</td><td class="r">'+won(acc)+'</td></tr>';
+   +'<td class="r">'+(x.link?'—':(x.co==='착불'?(won(x.fee)+' (착불)'):won(fee)))+'</td>'
+   +'<td class="r">'+((x.link||x.co==='착불')?'—':won(v))+'</td><td class="r">'+won(acc)+'</td></tr>';
  });
  t+='<tr class="sum"><td colspan="6">합계</td><td class="r">'+won(sup)+'</td><td class="r">'+won(Math.round(sup*1.1))+'</td><td class="r">'+won(acc)+'</td></tr>';
  t+='</table>';
@@ -3815,7 +3820,11 @@ function ycbBlock(co){
    +' <button class="btn g" onclick="ycbKakaoWeek(\''+co+'\',\''+m+'\')" title="금액 빼고 카톡으로 보낼 내용만 복사">💬 카톡 복사</button></div>';
   h+='<div class="dcard ycsc"><table class="yctb"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
    +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th><th></th></tr>';
-  g.forEach(function(r){const x=r.x,k=r.k,v=Math.round(x.fee*1.1);acc+=v;sum+=x.fee;
+  g.forEach(function(r){const x=r.x,k=r.k;
+   /* 착불 = 받는 곳에서 내는 돈. 금액은 참고로 적어 두되 우리 결재 합계에는 넣지 않는다.
+      묶은 줄(link)도 위 줄에 운임이 한 번만 잡히므로 0. (2026-09-09) */
+   const pay=(x.link||x.co==='착불')?0:(+x.fee||0);
+   const v=Math.round(pay*1.1);acc+=v;sum+=pay;
    const dd=(x.d===last)?'':md(x.d);last=x.d;
    h+='<tr><td style="white-space:nowrap">'+dd+'</td>'
     +'<td><input value="'+String(x.n).replace(/"/g,'&quot;')+'" onchange="ycbSet(\''+co+'\','+k+',\'n\',this.value)" style="width:130px"></td>'
@@ -3837,9 +3846,9 @@ function ycbBlock(co){
       +'<option'+(x.co==='장부'?' selected':'')+'>장부</option>'
       +'<option'+(x.co==='착불'?' selected':'')+'>착불</option></select></td>')
     +(x.link?'<td style="text-align:right;color:#8b9aab">—</td>'
-     :x.co==='착불'?'<td class="chakc">착불 <em>받는 곳에서 냄</em></td>'
+     :x.co==='착불'?'<td class="chakc"><input value="'+won(x.fee)+'" onchange="ycbSet(\''+co+'\','+k+',\'fee\',this.value)" title="착불 — 받는 곳에서 냅니다. 우리 합계에는 안 들어갑니다" style="width:78px;text-align:right;background:#eaf2ff;border:1px solid #b9d0f0;border-radius:7px;padding:4px 6px;color:#1e5bb8;font-weight:800"><em>착불</em></td>'
      :'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="ycbSet(\''+co+'\','+k+',\'fee\',this.value)" title="'+(x.hw||'')+'" style="width:78px;text-align:right'+(x.est?';background:#fff3d6;border-color:#e0a63a':'')+'"></td>')
-    +'<td style="text-align:right">'+won(v)+'</td><td style="text-align:right">'+won(acc)+'</td>'
+    +'<td style="text-align:right'+((x.link||x.co==='착불')?';color:#8b9aab':'')+'">'+((x.link||x.co==='착불')?'—':won(v))+'</td><td style="text-align:right">'+won(acc)+'</td>'
     +'<td style="white-space:nowrap">'
      +'<button class="btn g kkb" onclick="ycbKakao(\''+co+'\','+k+')" title="카톡으로 보낼 내용만 복사합니다 (금액 제외)">💬</button> '
      +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차로 묶기 — 운임은 한 번만 잡습니다">🔗</button> ':'')
