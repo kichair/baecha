@@ -240,11 +240,55 @@ def main():
                     out.append((k, v))
             return out, total
 
-        # 기간 버튼(금월)을 쓰면 '이번 달 1일 ~ 오늘'로 잘려서
-        # 앞으로 나갈 물량(내일 이후 출고분)이 안 잡힌다.
-        # 화면 기본 조회기간은 오늘 앞뒤로 걸쳐 있으므로 그대로 둔다.
+        # 기준일자 칸 채우기.
+        # 이카운트 화면은 [연][월][일] 세 칸으로 나뉘어 있고, 일 칸만 id="day" 다.
+        # 같은 칸 묶음(부모) 안의 input 들을 순서대로 연/월/일로 보고 채운다.
+        DATE_JS = """(args) => {
+          const fire = (el) => {
+            ['input', 'change', 'keyup', 'blur'].forEach(t => {
+              try { el.dispatchEvent(new Event(t, { bubbles: true })); } catch (e) {}
+            });
+          };
+          const days = Array.from(document.querySelectorAll('input#day'));
+          if (days.length < 2) return { ok: false, why: 'day input ' + days.length };
+          const dump = [];
+          let filled = 0;
+          for (let k = 0; k < 2; k++) {
+            let box = days[k];
+            for (let up = 0; up < 4 && box.parentElement; up++) {
+              box = box.parentElement;
+              if (box.querySelectorAll('input').length >= 3) break;
+            }
+            const ins = Array.from(box.querySelectorAll('input')).filter(
+              e => !e.type || e.type === 'text' || e.type === 'tel');
+            dump.push(ins.map((e, i) =>
+              i + '|' + (e.id || '') + '|' + (e.name || '') + '|ml' + (e.maxLength || 0) + '|' + String(e.value || '')).join('  '));
+            const want = args[k];
+            const di = ins.indexOf(days[k]);
+            if (di >= 2) {
+              ins[di - 2].value = want[0]; fire(ins[di - 2]);
+              ins[di - 1].value = want[1]; fire(ins[di - 1]);
+              ins[di].value = want[2];     fire(ins[di]);
+              filled++;
+            } else if (di === 1) {
+              ins[0].value = want[1]; fire(ins[0]);
+              ins[1].value = want[2]; fire(ins[1]);
+            }
+          }
+          const after = Array.from(document.querySelectorAll('input#day')).map(e => e.value).join(',');
+          return { ok: true, rows: dump, filled: filled, day: after };
+        }"""
+
         if not done_date:
-            log('화면 기본 조회기간을 그대로 사용합니다 (금월 버튼 안 씀)')
+            try:
+                args = [['%04d' % a.year, '%02d' % a.month, '%02d' % a.day],
+                        ['%04d' % b.year, '%02d' % b.month, '%02d' % b.day]]
+                info = fr.evaluate(DATE_JS, args)
+                log('날짜칸', info)
+                if info.get('ok') and info.get('filled') == 2:
+                    log('기준일자', a, '~', b)
+            except Exception as e:
+                log('날짜칸 채우기 실패:', e)
             done_date = True
 
         if not done_date:
