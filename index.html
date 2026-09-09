@@ -447,6 +447,8 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .ycbig span{display:inline}
 .ycnote{background:#fffaf0;border:1px solid #f0dfbd;border-radius:10px;padding:9px 12px;font-size:12px;color:#7a5a17;line-height:1.6;margin:0 0 10px}
 /* 용차내역서 적요 — 7시도착 / 8일상차9일도착(주소) 같은 걸 붙여넣는 칸 */
+.yctb .kkb{background:#fef6d8;border-color:#eddba0;color:#8a6d14}
+.yctb .kkb:hover{background:#fbe9a8}
 .yctb td.mmc{width:34%;min-width:230px}
 .yctb textarea.ycmm{width:100%;box-sizing:border-box;font-size:11.5px;line-height:1.45;padding:5px 7px;
  border:1px solid #d7dee8;border-radius:7px;background:#fffef7;resize:vertical;font-family:inherit;color:#33475c;
@@ -1226,7 +1228,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260908b';
+const APPVER='20260909a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3716,6 +3718,34 @@ function ycbSet(co,k,f,v){
  ycbPut(co,a);
 }
 /* 한 주치를 시트 순서(위→아래)로 복사 */
+/* ===== 카톡으로 보낼 한 줄 복사 (2026-09-09) =====
+   물류업체에 카톡으로 "이거 갑니다" 하고 넘길 때 쓴다.
+   금액은 뺀다 — 우리끼리 보는 값이라 상대에게 보낼 게 아니다.
+   일자 / 거래처명 / 배송지역 / 차종 + 다음 줄에 적요. */
+function ycbTxt1(x){
+ const tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
+ const head=[md(x.d),String(x.n||'').trim(),String(x.reg||'').trim(),
+   x.link?'위 줄과 같은 차':tk].filter(function(v){return v}).join(' / ');
+ const mm=String(x.mm||'').trim();
+ return mm?(head+'\n'+mm):head;
+}
+function ycbClip(txt,msg){
+ if(navigator.clipboard&&navigator.clipboard.writeText)
+  navigator.clipboard.writeText(txt).then(function(){toast(msg)},function(){prompt('길게 눌러 복사하세요',txt)});
+ else prompt('길게 눌러 복사하세요',txt);
+}
+function ycbKakao(co,k){
+ const x=ycbRows(co)[k];if(!x)return;
+ ycbClip(ycbTxt1(x),'카톡용으로 복사했습니다 (금액 제외)');
+}
+/* 그 주 전체를 카톡용으로 — 줄 사이는 빈 줄 */
+function ycbKakaoWeek(co,mon){
+ const a=ycbRows(co).filter(function(x){return ycbMon(x.d||ycbDate())===mon});
+ if(!a.length)return toast('그 주에 내역이 없습니다');
+ a.sort(function(p,q){return String(p.d).localeCompare(String(q.d))});
+ ycbClip([co+' '+md(mon)+' ~ '+ycbSun(mon)].concat(a.map(ycbTxt1)).join('\n\n'),
+   co+' 이 주 '+a.length+'건을 카톡용으로 복사했습니다 (금액 제외)');
+}
 function ycbCopyWeek(co,mon){
  const a=ycbRows(co).map(function(x,k){return {x:x,k:k}}).filter(function(r){return ycbMon(r.x.d||ycbDate())===mon});
  a.sort(function(p,q){return String(p.x.d).localeCompare(String(q.x.d))||p.k-q.k});
@@ -3781,7 +3811,8 @@ function ycbBlock(co){
   let acc=0,sum=0,last='';
   h+='<div style="margin:10px 0 4px;font-weight:800;color:#5b6b7c;font-size:12.5px">'+md(m)+' ~ '+ycbSun(m)+' 주'
    +' <button class="btn g" style="margin-left:8px" onclick="ycbCopyWeek(\''+co+'\',\''+m+'\')">📋 이 주 복사</button>'
-   +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 이 주 인쇄</button></div>';
+   +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 이 주 인쇄</button>'
+   +' <button class="btn g" onclick="ycbKakaoWeek(\''+co+'\',\''+m+'\')" title="금액 빼고 카톡으로 보낼 내용만 복사">💬 카톡 복사</button></div>';
   h+='<div class="dcard ycsc"><table class="yctb"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
    +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th><th></th></tr>';
   g.forEach(function(r){const x=r.x,k=r.k,v=Math.round(x.fee*1.1);acc+=v;sum+=x.fee;
@@ -3810,6 +3841,7 @@ function ycbBlock(co){
      :'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="ycbSet(\''+co+'\','+k+',\'fee\',this.value)" title="'+(x.hw||'')+'" style="width:78px;text-align:right'+(x.est?';background:#fff3d6;border-color:#e0a63a':'')+'"></td>')
     +'<td style="text-align:right">'+won(v)+'</td><td style="text-align:right">'+won(acc)+'</td>'
     +'<td style="white-space:nowrap">'
+     +'<button class="btn g kkb" onclick="ycbKakao(\''+co+'\','+k+')" title="카톡으로 보낼 내용만 복사합니다 (금액 제외)">💬</button> '
      +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차로 묶기 — 운임은 한 번만 잡습니다">🔗</button> ':'')
      +'<button class="btn g" onclick="ycbDel(\''+co+'\','+k+')" title="빼기">✕</button></td></tr>';
   });
