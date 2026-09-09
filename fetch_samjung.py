@@ -27,7 +27,15 @@ except Exception as e:
 
 
 def log(*a):
-    print(datetime.datetime.now().strftime('[%H:%M:%S]'), *a, flush=True)
+    s = datetime.datetime.now().strftime('[%H:%M:%S] ') + ' '.join(str(x) for x in a)
+    try:
+        print(s, flush=True)
+    except Exception:
+        try:
+            enc = sys.stdout.encoding or 'utf-8'
+        except Exception:
+            enc = 'utf-8'
+        print(s.encode(enc, 'replace').decode(enc, 'replace'), flush=True)
 
 
 def period():
@@ -232,28 +240,68 @@ def main():
                     out.append((k, v))
             return out, total
 
+        DUMP_JS = """() => {
+          const ins = [];
+          const els = document.querySelectorAll('input');
+          els.forEach((el, i) => {
+            if (i < 60) ins.push(i + '|' + (el.type||'') + '|' + (el.id||'') + '|' + (el.name||'') + '|' + String(el.value||'').slice(0,24));
+          });
+          const sel = [];
+          document.querySelectorAll('select').forEach((el, i) => {
+            if (i < 24) sel.push(i + '|' + (el.id||'') + '|' + (el.name||'') + '|' + String(el.value||'').slice(0,16));
+          });
+          let txt = '';
+          try { txt = document.body.innerText || ''; } catch (e) {}
+          return { n: els.length, inputs: ins, selects: sel, has: txt.indexOf('\uae30\uc900\uc77c\uc790') >= 0, txt: txt.replace(/\s+/g,' ').slice(0, 400) };
+        }"""
+
         if not done_date:
             try:
-                best = None
-                for f in [pg.main_frame] + list(pg.frames):
-                    hits, total = _date_inputs(f)
-                    if hits:
-                        log('프레임 입력칸 %d개 / 날짜칸 %d개 %s' % (total, len(hits), hits[:6]))
-                    if len(hits) >= 2 and (best is None or len(hits) > len(best[1])):
-                        best = (f, hits)
-                if best is None:
-                    log('!! 날짜 입력칸을 못 찾았습니다')
+                frames = [pg.main_frame] + list(pg.frames)
+                picked = None
+                for fi, f in enumerate(frames):
+                    try:
+                        u = str(f.url or '')[-50:]
+                    except Exception:
+                        u = '?'
+                    try:
+                        info = f.evaluate(DUMP_JS)
+                    except Exception as e:
+                        log('frame', fi, u, 'eval fail', e)
+                        continue
+                    log('frame', fi, u, 'input=%d select=%d 기준일자=%s' % (info['n'], len(info['selects']), info['has']))
+                    for s in info['inputs']:
+                        log('   in', s)
+                    for s in info['selects']:
+                        log('   se', s)
+                    if info['has']:
+                        log('   tx', info['txt'])
+                    if picked is None and (info['has'] or info['n'] >= 2):
+                        picked = (f, info)
+
+                if picked is not None:
+                    f, info = picked
+                    ins = f.locator('input')
+                    keys = ('date', 'dt', 'ymd', 'ilja', 'day', 'fr', 'to', 'sdate', 'edate', 'basedt')
+                    idx = []
+                    for s in info['inputs']:
+                        p = s.split('|')
+                        i = int(p[0]); tp = p[1].lower(); ident = (p[2] + ' ' + p[3]).lower(); val = p[4]
+                        d = _digits(val)
+                        if tp in ('hidden', 'checkbox', 'radio', 'button', 'submit'):
+                            continue
+                        if len(d) == 8 or any(k in ident for k in keys):
+                            idx.append((i, val))
+                    log('후보 날짜칸', idx[:8])
+                    if len(idx) >= 2:
+                        (i1, v1), (i2, v2) = idx[0], idx[1]
+                        e1 = ins.nth(i1); e2 = ins.nth(i2)
+                        e1.click(); e1.fill(''); e1.type(_fmt(a, v1), delay=30)
+                        e2.click(); e2.fill(''); e2.type(_fmt(b, v2), delay=30)
+                        done_date = True
+                        log('기준일자', a, '~', b)
                 else:
-                    f, hits = best
-                    cands = f.locator('input[type="text"], input:not([type])')
-                    k1, v1 = hits[0]
-                    k2, v2 = hits[1]
-                    e1 = cands.nth(k1)
-                    e2 = cands.nth(k2)
-                    e1.click(); e1.fill(''); e1.type(_fmt(a, v1), delay=30)
-                    e2.click(); e2.fill(''); e2.type(_fmt(b, v2), delay=30)
-                    done_date = True
-                    log('기준일자', a, '~', b)
+                    log('!! 날짜 입력칸을 못 찾았습니다')
             except Exception as e:
                 log('기준일자 입력 실패:', e)
 
