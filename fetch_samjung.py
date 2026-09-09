@@ -240,70 +240,12 @@ def main():
                     out.append((k, v))
             return out, total
 
-        DUMP_JS = """() => {
-          const ins = [];
-          const els = document.querySelectorAll('input');
-          els.forEach((el, i) => {
-            if (i < 60) ins.push(i + '|' + (el.type||'') + '|' + (el.id||'') + '|' + (el.name||'') + '|' + String(el.value||'').slice(0,24));
-          });
-          const sel = [];
-          document.querySelectorAll('select').forEach((el, i) => {
-            if (i < 24) sel.push(i + '|' + (el.id||'') + '|' + (el.name||'') + '|' + String(el.value||'').slice(0,16));
-          });
-          let txt = '';
-          try { txt = document.body.innerText || ''; } catch (e) {}
-          return { n: els.length, inputs: ins, selects: sel, has: txt.indexOf('\uae30\uc900\uc77c\uc790') >= 0, txt: txt.replace(/\s+/g,' ').slice(0, 400) };
-        }"""
-
+        # 기간 버튼(금월)을 쓰면 '이번 달 1일 ~ 오늘'로 잘려서
+        # 앞으로 나갈 물량(내일 이후 출고분)이 안 잡힌다.
+        # 화면 기본 조회기간은 오늘 앞뒤로 걸쳐 있으므로 그대로 둔다.
         if not done_date:
-            try:
-                frames = [pg.main_frame] + list(pg.frames)
-                picked = None
-                for fi, f in enumerate(frames):
-                    try:
-                        u = str(f.url or '')[-50:]
-                    except Exception:
-                        u = '?'
-                    try:
-                        info = f.evaluate(DUMP_JS)
-                    except Exception as e:
-                        log('frame', fi, u, 'eval fail', e)
-                        continue
-                    log('frame', fi, u, 'input=%d select=%d 기준일자=%s' % (info['n'], len(info['selects']), info['has']))
-                    for s in info['inputs']:
-                        log('   in', s)
-                    for s in info['selects']:
-                        log('   se', s)
-                    if info['has']:
-                        log('   tx', info['txt'])
-                    if picked is None and (info['has'] or info['n'] >= 2):
-                        picked = (f, info)
-
-                if picked is not None:
-                    f, info = picked
-                    ins = f.locator('input')
-                    keys = ('date', 'dt', 'ymd', 'ilja', 'day', 'fr', 'to', 'sdate', 'edate', 'basedt')
-                    idx = []
-                    for s in info['inputs']:
-                        p = s.split('|')
-                        i = int(p[0]); tp = p[1].lower(); ident = (p[2] + ' ' + p[3]).lower(); val = p[4]
-                        d = _digits(val)
-                        if tp in ('hidden', 'checkbox', 'radio', 'button', 'submit'):
-                            continue
-                        if len(d) == 8 or any(k in ident for k in keys):
-                            idx.append((i, val))
-                    log('후보 날짜칸', idx[:8])
-                    if len(idx) >= 2:
-                        (i1, v1), (i2, v2) = idx[0], idx[1]
-                        e1 = ins.nth(i1); e2 = ins.nth(i2)
-                        e1.click(); e1.fill(''); e1.type(_fmt(a, v1), delay=30)
-                        e2.click(); e2.fill(''); e2.type(_fmt(b, v2), delay=30)
-                        done_date = True
-                        log('기준일자', a, '~', b)
-                else:
-                    log('!! 날짜 입력칸을 못 찾았습니다')
-            except Exception as e:
-                log('기준일자 입력 실패:', e)
+            log('화면 기본 조회기간을 그대로 사용합니다 (금월 버튼 안 씀)')
+            done_date = True
 
         if not done_date:
             for t in ['금월', '전월+금월', '금월(~오늘)']:
