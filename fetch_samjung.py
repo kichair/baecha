@@ -189,54 +189,70 @@ def main():
         quick = CFG.get('ecount', 'quick_period', fallback='금월').strip()
         done_date = False
 
-        # 기간 버튼(금월)이 있으면 그걸 먼저 쓴다 — 이번 달 1일~말일
+        # 기간 버튼(금월)이 있으면 그걸 먼저 쓴다 - 이번 달 1일~말일
         if quick:
             for t in [quick]:
                 try:
                     el = fr.locator('text=' + t).first
                     if el.count() and el.is_visible():
                         el.click()
-                        log('기간 버튼 [' + t + '] 사용 — 이번 달 전체')
+                        log('기간 버튼 [' + t + '] 사용 - 이번 달 전체')
                         done_date = True
                         pg.wait_for_timeout(1500)
                 except Exception:
                     pass
 
+        # 화면 안의 '날짜처럼 생긴 입력칸'을 직접 찾아서 채운다
+        def _digits(s):
+            return ''.join(ch for ch in (s or '') if ch.isdigit())
+
+        def _fmt(dt, sample):
+            if '-' in (sample or ''):
+                return dt.strftime('%Y-%m-%d')
+            if '/' in (sample or ''):
+                return dt.strftime('%Y/%m/%d')
+            if '.' in (sample or ''):
+                return dt.strftime('%Y.%m.%d')
+            return dt.strftime('%Y%m%d')
+
+        def _date_inputs(f):
+            out = []
+            try:
+                cands = f.locator('input[type="text"], input:not([type])')
+                total = cands.count()
+            except Exception:
+                return out, 0
+            for k in range(min(total, 120)):
+                try:
+                    v = cands.nth(k).input_value()
+                except Exception:
+                    continue
+                d = _digits(v)
+                if len(d) == 8 and 2000 <= int(d[:4]) <= 2100 and 1 <= int(d[4:6]) <= 12:
+                    out.append((k, v))
+            return out, total
+
         if not done_date:
             try:
-                # '기준일자' 글자가 든 줄에서 날짜 칸들을 찾는다
-                lab = fr.locator('xpath=//*[contains(text(),"기준일자")]').first
-                row = lab.locator('xpath=ancestor::tr[1]')
-                if not row.count():
-                    row = lab.locator('xpath=ancestor::div[1]')
-                sels = row.locator('select')
-                ins = row.locator('input[type="text"], input:not([type])')
-                vals = []
-                for k in range(min(ins.count(), 10)):
-                    try:
-                        vals.append(ins.nth(k).input_value())
-                    except Exception:
-                        vals.append('?')
-                log('날짜칸 확인 — select %d / input %d  값=%s' % (sels.count(), ins.count(), vals))
-
-                want = ['%04d' % a.year, '%02d' % a.month, '%02d' % a.day,
-                        '%04d' % b.year, '%02d' % b.month, '%02d' % b.day]
-                if sels.count() >= 4 and ins.count() >= 2:
-                    sels.nth(0).select_option(want[0]); sels.nth(1).select_option(want[1])
-                    ins.nth(0).fill(want[2])
-                    sels.nth(2).select_option(want[3]); sels.nth(3).select_option(want[4])
-                    ins.nth(1).fill(want[5])
+                best = None
+                for f in [pg.main_frame] + list(pg.frames):
+                    hits, total = _date_inputs(f)
+                    if hits:
+                        log('프레임 입력칸 %d개 / 날짜칸 %d개 %s' % (total, len(hits), hits[:6]))
+                    if len(hits) >= 2 and (best is None or len(hits) > len(best[1])):
+                        best = (f, hits)
+                if best is None:
+                    log('!! 날짜 입력칸을 못 찾았습니다')
+                else:
+                    f, hits = best
+                    cands = f.locator('input[type="text"], input:not([type])')
+                    k1, v1 = hits[0]
+                    k2, v2 = hits[1]
+                    e1 = cands.nth(k1)
+                    e2 = cands.nth(k2)
+                    e1.click(); e1.fill(''); e1.type(_fmt(a, v1), delay=30)
+                    e2.click(); e2.fill(''); e2.type(_fmt(b, v2), delay=30)
                     done_date = True
-                elif ins.count() >= 6:
-                    for k in range(6):
-                        ins.nth(k).click(); ins.nth(k).fill(''); ins.nth(k).type(want[k], delay=30)
-                    done_date = True
-                elif ins.count() >= 2:
-                    # 한 칸에 날짜 전체를 넣는 형태
-                    ins.nth(0).click(); ins.nth(0).fill(''); ins.nth(0).type(a.strftime('%Y%m%d'), delay=30)
-                    ins.nth(1).click(); ins.nth(1).fill(''); ins.nth(1).type(b.strftime('%Y%m%d'), delay=30)
-                    done_date = True
-                if done_date:
                     log('기준일자', a, '~', b)
             except Exception as e:
                 log('기준일자 입력 실패:', e)
@@ -254,7 +270,7 @@ def main():
                 except Exception:
                     pass
         if not done_date:
-            log('!! 기간을 못 정했습니다 — 화면 기본값으로 조회합니다')
+            log('!! 기간을 못 정했습니다 - 화면 기본값으로 조회합니다')
 
         pg.keyboard.press('F8')
         pg.wait_for_timeout(2000)
