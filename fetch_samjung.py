@@ -243,13 +243,18 @@ def main():
         # 기준일자 칸 채우기.
         # 이카운트 화면은 [연][월][일] 세 칸으로 나뉘어 있고, 일 칸만 id="day" 다.
         # 자바스크립트로 값만 바꾸면 ERP가 무시하므로 실제 키 입력으로 넣는다.
-        def _put(el, txt):
+        """ 기준일자 칸 - 연/월은 이카운트 자체 드롭다운(숨은 input)이라 못 건드린다.
+            일(day) 칸만 진짜 input 이라 여기만 손댄다.
+            화면 기본값이 '전월 1일 ~ 오늘' 이므로, 끝날짜의 일을 말일로 밀면
+            '전월 1일 ~ 이번달 말일' 이 되어 앞으로 나갈 물량까지 들어온다. """
+        def _fill(el, txt):
             el.click()
+            el.fill('')
+            el.type(txt, delay=40)
             try:
-                el.press('Control+a')
+                el.press('Tab')
             except Exception:
                 pass
-            el.type(txt, delay=40)
 
         if not done_date:
             try:
@@ -257,22 +262,19 @@ def main():
                 n = days.count()
                 log('day 칸 %d개' % n)
                 if n >= 2:
-                    for k, d in enumerate([a, b]):
-                        day = days.nth(k)
-                        mon = day.locator('xpath=preceding::input[1]')
-                        yer = day.locator('xpath=preceding::input[2]')
-                        _put(yer, '%04d' % d.year)
-                        _put(mon, '%02d' % d.month)
-                        _put(day, '%02d' % d.day)
-                    pg.wait_for_timeout(500)
-                    got = []
-                    for k in range(2):
-                        day = days.nth(k)
-                        got.append('%s-%s-%s' % (
-                            day.locator('xpath=preceding::input[2]').input_value(),
-                            day.locator('xpath=preceding::input[1]').input_value(),
-                            day.input_value()))
-                    log('기준일자 입력됨', got)
+                    want = a.strftime('%Y%m%d') + ',' + b.strftime('%Y%m%d')
+                    # 1차 - 일 칸에 YYYYMMDD 를 통째로. 이카운트가 연·월까지 잡아 주면 제일 좋다.
+                    _fill(days.nth(0), a.strftime('%Y%m%d'))
+                    _fill(days.nth(1), b.strftime('%Y%m%d'))
+                    pg.wait_for_timeout(400)
+                    got = days.nth(0).input_value() + ',' + days.nth(1).input_value()
+                    log('통째 입력 후 day =', got, '(원한 값', want + ')')
+                    if got != want:
+                        # 2차 - 일자만. 시작 1일, 끝 31일(그 달 말일로 잘린다).
+                        _fill(days.nth(0), '01')
+                        _fill(days.nth(1), '31')
+                        pg.wait_for_timeout(400)
+                        log('일자만 입력 후 day =', days.nth(0).input_value() + ',' + days.nth(1).input_value())
                     done_date = True
             except Exception as e:
                 log('기준일자 입력 실패:', e)
