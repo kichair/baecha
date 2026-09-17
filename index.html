@@ -507,6 +507,10 @@ table.sgtb{width:100%;border-collapse:collapse;table-layout:fixed}
 .sgtb td.r{text-align:right;white-space:nowrap}
 .sgtb td.c{text-align:center;white-space:nowrap}
 .sgtb td.mm{font-size:7pt;color:#333}
+.sgtb td.bg{white-space:pre-wrap;font-size:7.5pt}
+.sgtb td.bgc{background:#fffdf0;cursor:text;outline:none}
+.sgtb td.bgc:empty:before{content:'사유 적기';color:#c4c4c4;font-size:7pt}
+.sgtb td.bgc:focus{background:#fff8d6;box-shadow:inset 0 0 0 2px #e0a63a}
 .sgtb .src{display:block;font-size:6.8pt;color:#777;font-weight:400}
 .sgtb .chak{font-size:7pt;color:#1e5bb8;margin-left:3px}
 .sgtb .up{color:#c02626;font-weight:800}
@@ -1278,7 +1282,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260917a';
+const APPVER='20260917b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3963,7 +3967,7 @@ function ycbPast(){
 /* ================= 결재 올리기 (2026-09-17) =================
    물류업체에 주는 내역서 말고, 안으로 결재 올릴 종이다.
    누계 옆에 '같은 지역·같은 차종으로 나간 직전 운임비'와 '차이'를 붙이고,
-   맨 오른쪽 비고 칸은 비워 둔다 — 인쇄해서 사유를 손으로 적는 칸.
+   맨 오른쪽 비고 칸은 화면에서 눌러 사유를 적는다 (줄의 bg 에 저장 → 인쇄에 그대로).
    내역을 담고 고치는 일은 그대로 '용차 내역서' 탭에서 한다. */
 function ycbToday(){const t=new Date();
  return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
@@ -4008,12 +4012,14 @@ function ycbBase(x,co){
  return null;
 }
 /* 종이 한 장 (업체 한 곳 · 한 주) */
-function ycbSignHtml(co,mon){
- const rows=(ycbRows(co)||[]).filter(function(x){return ycbMon(x.d||ycbDate())===mon});
+/* edit=true 면 비고 칸을 화면에서 바로 쳐 넣을 수 있다 (미리보기). 인쇄본은 글자만. */
+function ycbSignHtml(co,mon,edit){
+ const rows=(ycbRows(co)||[]).map(function(x,k){return {x:x,k:k}})
+  .filter(function(r){return ycbMon(r.x.d||ycbDate())===mon});
  if(!rows.length)return '';
- rows.sort(function(a,b){return String(a.d).localeCompare(String(b.d))});
- const W=[['일자',4],['거래처명',13],['배송지역',6.5],['차종',8],['적요',16],['구분',4],
-  ['운임비',7.5],['총계<br>(부가세포함)',8],['누계',8],['최근 운임비',9],['차이',6],['비고 (사유)',10]];
+ rows.sort(function(a,b){return String(a.x.d).localeCompare(String(b.x.d))||a.k-b.k});
+ const W=[['일자',4],['거래처명',13],['배송지역',6.5],['차종',8],['적요',14.5],['구분',4],
+  ['운임비',7.5],['총계<br>(부가세포함)',8],['누계',8],['최근 운임비',8.5],['차이',6],['비고 (사유)',12]];
  let h='<div class="sgsheet"><h1>용차 내역서 <em>'+esc(co)+'</em></h1>';
  h+='<div class="sgtop"><div class="sgsub">'+mon+' ~ '+ycbSun(mon)+' 주 &nbsp;·&nbsp; 결재일 '+ycbPay(mon)
   +' &nbsp;·&nbsp; '+rows.length+'건 &nbsp;·&nbsp; 부가세 별도 단가</div>'
@@ -4022,12 +4028,17 @@ function ycbSignHtml(co,mon){
  h+='<table class="sgtb"><colgroup>'+W.map(function(w){return '<col style="width:'+w[1]+'%">'}).join('')+'</colgroup>'
   +'<tr>'+W.map(function(w){return '<th>'+w[0]+'</th>'}).join('')+'</tr>';
  let acc=0,sup=0,last='';
- rows.forEach(function(x){
+ rows.forEach(function(r){const x=r.x,k=r.k;
   const pay=(x.link||x.co==='착불')?0:(+x.fee||0);
   const v=Math.round(pay*1.1);acc+=v;sup+=pay;
   const dd=(x.d===last)?'':md(x.d);last=x.d;
   const tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
   const b=(x.link||x.co==='착불')?null:ycbBase(x,co);
+  /* 비고(사유) — 줄 안에 bg 로 넣어 두므로 다른 PC 에도 같이 넘어간다 */
+  const bg=String(x.bg||'');
+  const bgc=edit
+   ?'<td class="bg bgc" contenteditable="true" spellcheck="false" onblur="ycbSetBg(\''+co+'\','+k+',this.innerText)" title="눌러서 사유를 적으세요. 그대로 인쇄됩니다">'+esc(bg)+'</td>'
+   :'<td class="bg">'+esc(bg)+'</td>';
   let basec='—',diffc='—';
   if(b){
    basec=won(b.v)+'<span class="src">'+esc(b.note)+'</span>';
@@ -4041,7 +4052,7 @@ function ycbSignHtml(co,mon){
    +'<td class="r">'+(x.link?'—':(x.co==='착불'?(won(x.fee)+'<span class="chak">착불</span>'):won(pay)))+'</td>'
    +'<td class="r">'+((x.link||x.co==='착불')?'—':won(v))+'</td>'
    +'<td class="r">'+won(acc)+'</td>'
-   +'<td class="r">'+basec+'</td><td class="r">'+diffc+'</td><td></td></tr>';
+   +'<td class="r">'+basec+'</td><td class="r">'+diffc+'</td>'+bgc+'</tr>';
  });
  h+='<tr class="sum"><td class="c" colspan="6">'+ycbPay(mon)+' 결재 합계</td>'
   +'<td class="r">'+won(sup)+'</td><td class="r">'+won(Math.round(sup*1.1))+'</td>'
@@ -4054,11 +4065,20 @@ function ycbSignHtml(co,mon){
  h+='<div class="sgft"><span>광일체어 &nbsp;·&nbsp; 출력 '+pd+'</span><b>작성자 &nbsp;강현아</b></div>';
  return h+'</div>';
 }
-function ycbSignBody(){
+function ycbSignBody(edit){
  const mon=ycbSignWeek();if(!mon)return '';
  const cos=(YCSC==='둘 다')?YC_CO:[YCSC];
- let b='';cos.forEach(function(c){b+=ycbSignHtml(c,mon)});
+ let b='';cos.forEach(function(c){b+=ycbSignHtml(c,mon,edit)});
  return b;
+}
+/* 비고 저장 — 화면을 다시 그리지 않는다 (그리면 커서가 날아가고, 곧바로 누른 인쇄 버튼이 안 먹는다) */
+function ycbSetBg(co,k,v){
+ const a=ycbRows(co);const x=a&&a[k];if(!x)return;
+ v=String(v||'').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim();
+ if((x.bg||'')===v)return;
+ ycbBackup();
+ if(v)x.bg=v;else delete x.bg;
+ ASGV['yb:'+co]=Date.now();save();
 }
 /* 인쇄 — 이 종이는 칸이 많아 A4 가로다. 인쇄하는 동안만 @page 를 가로로 바꾼다. */
 function ycbSignPrint(){
@@ -4080,7 +4100,7 @@ function ycbSignPrint(){
 function tabYcbSign(){
  const W=ycbWeeks(), mon=ycbSignWeek();
  let h='<div class="hd2">🖨️ 결재 올리기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">주 단위 · A4 가로 · 최근 운임비와 차이까지</span></div>';
- h+='<div class="ycnote">고른 주의 용차 내역을 <b>결재 올릴 종이 한 장</b>으로 뽑습니다. 누계 옆에 <b>같은 지역·같은 차종의 최근 운임비</b>와 <b>차이 금액</b>이 붙고, 맨 오른쪽 <b>비고</b> 칸은 비워 두었습니다 — 인쇄해서 사유를 손으로 적으세요.<br>'
+ h+='<div class="ycnote">고른 주의 용차 내역을 <b>결재 올릴 종이 한 장</b>으로 뽑습니다. 누계 옆에 <b>같은 지역·같은 차종의 최근 운임비</b>와 <b>차이 금액</b>이 붙고, 맨 오른쪽 <b>비고</b> 칸을 <b>눌러서 사유를 적으면</b> 그대로 저장되고 인쇄됩니다 (다른 PC 에서도 보입니다).<br>'
   +'<b>이번 주 건은 옆의 「용차 내역서」 탭에 그대로 적으시면 됩니다.</b> 여기서는 담긴 내역을 건드리지 않고 보여 주기만 합니다.</div>';
  if(!W.length)return h+'<div class="dcard" style="color:#8b9aab">내역이 없습니다.</div>';
  h+='<div class="dcard">'
@@ -4091,7 +4111,7 @@ function tabYcbSign(){
   +['둘 다'].concat(YC_CO).map(function(c){return '<option value="'+c+'"'+(YCSC===c?' selected':'')+'>'+c+'</option>'}).join('')
   +'</select>'
   +'<button class="btn" style="margin-left:10px" onclick="ycbSignPrint()">🖨️ 인쇄 (A4 가로)</button></div></div>';
- const body=ycbSignBody();
+ const body=ycbSignBody(true);
  return h+(body?'<div class="sgprev">'+body+'</div>'
   :'<div class="dcard" style="color:#8b9aab">그 주에 그 업체 내역이 없습니다.</div>');
 }
