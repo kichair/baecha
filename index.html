@@ -481,6 +481,46 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
  #ycbprt .psig span{display:block;margin-top:4px;font-size:11px;color:#555}
  @page{size:A4 portrait;margin:0}
 }
+/* ===== 결재 올리기 종이 (2026-09-17) — A4 가로 =====
+   화면 미리보기와 인쇄가 같은 모양이라야 해서 @media print 밖에 둔다.
+   인쇄할 때 @page 를 가로로 바꾸는 <style> 은 ycbSignPrint() 가 그때만 끼워 넣는다. */
+.sgtabs{display:flex;gap:6px;margin:0 0 12px}
+.sgtabs button{background:#eef3f9;color:#5f7086;border:1px solid #cfdae6;border-radius:9px;
+ padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer}
+.sgtabs button.on{background:#0f5f37;color:#fff;border-color:#0f5f37}
+.sgprev{background:#e9edf3;padding:14px;border-radius:12px;overflow-x:auto}
+.sgsheet{background:#fff;color:#000;padding:8mm 7mm;margin:0 auto 14px;width:277mm;box-sizing:border-box;
+ box-shadow:0 2px 10px rgba(0,0,0,.18);font-family:inherit}
+.sgsheet h1{font-size:17pt;font-weight:800;letter-spacing:5px;margin:0 0 1.5mm;text-align:center}
+.sgsheet h1 em{font-style:normal;letter-spacing:0;font-size:13pt;margin-left:10px;color:#333}
+.sgtop{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;
+ padding-bottom:1.5mm;margin-bottom:2mm}
+.sgsub{font-size:9pt;color:#333}
+table.sgsign{border-collapse:collapse}
+table.sgsign th,table.sgsign td{border:1px solid #555;font-size:8pt;text-align:center;padding:1px 3px}
+table.sgsign th{background:#f0f0f0;font-weight:700}
+table.sgsign td{height:11mm;width:17mm}
+table.sgtb{width:100%;border-collapse:collapse;table-layout:fixed}
+.sgtb th,.sgtb td{border:1px solid #555;padding:3px 3px;font-size:8pt;line-height:1.35;
+ word-break:keep-all;overflow-wrap:anywhere;vertical-align:middle}
+.sgtb th{background:#efefef;font-weight:800;text-align:center}
+.sgtb td.r{text-align:right;white-space:nowrap}
+.sgtb td.c{text-align:center;white-space:nowrap}
+.sgtb td.mm{font-size:7pt;color:#333}
+.sgtb .src{display:block;font-size:6.8pt;color:#777;font-weight:400}
+.sgtb .chak{font-size:7pt;color:#1e5bb8;margin-left:3px}
+.sgtb .up{color:#c02626;font-weight:800}
+.sgtb .dn{color:#1560c0;font-weight:800}
+.sgtb tr.sum td{background:#fff3c4;font-weight:800;font-size:9pt}
+.sgnote{margin-top:2mm;font-size:7.2pt;color:#444;border:1px solid #bbb;background:#fafafa;
+ padding:1.5mm 2.5mm;line-height:1.5}
+.sgft{display:flex;justify-content:space-between;align-items:flex-end;margin-top:2mm;font-size:8.5pt;color:#555}
+.sgft b{font-size:10pt;color:#000;letter-spacing:1px}
+@media print{
+ .sgprev{background:none;padding:0;overflow:visible}
+ .sgsheet{width:auto;padding:0;margin:0;box-shadow:none;page-break-after:always}
+ .sgsheet:last-child{page-break-after:auto}
+}
 /* 적재길이 자 (2026-09-03) */
 .ycruler{position:relative;height:76px;margin:12px 0 4px;background:#eef2f8;border:1px solid #d8e1ee;border-radius:9px}
 .ycrbar{position:absolute;left:0;top:0;height:32px;min-width:2px;background:linear-gradient(90deg,#1b7f4f,#2fb573);border-radius:8px 0 0 0;border-right:3px solid #0f5f37}
@@ -957,6 +997,13 @@ let YCBALL=false;
 /* 지난 내역 보기 — 결재완료로 감춘 주까지 월 단위로 다시 꺼내 본다 (2026-09-10) */
 let YCPM=localStorage.getItem(KEY+'_ycpm')||'';
 let YCPC=localStorage.getItem(KEY+'_ycpc')||'나눔물류';
+/* ===== 결재 올리기 (2026-09-17) =====
+   내역을 담는 곳(용차 내역서)은 지금 그대로 — 이번 주 건은 거기에 계속 적는다.
+   여기는 다 적은 주를 골라 '결재 올릴 종이 한 장'만 뽑는 칸이다.
+   열 때는 늘 내역서부터 보이게 YCSUB 는 저장하지 않는다. */
+let YCSUB='list';
+let YCSW=localStorage.getItem(KEY+'_ycsw')||'';
+let YCSC=localStorage.getItem(KEY+'_ycsc')||'둘 다';
 const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
@@ -1231,7 +1278,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260916b';
+const APPVER='20260917a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3913,6 +3960,141 @@ function ycbPast(){
   +mn+'월 '+co+' 합계 &nbsp; 공급가액 '+won(msum)+'원 &nbsp;·&nbsp; 부가세포함 <b>'+won(mvat)+'원</b></div>';
  return h+'</div>';
 }
+/* ================= 결재 올리기 (2026-09-17) =================
+   물류업체에 주는 내역서 말고, 안으로 결재 올릴 종이다.
+   누계 옆에 '같은 지역·같은 차종으로 나간 직전 운임비'와 '차이'를 붙이고,
+   맨 오른쪽 비고 칸은 비워 둔다 — 인쇄해서 사유를 손으로 적는 칸.
+   내역을 담고 고치는 일은 그대로 '용차 내역서' 탭에서 한다. */
+function ycbToday(){const t=new Date();
+ return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
+/* 내역이 있는 주(월요일) 목록 — 최근 주부터 */
+function ycbWeeks(){
+ ycbFix();const s={};
+ YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(x){
+  const d=String(x.d||'');if(/^\d{4}-\d{2}-\d{2}/.test(d))s[ycbMon(d)]=1})});
+ return Object.keys(s).sort().reverse();
+}
+/* 기본은 '이번 주 말고 그 앞의 마지막 주' — 이번 주는 아직 담는 중이라 결재 대상이 아니다 */
+function ycbSignWeek(){
+ const W=ycbWeeks();if(!W.length)return '';
+ if(YCSW&&W.indexOf(YCSW)>=0)return YCSW;
+ const cur=ycbMon(ycbToday());
+ for(let i=0;i<W.length;i++)if(W[i]<cur)return W[i];
+ return W[0];
+}
+function ycbSetSub(v){YCSUB=(v==='sign'?'sign':'list');render()}
+function ycbSetSw(v){YCSW=v||'';localStorage.setItem(KEY+'_ycsw',YCSW);render()}
+function ycbSetSc(v){YCSC=v||'둘 다';localStorage.setItem(KEY+'_ycsc',YCSC);render()}
+/* 지역 이름 맞춰 보기 — '평택' '평택시' '경기 평택' 을 같은 곳으로 본다 */
+function ycRegKey(s){return String(s||'').replace(/[\s·.\-\/()[\]]/g,'')
+ .replace(/특별시|광역시|특별자치시|특별자치도/g,'').replace(/(시|군)$/,'')}
+/* 최근 운임비 — ① 내역서에서 같은 지역·같은 차종으로 나간 직전 건
+   ② 없으면 운임 장부에 그 지역·그 차 '실적'이 있을 때만
+   ③ 둘 다 없으면 없음(—). 전체 평균과 견주면 엉뚱한 차이가 찍히기 때문이다. */
+function ycbBase(x,co){
+ const rk=ycRegKey(x.reg), tk=x.tk, d=String(x.d||'');
+ if(!rk||!tk||!d)return null;
+ let best=null;
+ YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){
+  if(y===x||y.link||y.co==='착불')return;
+  const f=+y.fee||0;if(!f)return;
+  if(y.tk!==tk||ycRegKey(y.reg)!==rk)return;
+  const yd=String(y.d||'');if(!yd||yd>=d)return;
+  if(!best||yd>best.d||(yd===best.d&&c===co&&best.co!==co))best={d:yd,v:f,co:c};
+ })});
+ if(best)return {v:best.v,note:'내역서 '+md(best.d)};
+ const f=ycFee(x.reg,tk);
+ if(f&&f.how==='실적')return {v:f.v,note:'장부 '+f.n+'건'};
+ return null;
+}
+/* 종이 한 장 (업체 한 곳 · 한 주) */
+function ycbSignHtml(co,mon){
+ const rows=(ycbRows(co)||[]).filter(function(x){return ycbMon(x.d||ycbDate())===mon});
+ if(!rows.length)return '';
+ rows.sort(function(a,b){return String(a.d).localeCompare(String(b.d))});
+ const W=[['일자',4],['거래처명',13],['배송지역',6.5],['차종',8],['적요',16],['구분',4],
+  ['운임비',7.5],['총계<br>(부가세포함)',8],['누계',8],['최근 운임비',9],['차이',6],['비고 (사유)',10]];
+ let h='<div class="sgsheet"><h1>용차 내역서 <em>'+esc(co)+'</em></h1>';
+ h+='<div class="sgtop"><div class="sgsub">'+mon+' ~ '+ycbSun(mon)+' 주 &nbsp;·&nbsp; 결재일 '+ycbPay(mon)
+  +' &nbsp;·&nbsp; '+rows.length+'건 &nbsp;·&nbsp; 부가세 별도 단가</div>'
+  +'<table class="sgsign"><tr><th rowspan="2">결<br>재</th><th>담당</th><th>검토</th><th>승인</th></tr>'
+  +'<tr><td></td><td></td><td></td></tr></table></div>';
+ h+='<table class="sgtb"><colgroup>'+W.map(function(w){return '<col style="width:'+w[1]+'%">'}).join('')+'</colgroup>'
+  +'<tr>'+W.map(function(w){return '<th>'+w[0]+'</th>'}).join('')+'</tr>';
+ let acc=0,sup=0,last='';
+ rows.forEach(function(x){
+  const pay=(x.link||x.co==='착불')?0:(+x.fee||0);
+  const v=Math.round(pay*1.1);acc+=v;sup+=pay;
+  const dd=(x.d===last)?'':md(x.d);last=x.d;
+  const tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
+  const b=(x.link||x.co==='착불')?null:ycbBase(x,co);
+  let basec='—',diffc='—';
+  if(b){
+   basec=won(b.v)+'<span class="src">'+esc(b.note)+'</span>';
+   const dv=(+x.fee||0)-b.v;
+   diffc=dv>0?'<span class="up">+'+won(dv)+'</span>':(dv<0?'<span class="dn">-'+won(-dv)+'</span>':'0');
+  }
+  h+='<tr><td class="c">'+dd+'</td><td>'+esc(x.n)+'</td><td>'+esc(x.reg)+'</td>'
+   +'<td>'+(x.link?'↳ 위 줄과 같은 차':esc(tk))+'</td>'
+   +'<td class="mm">'+esc(x.mm)+'</td>'
+   +'<td class="c">'+(x.link?'—':esc(x.co||'광일'))+'</td>'
+   +'<td class="r">'+(x.link?'—':(x.co==='착불'?(won(x.fee)+'<span class="chak">착불</span>'):won(pay)))+'</td>'
+   +'<td class="r">'+((x.link||x.co==='착불')?'—':won(v))+'</td>'
+   +'<td class="r">'+won(acc)+'</td>'
+   +'<td class="r">'+basec+'</td><td class="r">'+diffc+'</td><td></td></tr>';
+ });
+ h+='<tr class="sum"><td class="c" colspan="6">'+ycbPay(mon)+' 결재 합계</td>'
+  +'<td class="r">'+won(sup)+'</td><td class="r">'+won(Math.round(sup*1.1))+'</td>'
+  +'<td class="r">'+won(acc)+'</td><td colspan="3"></td></tr></table>';
+ h+='<div class="sgnote">최근 운임비 = 같은 <b>배송지역·같은 차종</b>으로 나간 <b>직전</b> 건의 운임비입니다. '
+  +'내역서에 같은 조건이 없으면 운임 장부의 실지급 실적을 씁니다(장부 N건). '
+  +'둘 다 없으면 견줄 값이 없어 <b>—</b> 로 둡니다. 차이 = 이번 운임비 − 최근 운임비. '
+  +'묶은 줄(↳)과 착불은 우리 결재 합계에 넣지 않습니다.</div>';
+ const now=new Date(), pd=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+ h+='<div class="sgft"><span>광일체어 &nbsp;·&nbsp; 출력 '+pd+'</span><b>작성자 &nbsp;강현아</b></div>';
+ return h+'</div>';
+}
+function ycbSignBody(){
+ const mon=ycbSignWeek();if(!mon)return '';
+ const cos=(YCSC==='둘 다')?YC_CO:[YCSC];
+ let b='';cos.forEach(function(c){b+=ycbSignHtml(c,mon)});
+ return b;
+}
+/* 인쇄 — 이 종이는 칸이 많아 A4 가로다. 인쇄하는 동안만 @page 를 가로로 바꾼다. */
+function ycbSignPrint(){
+ const body=ycbSignBody();
+ if(!body)return toast('그 주에 내역이 없습니다');
+ let el=document.getElementById('ycbprt');
+ if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
+ el.innerHTML='<div class="sgprev">'+body+'</div>';
+ const st=document.createElement('style');
+ st.textContent='@media print{@page{size:A4 landscape;margin:8mm 7mm}}';
+ document.head.appendChild(st);
+ document.body.classList.add('ycbprint');
+ const off=function(){document.body.classList.remove('ycbprint');
+  if(st.parentNode)st.parentNode.removeChild(st);
+  window.removeEventListener('afterprint',off)};
+ window.addEventListener('afterprint',off);
+ setTimeout(function(){window.print();setTimeout(off,400)},80);
+}
+function tabYcbSign(){
+ const W=ycbWeeks(), mon=ycbSignWeek();
+ let h='<div class="hd2">🖨️ 결재 올리기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">주 단위 · A4 가로 · 최근 운임비와 차이까지</span></div>';
+ h+='<div class="ycnote">고른 주의 용차 내역을 <b>결재 올릴 종이 한 장</b>으로 뽑습니다. 누계 옆에 <b>같은 지역·같은 차종의 최근 운임비</b>와 <b>차이 금액</b>이 붙고, 맨 오른쪽 <b>비고</b> 칸은 비워 두었습니다 — 인쇄해서 사유를 손으로 적으세요.<br>'
+  +'<b>이번 주 건은 옆의 「용차 내역서」 탭에 그대로 적으시면 됩니다.</b> 여기서는 담긴 내역을 건드리지 않고 보여 주기만 합니다.</div>';
+ if(!W.length)return h+'<div class="dcard" style="color:#8b9aab">내역이 없습니다.</div>';
+ h+='<div class="dcard">'
+  +'<div class="ycrow"><label style="white-space:nowrap">① 주</label><select onchange="ycbSetSw(this.value)">'
+  +W.map(function(m){return '<option value="'+m+'"'+(mon===m?' selected':'')+'>'+md(m)+' ~ '+ycbSun(m)+' 주 (결재일 '+ycbPay(m)+')</option>'}).join('')
+  +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 지난주</span></div>'
+  +'<div class="ycrow"><label style="white-space:nowrap">② 업체</label><select onchange="ycbSetSc(this.value)">'
+  +['둘 다'].concat(YC_CO).map(function(c){return '<option value="'+c+'"'+(YCSC===c?' selected':'')+'>'+c+'</option>'}).join('')
+  +'</select>'
+  +'<button class="btn" style="margin-left:10px" onclick="ycbSignPrint()">🖨️ 인쇄 (A4 가로)</button></div></div>';
+ const body=ycbSignBody();
+ return h+(body?'<div class="sgprev">'+body+'</div>'
+  :'<div class="dcard" style="color:#8b9aab">그 주에 그 업체 내역이 없습니다.</div>');
+}
 function ycbBlock(co){
  const rows=ycbRows(co);
  /* 결재완료(pd)로 넘긴 줄은 여기서 감춘다. 지우는 게 아니라 감추는 것 —
@@ -3977,8 +4159,13 @@ function ycbBlock(co){
 }
 function tabYcb(){
  ycbFix();
+ /* 두 칸으로 나눈다 — 내역 담기(원래 화면)와 결재 올릴 종이 뽑기 (2026-09-17) */
+ const sub='<div class="sgtabs">'
+  +'<button class="'+(YCSUB==='sign'?'':'on')+'" onclick="ycbSetSub(\'list\')">🚚 용차 내역서</button>'
+  +'<button class="'+(YCSUB==='sign'?'on':'')+'" onclick="ycbSetSub(\'sign\')">🖨️ 결재 올리기</button></div>';
+ if(YCSUB==='sign')return '<div class="ycwrap">'+sub+tabYcbSign()+'</div>';
  const cand=ycbCand(YCBALL);window._YCB=cand;
- let h='<div class="ycwrap">';
+ let h='<div class="ycwrap">'+sub;
  h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">대현물류 · 나눔물류 · 매주 결재 · 부가세 별도 단가</span></div>';
  h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건만 골라 보여 줍니다. 거래일이 달라도 적요에 <b>3일 출고</b> 처럼 적혀 있으면 그날 목록으로 끌어옵니다(★ 표시). 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.<br>'
   +'<span style="color:#a8791d">노란 운임 칸 = 장부에 그 지역·그 차 실적이 없어 <b>추정한 값</b>입니다. 실제 부른 금액으로 고쳐 주세요. 적요를 <b>착불</b>로 바꾸면 운임은 <b>0원</b>이 됩니다 — 차만 불러 주고 돈은 받는 곳에서 내는 건입니다.</span></div>';
