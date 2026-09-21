@@ -665,6 +665,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 .cosel.chak{background:#eaf2ff;color:#1e5bb8;font-weight:800;border-color:#9dbdf0}
 .yctb .lnk b{color:#c9761a}
 .lnkb{background:#f4f7fb}
+.ycwrap .yctb button.btn.mvb{color:#1e5bb8;border-color:#b9d0f0;background:#eaf2ff}
 .lnkb.on{background:#ffe9c9;border-color:#e0a63a;color:#a8791d}
 .rgrid.rlmode{display:block}
 .rgrid.rlmode .rghd{grid-column:auto}
@@ -1019,6 +1020,9 @@ let YCPC=localStorage.getItem(KEY+'_ycpc')||'나눔물류';
 let YCSUB='list';
 let YCSW=localStorage.getItem(KEY+'_ycsw')||'';
 let YCSC=localStorage.getItem(KEY+'_ycsc')||'둘 다';
+/* 지난 내역에 결재완료 주까지 보일지 — 기본은 안 보임 (2026-09-21) */
+let YCPD=localStorage.getItem(KEY+'_ycpd')==='1';
+function ycbSetPd(v){YCPD=!!v;localStorage.setItem(KEY+'_ycpd',YCPD?'1':'');render()}
 const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
@@ -1293,7 +1297,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260918c';
+const APPVER='20260921a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3770,6 +3774,17 @@ function ycbLink(co,k){
  ycbPut(co,a);
 }
 function ycbDel(co,k){const a=ycbRows(co).slice();a.splice(k,1);ycbPut(co,a)}
+/* 다른 업체로 옮기기 (2026-09-21) — 나눔물류 ↔ 대현물류.
+   줄을 그대로 뽑아 상대 업체 끝에 붙인다. 위 줄과 묶은(link) 표시는 상대 쪽에선 뜻이 없으니 푼다.
+   두 업체 시각을 다 올려야 다른 PC 에 양쪽이 같이 넘어간다. */
+function ycbMove(co,k){
+ ycbFix();const a=YCB[co]||[];const x=a[k];if(!x)return;
+ const to=YC_CO.filter(function(c){return c!==co})[0];if(!to)return;
+ ycbBackup();
+ a.splice(k,1);delete x.link;(YCB[to]=YCB[to]||[]).push(x);
+ ASGV['yb:'+co]=Date.now();ASGV['yb:'+to]=Date.now();
+ save();render();toast(String(x.n||'')+' → '+to+'로 옮겼습니다');
+}
 function ycbSet(co,k,f,v){
  const a=ycbRows(co).slice();if(!a[k])return;
  if(f==='fee'){a[k].fee=Math.max(0,Math.round(+String(v).replace(/[^0-9]/g,'')||0));a[k].est=0;a[k].hw='손으로 넣음'}
@@ -3927,16 +3942,21 @@ function ycbMonths(){
 }
 function ycbSetPm(v){YCPM=v||'';localStorage.setItem(KEY+'_ycpm',YCPM);render()}
 function ycbSetPc(v){YCPC=v||YC_CO[0];localStorage.setItem(KEY+'_ycpc',YCPC);render()}
-/* 지난 내역 — 고른 달·고른 업체의 모든 줄 (결재완료까지) */
+/* 지난 내역 — 고른 달·고른 업체의 줄. 결재완료 주는 기본으로 감추고, 체크하면 같이 보인다 (2026-09-21) */
 function ycbPast(){
  if(!YCPM)return '';
  const co=(YC_CO.indexOf(YCPC)>=0?YCPC:YC_CO[0]), ym=YCPM, mn=+ym.slice(5,7);
- const rows=ycbRows(co).map(function(x,k){return {x:x,k:k}})
+ const all=ycbRows(co).map(function(x,k){return {x:x,k:k}})
   .filter(function(r){return String(r.x.d||'').slice(0,7)===ym});
+ const wk={};all.forEach(function(r){const m=ycbMon(r.x.d||ycbDate());(wk[m]=wk[m]||[]).push(r)});
+ /* 결재완료 주(그 주 줄이 전부 pd)는 체크 안 하면 뺀다 */
+ let hid=0;
+ Object.keys(wk).forEach(function(m){if(!YCPD&&wk[m].every(function(r){return r.x.pd})){hid+=wk[m].length;delete wk[m]}});
+ const rows=all.length-hid;
  let h='<div class="hd2" style="margin-top:18px">📚 '+mn+'월 내역 · '+co
-  +' <span style="font-weight:600;color:#8b9aab;font-size:11.5px">결재완료까지 전부 · '+rows.length+'건</span></div>';
- if(!rows.length)return h+'<div class="dcard" style="color:#8b9aab">그 달 내역이 없습니다.</div>';
- const wk={};rows.forEach(function(r){const m=ycbMon(r.x.d||ycbDate());(wk[m]=wk[m]||[]).push(r)});
+  +' <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+(YCPD?'결재완료까지 전부':'결재 전만')+' · '+rows+'건'
+  +(hid?' <span style="color:#1e8a4b">· 결재완료 '+hid+'건은 감춤</span>':'')+'</span></div>';
+ if(!rows)return h+'<div class="dcard" style="color:#8b9aab">'+(hid?'이 달은 결재완료 '+hid+'건뿐입니다. 위 「결재완료도 보기」를 켜면 나옵니다.':'그 달 내역이 없습니다.')+'</div>';
  let msum=0,mvat=0;
  h+='<div class="dcard ycsc">';
  Object.keys(wk).sort().forEach(function(m){
@@ -3948,7 +3968,7 @@ function ycbPast(){
        :' <span style="color:#a8791d">결재 전</span>')
    +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 인쇄</button></div>';
   h+='<table class="yctb"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
-   +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th></tr>';
+   +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th><th></th></tr>';
   g.forEach(function(r){const x=r.x;
    const pay=(x.link||x.co==='착불')?0:(+x.fee||0);
    const v=Math.round(pay*1.1);acc+=v;sum+=pay;
@@ -3960,14 +3980,17 @@ function ycbPast(){
     +'<td>'+(x.link?'—':esc(x.co||''))+'</td>'
     +'<td style="text-align:right">'+(x.link?'—':won(x.fee)+(x.co==='착불'?' (착불)':''))+'</td>'
     +'<td style="text-align:right">'+((x.link||x.co==='착불')?'—':won(v))+'</td>'
-    +'<td style="text-align:right">'+won(acc)+'</td></tr>';
+    +'<td style="text-align:right">'+won(acc)+'</td>'
+    +'<td style="white-space:nowrap">'
+     +'<button class="btn g mvb" onclick="ycbMove(\''+co+'\','+r.k+')" title="'+(co==='나눔물류'?'대현물류':'나눔물류')+'로 옮기기">⇄ '+(co==='나눔물류'?'대현':'나눔')+'</button> '
+     +'<button class="btn g" onclick="if(confirm(\''+String(x.n||'').replace(/['\\]/g,'')+' 줄을 뺍니다. 되돌리기로 살릴 수 있습니다.\'))ycbDel(\''+co+'\','+r.k+')" title="빼기">✕</button></td></tr>';
   });
   /* 주가 달을 걸치면(8/31~9/6) 여기 금액은 그 주 전체가 아니라 '이 달분'만이다 — 헷갈리지 않게 적어 둔다 */
   const whole=ycbRows(co).filter(function(y){return ycbMon(y.d||ycbDate())===m}).length;
   h+='<tr style="background:#fff8d6;font-weight:800"><td colspan="6">'+ycbPay(m)+' 결재'+(fin?'완료':' 예정')
    +(whole>g.length?' <span style="font-weight:600;color:#a8791d">— 이 달분 '+g.length+'/'+whole+'건만</span>':'')
    +' &nbsp;('+won(acc)+')</td>'
-   +'<td style="text-align:right">'+won(sum)+'</td><td style="text-align:right">'+won(acc)+'</td><td></td></tr>';
+   +'<td style="text-align:right">'+won(sum)+'</td><td style="text-align:right">'+won(acc)+'</td><td colspan="2"></td></tr>';
   h+='</table>';
   msum+=sum;mvat+=acc;
  });
@@ -4202,6 +4225,7 @@ function ycbBlock(co){
     +'<td style="white-space:nowrap">'
      +'<button class="btn g kkb" onclick="ycbKakao(\''+co+'\','+k+')" title="카톡으로 보낼 내용만 복사합니다 (금액 제외)">💬</button> '
      +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차로 묶기 — 운임은 한 번만 잡습니다">🔗</button> ':'')
+     +'<button class="btn g mvb" onclick="ycbMove(\''+co+'\','+k+')" title="'+(co==='나눔물류'?'대현물류':'나눔물류')+'로 옮기기">⇄</button> '
      +'<button class="btn g" onclick="ycbDel(\''+co+'\','+k+')" title="빼기">✕</button></td></tr>';
   });
   h+='<tr style="background:#fff8d6;font-weight:800"><td colspan="6">'
@@ -4244,7 +4268,8 @@ function tabYcb(){
    +ycbMonths().map(function(m){return '<option value="'+m+'"'+(YCPM===m?' selected':'')+'>'+(+m.slice(0,4))+'년 '+(+m.slice(5,7))+'월</option>'}).join('')
    +'</select> <select onchange="ycbSetPc(this.value)">'
    +YC_CO.map(function(c){return '<option value="'+c+'"'+(YCPC===c?' selected':'')+'>'+c+'</option>'}).join('')
-   +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">결재완료까지 다 나옵니다</span></div>'
+   +'</select><label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCPD?' checked':'')
+   +' onchange="ycbSetPd(this.checked)"> 결재완료도 보기</label></div>'
   +'<div style="margin-top:8px"><button class="btn g" onclick="ycbBlank()">＋ 빈 줄 ('+ycbCo()+')</button> '
   +'<button class="btn g" onclick="window.print()">🖨️ 인쇄</button> '
   +'<button class="btn g" onclick="ycbUndo()" title="이 PC에 남은 직전 상태로 되돌립니다">↩︎ 되돌리기</button></div></div>';
