@@ -1298,7 +1298,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260921c';
+const APPVER='20260922a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1442,19 +1442,32 @@ function inboxApply(box){
    const am=AM[k];if(am){['u','a','v','t'].forEach(function(f){if(am[f]&&l[f]!==am[f])l[f]=am[f]})}});})();
  const B=function(l){return [l.d,l.n,l.p,l.s||'',l.q].join('\u0001')};
  const seen={},bag={};
- RAW.forEach(function(l){seen[K(l)]=1;(bag[B(l)]=bag[B(l)]||[]).push((l.m||'').trim())});
+ RAW.forEach(function(l){seen[K(l)]=1;(bag[B(l)]=bag[B(l)]||[]).push(l)});
+ /* 같은 품목·규격·수량인데 적요만 다르게 다시 온 줄 = 적요를 고친 것.
+    새 줄로 넣지 말고 있던 줄의 적요를 바꿔 준다 (2026-09-22). 넣으면 같은 건이 둘이 된다. */
+ let mfix=0;
  const add=box.rows.filter(function(l){
   if(!l||!l.n||!l.p||!l.d||!(+l.q>0))return false;
   l.q=Math.round(+l.q);l.s=l.s||'';l.m=(l.m||'').slice(0,80);
   if(seen[K(l)])return false;
-  const b=B(l), m=(l.m||'').trim(), ms=bag[b];
-  if(ms&&ms.some(function(x){return x===m||x===''||m===''}))return false;
-  seen[K(l)]=1;(bag[b]=bag[b]||[]).push(m);l._in=ts;return true});
+  const b=B(l), m=(l.m||'').trim(), nm=m.replace(/\s+/g,''), ls=bag[b]||[];
+  /* 있던 줄들 중 내 적요 안에 들어 있는 것(=내가 덧붙여 고친 원본)을 찾되, 가장 긴 것을 고른다.
+     '퀵' 과 '9시퀵 강남' 이 같이 있을 때 '9시퀵 강남 테헤란로' 는 뒤엣것의 수정본이다. */
+  let best=null,bl=-1;
+  for(let i=0;i<ls.length;i++){const x=ls[i],xm=String(x.m||'').trim().replace(/\s+/g,'');
+   if(xm===nm)return false;
+   if(nm===''||(xm&&xm.indexOf(nm)>=0))return false;   /* 옛 적요가 다시 옴 → 무시 */
+   if(xm===''||nm.indexOf(xm)>=0){if(xm.length>bl){bl=xm.length;best=x}}
+  }
+  if(best){best.m=m;mfix++;return false}
+  seen[K(l)]=1;ls.push(l);bag[b]=ls;l._in=ts;return true});
  INBOX_TS=ts;try{localStorage.setItem(UKEY+'_inboxts',String(ts))}catch(e){}
  /* 새 줄이 없어도 '언제 받았는지'는 저장하고 화면 표시도 새로 그린다 */
  if(!add.length){
-  if(gfix){RAWV=Date.now();build();render();toast('\uD83D\uDD34 거래처구분 '+gfix+'줄 반영')}
+  if(gfix||mfix){RAWV=Date.now();build();render();
+   toast((gfix?'\uD83D\uDD34 거래처구분 '+gfix+'줄':'')+(gfix&&mfix?' · ':'')+(mfix?'\u270F\uFE0F 적요 고침 '+mfix+'줄':'')+' 반영')}
   save();try{drawUpd()}catch(e){}return}
+ if(mfix)RAWV=Date.now();
  RAW=RAW.concat(add);RAWV=Date.now();
  build();save();render();
  const ds={};add.forEach(function(l){ds[l.d]=(ds[l.d]||0)+1});
@@ -1816,7 +1829,25 @@ function build(fresh){
   if(g1&&g2&&(g1===g2||g1.indexOf(g2)>=0||g2.indexOf(g1)>=0))return '';   /* 같은 구 → 안 나눔 */
   return hit.slice(0,40);
  };
- RAW.forEach(l=>{const ex=exLine(l.m,l.n)||'';
+ /* ===== 적요만 고쳐 다시 들어온 줄 걷어내기 (2026-09-22) =====
+    명세서 적요에 주소를 나중에 덧붙이면('22일상차23일도착' → '3.5m/부산동구범일동…/22일상차23일도착')
+    자동조회가 그 줄을 새 줄로 가져와 같은 건이 둘이 된다(부산가구1번지·부산종합사무가구 9/22).
+    적요에 주소가 붙으면 키(dst)가 달라져 아래 그룹 안 중복 걷어내기로는 못 잡는다.
+    품목·규격·수량·금액이 다 같고 한쪽 적요가 다른 쪽을 품고 있으면 같은 줄 — 긴 적요 쪽만 남긴다.
+    RAW 자체는 안 건드린다(동기화 충돌 없이, 어느 PC 에서나 같은 결과). */
+ const LINES=(function(){
+  const bag={};RAW.forEach(function(l){const b=[l.d,l.n,l.p,l.s||'',l.q,l.u||0,l.a||0,l.t||0].join('\u0001');(bag[b]=bag[b]||[]).push(l)});
+  const drop=new Set();
+  Object.keys(bag).forEach(function(b){const a=bag[b];if(a.length<2)return;
+   for(let i=0;i<a.length;i++)for(let j=0;j<a.length;j++){if(i===j)continue;
+    const mi=String(a[i].m||'').replace(/\s+/g,''),mj=String(a[j].m||'').replace(/\s+/g,'');
+    if(mi===mj){if(i>j)drop.add(a[i]);continue}
+    if(mj.indexOf(mi)>=0)drop.add(a[i]);
+   }});
+  DUPN+=drop.size;
+  return drop.size?RAW.filter(function(l){return !drop.has(l)}):RAW;
+ })();
+ LINES.forEach(l=>{const ex=exLine(l.m,l.n)||'';
   const jd=ILSI_RE.test(l.n);
   const sub=jd?ilsiLabel(l.m):dsub(l.m,l.n);   /* 일시성=기관명, 그 외=적요의 배송주소 */
   const k=dkey(l.n,ex,l.d)+(sub?'§'+sub:'');
