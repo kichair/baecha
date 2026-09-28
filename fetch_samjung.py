@@ -135,6 +135,29 @@ def main():
                 break
         pg.wait_for_timeout(3000)
 
+        # 비밀번호 정기 변경 알림 팝업 (2026-09-28) - 이카운트가 3개월마다 띄운다.
+        # 비밀번호는 안 바꾼다. '다음에 변경'을 눌러 넘기고 원래 화면으로 간다.
+        for _ in range(3):
+            hit = False
+            for f in [pg] + pg.frames:
+                for t in ['다음에 변경', '다음에변경', '나중에 변경', '나중에변경']:
+                    try:
+                        b = f.get_by_role('button', name=t)
+                        if not b.count():
+                            b = f.get_by_text(t, exact=True)
+                        if b.count() and b.first.is_visible():
+                            b.first.click()
+                            log('비밀번호 변경 알림 팝업 - [' + t + '] 눌러 넘김')
+                            pg.wait_for_timeout(3000)
+                            hit = True
+                            break
+                    except Exception:
+                        pass
+                if hit:
+                    break
+            if not hit:
+                break
+
         # 이미 로그인 중이면 '강제 로그인' 같은 버튼이 뜬다
         for t in ['강제 로그인', '강제로그인', '접속', '확인', 'OK']:
             try:
