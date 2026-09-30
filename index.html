@@ -1012,8 +1012,10 @@ let YCV=localStorage.getItem(KEY+'_ycv')||'대현물류';
 let YCD=localStorage.getItem(KEY+'_ycd')||'';
 let YCBALL=false;
 /* 지난 내역 보기 — 결재완료로 감춘 주까지 월 단위로 다시 꺼내 본다 (2026-09-10) */
-let YCPM=localStorage.getItem(KEY+'_ycpm')||'';
-let YCPC=localStorage.getItem(KEY+'_ycpc')||'나눔물류';
+/* 2026-09-30: 지난 내역·결재완료 보기는 이 PC 에도 저장하지 않는다.
+   열 때마다 감춰진 채로 시작 — "결재완료 누른 건 창에서 안 보이게" */
+let YCPM='';
+let YCPC='나눔물류';
 /* ===== 결재 올리기 (2026-09-17) =====
    내역을 담는 곳(용차 내역서)은 지금 그대로 — 이번 주 건은 거기에 계속 적는다.
    여기는 다 적은 주를 골라 '결재 올릴 종이 한 장'만 뽑는 칸이다.
@@ -1022,8 +1024,8 @@ let YCSUB='list';
 let YCSW=localStorage.getItem(KEY+'_ycsw')||'';
 let YCSC=localStorage.getItem(KEY+'_ycsc')||'둘 다';
 /* 지난 내역에 결재완료 주까지 보일지 — 기본은 안 보임 (2026-09-21) */
-let YCPD=localStorage.getItem(KEY+'_ycpd')==='1';
-function ycbSetPd(v){YCPD=!!v;localStorage.setItem(KEY+'_ycpd',YCPD?'1':'');render()}
+let YCPD=false;
+function ycbSetPd(v){YCPD=!!v;render()}
 const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
@@ -1298,7 +1300,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20260929a';
+const APPVER='20260930a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3954,12 +3956,8 @@ function ycbPaid(co,mon){
  a.forEach(function(x){if(ycbMon(x.d||ycbDate())===mon&&!x.pd){x.pd=1;n++;
   if(String(x.d||'')>late)late=String(x.d||'')}});
  if(!n)return;
- /* 감춘 자리에서 바로 확인할 수 있게 '지난 내역'을 그 달·그 업체로 맞춰 둔다.
-    주가 달을 걸치면(8/31~9/6 처럼) 건이 많은 쪽, 곧 마지막 날짜의 달로 맞춘다. */
- YCPC=co;YCPM=(late||mon).slice(0,7);
- localStorage.setItem(KEY+'_ycpc',YCPC);localStorage.setItem(KEY+'_ycpm',YCPM);
  ycbPut(co,a);
- toast(co+' '+md(mon)+' 주 '+n+'건 결재완료 — 아래 지난 내역에 그대로 있습니다');
+ toast(co+' '+md(mon)+' 주 '+n+'건 결재완료 — 목록에서 감췄습니다 (지난내역 → 결재완료도 보기)');
 }
 function ycbUnpay(co,mon){
  const a=ycbRows(co).slice();let n=0;
@@ -3974,8 +3972,8 @@ function ycbMonths(){
   const d=String(x.d||'');if(/^\d{4}-\d{2}/.test(d))s[d.slice(0,7)]=1})});
  return Object.keys(s).sort().reverse();
 }
-function ycbSetPm(v){YCPM=v||'';localStorage.setItem(KEY+'_ycpm',YCPM);render()}
-function ycbSetPc(v){YCPC=v||YC_CO[0];localStorage.setItem(KEY+'_ycpc',YCPC);render()}
+function ycbSetPm(v){YCPM=v||'';render()}
+function ycbSetPc(v){YCPC=v||YC_CO[0];render()}
 /* 지난 내역 — 고른 달·고른 업체의 줄. 결재완료 주는 기본으로 감추고, 체크하면 같이 보인다 (2026-09-21) */
 function ycbPast(){
  if(!YCPM)return '';
@@ -4224,7 +4222,10 @@ function ycbBlock(co){
  Object.keys(wk).sort().reverse().forEach(function(m){
   const g=wk[m];g.sort(function(p,q){return String(p.x.d).localeCompare(String(q.x.d))||p.k-q.k});
   let acc=0,sum=0,last='';
-  h+='<div style="margin:10px 0 4px;font-weight:800;color:#5b6b7c;font-size:12.5px">'+md(m)+' ~ '+ycbSun(m)+' 주'
+  /* 어느 업체 주인지 줄마다 적는다 — 스크롤하면 위 업체 제목이 안 보인다 (2026-09-30) */
+  h+='<div style="margin:10px 0 4px;font-weight:800;color:#5b6b7c;font-size:12.5px">'
+   +'<span style="display:inline-block;padding:2px 9px;border-radius:7px;margin-right:8px;color:#fff;background:'+(co==='대현물류'?'#2f6fd6':'#1e8a4b')+'">'+co+'</span>'
+   +md(m)+' ~ '+ycbSun(m)+' 주'
    +' <button class="btn g" style="margin-left:8px" onclick="ycbCopyWeek(\''+co+'\',\''+m+'\')">📋 이 주 복사</button>'
    +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 이 주 인쇄</button>'
    +' <button class="btn g" onclick="ycbKakaoWeek(\''+co+'\',\''+m+'\')" title="금액 빼고 카톡으로 보낼 내용만 복사">💬 카톡 복사</button></div>';
