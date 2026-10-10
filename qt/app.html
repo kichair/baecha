@@ -415,6 +415,9 @@ svg{display:block}
 .nb-box .nb-tx{flex:1;min-width:0;white-space:pre-wrap}
 .nb-box.c0{background:#e8f3ff}.nb-box.c1{background:#fff3e2}.nb-box.c2{background:#e9f9ee}.nb-box.c3{background:#fdeaf1}.nb-box.c4{background:#f1ecff}.nb-box.c5{background:#fffad6}.nb-box.c6{background:#e4f7f8}
 .nb-intro{margin:8px 0 0;white-space:pre-wrap;font-size:14.5px;line-height:1.75;color:#33445c;word-break:keep-all}
+.nb-box .nb-sub{margin:3px 0 0 4px;padding-left:10px;border-left:2px solid rgba(31,58,122,.18);font-size:13.8px;color:#3b4a63}
+.nb-box .nb-tx b{color:#163b70}
+.nb-box.nb-note{background:#f3f6fa;color:#3b4a63;font-size:13.8px;display:block}
 .news-item img{display:block;width:100%;margin-top:10px;border-radius:12px;border:1px solid #e3e9f1;cursor:zoom-in}
 .news-more{margin-top:8px;border:0;background:none;color:#1d6fd6;font-weight:800;font-size:14px;cursor:pointer;padding:6px 0}
 
@@ -3176,22 +3179,35 @@ $('#admCcmUndo').addEventListener('click',async()=>{const d=$('#admCcmDate').val
 
 // ===== 교회 소식 (관리자 모드에서 올림) =====
 let newsAllRaw=[], newsOpen=false;
-// 소식 본문에 "1. …", "2) …", "①…" 처럼 번호가 있으면 번호마다 칸을 따로 만들고 연한 색을 돌아가며 입힘 (번호 없으면 그대로 한 단락)
-const NB_RE=/^\s*(?:(\d{1,2})\s*[.)．、:]|([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]))\s*/;
+// 소식 본문에 "1. …", "①…" 처럼 번호가 있으면 번호마다 칸을 따로 만들고 연한 색을 돌아가며 입힘 (번호 없으면 그대로 한 단락)
+//   칸 안의 "1) …", "- …" 줄은 들여쓴 작은 줄 / "제목  내용"처럼 두 칸 띄우면 제목을 굵게 / "◉ …" "※ …" 줄은 칸 밖 안내
 const NB_CIRC='①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮';
+const NB_NOTE=/^\s*[◉※▶■□●○★☆◆◇▷►]/;
 function newsBodyHTML(body){
   const lines=String(body||'').replace(/\r/g,'').split('\n');
-  const items=[]; let intro=[];
-  for(const ln of lines){
-    const m=ln.match(NB_RE);
-    if(m){ items.push({no:m[1]?+m[1]:NB_CIRC.indexOf(m[2])+1,text:[ln.slice(m[0].length).trim()]}); }
-    else if(items.length) items[items.length-1].text.push(ln.trim());
-    else intro.push(ln);
+  // 큰 번호 모양: "1." 이 있으면 그것, 없으면 "1)" 도 큰 번호로
+  const hasDot=lines.some(l=>/^\s*\d{1,2}\.\s*\S/.test(l));
+  const topRe=hasDot?/^\s*(\d{1,2})\.\s*/:/^\s*(\d{1,2})[.)]\s*/;
+  const subRe=hasDot?/^\s*(\d{1,2}\))\s*/:null;
+  const items=[]; const intro=[], notes=[];
+  for(const raw of lines){
+    const ln=raw.trim(); if(!ln){ continue; }
+    const c=NB_CIRC.indexOf(ln[0]);
+    const t=c>=0?null:ln.match(topRe);
+    if(c>=0||t){ items.push({no:c>=0?c+1:+t[1],head:(c>=0?ln.slice(1):ln.slice(t[0].length)).trim(),subs:[]}); continue; }
+    if(NB_NOTE.test(ln)){ notes.push(ln); continue; }
+    if(!items.length){ intro.push(ln); continue; }
+    const it=items[items.length-1];
+    const sm=subRe&&ln.match(subRe);
+    if(sm||/^[-–•·]\s*/.test(ln)){ if(sm) it.subs.push(ln); else ln.split(/\s+[-–]\s+(?=\S)/).forEach(x=>it.subs.push('- '+x.replace(/^[-–•·]\s*/,''))); }   // "- 믿음3셀 10/15   - 남성3셀" 은 두 줄로
+    else if(it.subs.length) it.subs[it.subs.length-1]+=' '+ln;
+    else it.head+=(it.head?' ':'')+ln;
   }
   if(items.length<2) return `<p class="nb">${esc(String(body||'').trim())}</p>`;
-  const introT=intro.join('\n').trim();
-  return (introT?`<p class="nb-intro">${esc(introT)}</p>`:'')+'<div class="nb-boxes">'
-    +items.map((it,i)=>`<div class="nb-box c${i%7}"><span class="nb-no">${it.no}</span><div class="nb-tx">${esc(it.text.join('\n').replace(/\n{3,}/g,'\n\n').trim())}</div></div>`).join('')+'</div>';
+  const headHTML=h=>{const m=h.match(/^(\S{2,14})\s{2,}(.+)$/);return m?`<b>${esc(m[1])}</b>  ${esc(m[2])}`:esc(h);};
+  return (intro.length?`<p class="nb-intro">${esc(intro.join('\n'))}</p>`:'')+'<div class="nb-boxes">'
+    +items.map((it,i)=>`<div class="nb-box c${i%7}"><span class="nb-no">${it.no}</span><div class="nb-tx">${headHTML(it.head)}${it.subs.map(x=>`<div class="nb-sub">${esc(x)}</div>`).join('')}</div></div>`).join('')
+    +(notes.length?`<div class="nb-box nb-note">${notes.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`:'')+'</div>';
 }
 function newsRender(){
   eventsRender();
