@@ -810,7 +810,7 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
             <input id="admCellId" type="hidden">
             <label for="admCellTitle">제목</label><input id="admCellTitle" maxlength="80" placeholder="예: 10월 셀리더 교재">
             <label for="admCellBody">내용 (선택)</label><textarea id="admCellBody" rows="3"></textarea>
-            <label for="admCellFile">파일 (사진·PDF·문서, 여러 개 가능 — 화면에 펼쳐지는 것은 사진·PDF)</label><input id="admCellFile" type="file" multiple>
+            <label for="admCellFile">파일 (여러 개 가능 — 사진·PDF·한글(hwp)은 화면에 원본 모양대로 펼쳐집니다)</label><input id="admCellFile" type="file" multiple>
             <div id="admCellFl" style="font-size:13.5px;margin-top:6px"></div>
             <label class="adm-check"><input id="admCellPin" type="checkbox"> 📌 맨 위에 고정</label>
             <button id="admCellSave" class="adm-btn" type="button">자료 올리기</button>
@@ -3189,7 +3189,7 @@ function cellRender(){
     const docs=(c.files||[]).map(f=>{ const pages=f.pages||[];
       const dl=`<p class="cdl"><b>📎 ${esc(f.name)}</b><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드 (${fmtSize(f.size||0)})</a></p>`;
       const imgs=pages.map((u,i)=>`<img class="cp" src="${esc(cellFileUrl(u))}" alt="${esc(f.name)} ${i+1}쪽" loading="lazy" data-cp="${n++}">`+(pages.length>1?`<p class="cpn">${i+1} / ${pages.length}</p>`:'')).join('');
-      const note=pages.length?'':`<p class="cdl" style="color:#94a3b8;margin:0">이 파일은 화면에 펼쳐지지 않습니다 — 위 다운로드를 눌러 열어 주세요${/\.(hwpx?|docx?)$/i.test(f.name)?' (한글·워드 문서는 PDF로 저장해 올리면 화면에 보입니다)':''}</p>`;
+      const note=pages.length?'':`<p class="cdl" style="color:#94a3b8;margin:0">이 파일은 아직 화면에 펼쳐지지 않습니다 — 위 다운로드를 눌러 열어 주세요${/\.hwp$/i.test(f.name)?' (관리자: 자료 올리기 목록의 「쪽 만들기」를 누르면 화면에 보입니다)':''}</p>`;
       return `<div class="cell-doc">${dl}${note}${imgs}${pages.length?`<p class="cdl" style="margin:4px 0 0;justify-content:flex-end"><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드</a></p>`:''}</div>`; }).join('');
     return `<div class="cell-post" data-cid="${esc(c.id)}"><h4>${c.pin?'📌 ':''}${esc(c.title)}</h4><small>${d(c.at)}</small>${c.body?`<p class="cb">${esc(c.body)}</p>`:''}${docs}</div>`;
   }).join('');
@@ -3586,7 +3586,30 @@ $('#admGalList').addEventListener('click',async e=>{const box=$('#admGalList');c
   if(dl){const g=(box._list||[]).find(x=>x.id===dl.dataset.gd);if(!confirm((g?g.title:'이 갤러리')+'를 지울까요?\n(사진도 함께 지워지며 되돌릴 수 없습니다)'))return;
     const j=await admCall('/api/gallery?id='+encodeURIComponent(dl.dataset.gd),{method:'DELETE',headers:admH()}).catch(()=>({ok:false}));if(j.ok){admGalList();loadGallery();}else alert('실패: '+(j.error||''));}});
 
-// 관리자: 셀리더교제 자료 올리기 — 파일은 그대로(내려받기용) + 사진·PDF는 화면용 쪽 그림(JPEG)도 함께
+// 관리자: 셀리더교제 자료 올리기 — 파일은 그대로(내려받기용) + 사진·PDF·한글(hwp)은 화면용 쪽 그림(JPEG)도 함께
+var HWP_LIB=API()+'/lib/hwp.min.js';
+// ---- 한글(.hwp) 파일 → 쪽 그림 (hwp.js 로 그린 뒤 html2canvas 로 사진) — 관리자 페이지·앱 공용 ----
+function loadScript(src){ return new Promise(function(res,rej){ if(document.querySelector('script[src="'+src+'"]')) return res(); var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=function(){ rej(new Error('불러오기 실패: '+src)); }; document.head.appendChild(sc); }); }
+function cropBottom(cv){ var x=cv.getContext('2d'), w=cv.width, h=cv.height, d=x.getImageData(0,0,w,h).data, last=0;   // 아래쪽 빈 공간 잘라내기 (쪽의 45%는 남김)
+  for(var y=h-1;y>=0&&!last;y-=2){ for(var px=0;px<w;px+=4){ var i=(y*w+px)*4; if(d[i]<245||d[i+1]<245||d[i+2]<245){ last=y; break; } } }
+  var nh=Math.min(h,Math.max(Math.round(h*0.45),last+Math.round(h*0.04))); if(nh>=h-8) return cv;
+  var o=document.createElement('canvas'); o.width=w; o.height=nh; o.getContext('2d').drawImage(cv,0,0,w,nh,0,0,w,nh); return o; }
+async function hwpPages(blob,say){
+  if(say) say('한글 문서를 그리는 중…');
+  await loadScript(HWP_LIB); await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  var box=document.createElement('div'); box.style.cssText='position:fixed;left:-20000px;top:0;width:1000px;height:800px;overflow:hidden;background:#fff'; document.body.appendChild(box);
+  try{
+    var bin=new Uint8Array(await blob.arrayBuffer());
+    new HWP.Viewer(box,bin,{type:'array'});
+    var pages=Array.prototype.slice.call(box.firstElementChild.children[2].children).filter(function(p){ return p.getBoundingClientRect().height>50; });
+    var out=[];
+    for(var i=0;i<pages.length;i++){ if(say) say('한글 문서 '+(i+1)+'/'+pages.length+'쪽을 사진으로 바꾸는 중…'); var cv=await html2canvas(pages[i],{scale:2,backgroundColor:'#fff',logging:false}); out.push(cropBottom(cv).toDataURL('image/jpeg',.85)); }
+    if(!out.length) throw new Error('쪽을 찾지 못했습니다');
+    return out;
+  } finally { box.remove(); }
+}
+var isHwp=function(f){ return /\.hwp$/i.test(f.name||'')||/haansofthwp$/i.test(f.type||''); };   // hwpx(새 형식)는 아직 안 됨
+
 let cellFiles=[], cellKeep=[];
 function admPdfJs(){ return new Promise((res,rej)=>{ if(window.pdfjsLib) return res(window.pdfjsLib); const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(pdfjsLib); }; sc.onerror=rej; document.head.appendChild(sc); }); }
 async function admPdfPages(f,say){ const lib=await admPdfJs(); const pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise; const out=[];
@@ -3599,8 +3622,8 @@ function cellThumbs(){ const rows=cellKeep.map((f,i)=>`<div style="display:flex;
 $('#admCellFl').addEventListener('click',e=>{ const k=e.target.closest('[data-ck]'),x=e.target.closest('[data-cx]'); if(k) cellKeep.splice(+k.dataset.ck,1); if(x) cellFiles.splice(+x.dataset.cx,1); if(k||x) cellThumbs(); });
 $('#admCellFile').addEventListener('change',async()=>{ const fs=[...$('#admCellFile').files].sort((a,b)=>a.name.localeCompare(b.name,'ko',{numeric:true})); $('#admCellFile').value='';
   for(const f of fs){ if(f.size>25*1024*1024){ admSay('#admCellMsg',f.name+' 은 25MB가 넘어 올릴 수 없습니다',true); continue; } const it={file:f,pages:[]};
-    try{ if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)) it.pages=await admPdfPages(f,t=>admSay('#admCellMsg',t)); else if(/^image/.test(f.type)) it.pages=[await newsShrink(f)]; }catch(e){}
-    cellFiles.push(it); if(!it.pages.length) admSay('#admCellMsg',f.name+' — 한글·워드 같은 문서는 화면에 펼쳐지지 않고 내려받기만 됩니다. 화면에 보이게 하려면 PDF로 저장해 함께 올려 주세요'); else admSay('#admCellMsg',''); } cellThumbs(); });
+    try{ if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)) it.pages=await admPdfPages(f,t=>admSay('#admCellMsg',t)); else if(/^image/.test(f.type)) it.pages=[await newsShrink(f)]; else if(isHwp(f)) it.pages=await hwpPages(f,t=>admSay('#admCellMsg',t)); }catch(e){ admSay('#admCellMsg',f.name+' 화면용 쪽 만들기 실패: '+e.message,true); }
+    cellFiles.push(it); if(!it.pages.length) admSay('#admCellMsg',f.name+' — 이 형식은 화면에 펼쳐지지 않고 내려받기만 됩니다 (사진·PDF·한글 hwp 는 화면에 보입니다)'); else admSay('#admCellMsg',''); } cellThumbs(); });
 function cellClear(){ ['#admCellId','#admCellTitle','#admCellBody'].forEach(q=>$(q).value=''); $('#admCellPin').checked=false; cellFiles=[]; cellKeep=[]; cellThumbs(); $('#admCellSave').textContent='자료 올리기'; }
 $('#admCellNew').addEventListener('click',()=>{ cellClear(); admSay('#admCellMsg',''); });
 function admPutFile(url,body,type,say,label){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('PUT',API()+url); x.setRequestHeader('Authorization','Bearer '+admToken); x.setRequestHeader('Content-Type',type);
@@ -3617,9 +3640,18 @@ $('#admCellSave').addEventListener('click',async()=>{ const btn=$('#admCellSave'
     if(!j.ok) throw new Error(j.error||'실패'); say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 첫 화면 셀리더교제 칸에 바로 나옵니다'); cellClear(); admCellList(); if(CELL) CELL.list=[];
   }catch(e){ say('실패: '+e.message,true); } btn.disabled=false; });
 async function admCellList(){ const box=$('#admCellList'); try{ const j=await admCall('/api/cell',{headers:admH()}); const l=j.list||[]; box._list=l;
-  box.innerHTML=l.length?l.map(c=>`<div style="border-top:1px solid #e3e9f1;padding:9px 0;display:flex;gap:8px;align-items:center"><div style="flex:1;font-size:13.5px"><b>${c.pin?'📌 ':''}${esc(c.title)}</b> 📎${(c.files||[]).length}<br><small style="color:#94a3b8">${new Date(c.at).toLocaleDateString('ko-KR')} · ${(c.files||[]).map(f=>esc(f.name)).join(', ')}</small></div><button data-cle="${esc(c.id)}" type="button" style="border:0;background:#e9f1fb;color:#1d6fd6;border-radius:9px;padding:6px 10px;font-weight:800">수정</button><button data-cld="${esc(c.id)}" type="button" style="border:0;background:#fdecea;color:#c0392b;border-radius:9px;padding:6px 10px;font-weight:800">삭제</button></div>`).join(''):'<p class="adm-msg">올린 자료가 없습니다</p>';
+  box.innerHTML=l.length?l.map(c=>`<div style="border-top:1px solid #e3e9f1;padding:9px 0;display:flex;gap:8px;align-items:center"><div style="flex:1;font-size:13.5px"><b>${c.pin?'📌 ':''}${esc(c.title)}</b> 📎${(c.files||[]).length}<br><small style="color:#94a3b8">${new Date(c.at).toLocaleDateString('ko-KR')} · ${(c.files||[]).map(f=>esc(f.name)).join(', ')}</small></div>${(c.files||[]).some(f=>!(f.pages&&f.pages.length)&&isHwp(f))?`<button data-clm="${esc(c.id)}" type="button" style="border:0;background:#fff3e2;color:#9a5a00;border-radius:9px;padding:6px 10px;font-weight:800">📄 쪽 만들기</button>`:''}<button data-cle="${esc(c.id)}" type="button" style="border:0;background:#e9f1fb;color:#1d6fd6;border-radius:9px;padding:6px 10px;font-weight:800">수정</button><button data-cld="${esc(c.id)}" type="button" style="border:0;background:#fdecea;color:#c0392b;border-radius:9px;padding:6px 10px;font-weight:800">삭제</button></div>`).join(''):'<p class="adm-msg">올린 자료가 없습니다</p>';
   }catch(e){ box.innerHTML='<p class="adm-msg err">서버에 연결할 수 없습니다</p>'; } }
-$('#admCellList').addEventListener('click',async e=>{ const box=$('#admCellList'); const ed=e.target.closest('[data-cle]'),dl=e.target.closest('[data-cld]');
+async function admCellMakePages(c){ const say=(t,err)=>admSay('#admCellMsg',t,err);
+  try{ const files=(c.files||[]).slice(); for(let i=0;i<files.length;i++){ const f=files[i]; if((f.pages&&f.pages.length)||!isHwp(f)) continue;
+      say(f.name+' 내려받는 중…'); const blob=await (await fetch(API()+f.url+'?k='+encodeURIComponent(admToken))).blob();
+      const pages=await hwpPages(blob,say); const urls=[]; for(let k=0;k<pages.length;k++){ const pb=await (await fetch(pages[k])).blob(); const pj=await admPutFile('/api/cell-file?name='+encodeURIComponent(f.name+' - '+(k+1)+'쪽.jpg')+'&type=image/jpeg',pb,'image/jpeg',say,f.name+' 화면용 '+(k+1)+'쪽'); urls.push(pj.file.url); }
+      files[i]={...f,pages:urls}; }
+    const j=await admCall('/api/cell',{method:'POST',headers:admH(true),body:JSON.stringify({id:c.id,title:c.title,body:c.body||'',pin:!!c.pin,files})});
+    if(!j.ok) throw new Error(j.error||'실패'); say('화면용 쪽을 만들어 붙였습니다 — 셀리더교제 칸에서 바로 보입니다'); admCellList(); if(CELL) CELL.list=[];
+  }catch(e){ say('실패: '+e.message,true); } }
+$('#admCellList').addEventListener('click',async e=>{ const box=$('#admCellList'); const ed=e.target.closest('[data-cle]'),dl=e.target.closest('[data-cld]'),mk=e.target.closest('[data-clm]');
+  if(mk){ const c=(box._list||[]).find(x=>x.id===mk.dataset.clm); if(c) await admCellMakePages(c); return; }
   if(ed){ const c=(box._list||[]).find(x=>x.id===ed.dataset.cle); if(!c) return; cellClear(); $('#admCellId').value=c.id; $('#admCellTitle').value=c.title; $('#admCellBody').value=c.body||''; $('#admCellPin').checked=!!c.pin; cellKeep=(c.files||[]).slice(); cellThumbs(); $('#admCellSave').textContent='💾 수정 내용 서버에 저장'; admSay('#admCellMsg','수정 중: '+c.title); $('#admCellTitle').focus(); }
   if(dl){ const c=(box._list||[]).find(x=>x.id===dl.dataset.cld); if(!confirm((c?c.title:'이 자료')+'를 지울까요?\n(파일도 함께 지워집니다)')) return; const j=await admCall('/api/cell?id='+encodeURIComponent(dl.dataset.cld),{method:'DELETE',headers:admH()}).catch(()=>({ok:false})); if(j.ok){ admCellList(); if(CELL) CELL.list=[]; } else alert('실패: '+(j.error||'')); } });
 
