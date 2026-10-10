@@ -774,7 +774,9 @@ export default {
       // 파일 보기·내려받기 (앱): ?k=비밀번호, &dl=1 이면 내려받기
       const cf = path.match(/^\/cell-file\/([\w-]+)$/);
       if (cf && (req.method === 'GET' || req.method === 'HEAD')) {
-        const c = isAdmin(req, env) ? { ok: true } : await cellCheck(req, env, url.searchParams.get('k'));
+        const k = url.searchParams.get('k') || '';
+        const admK = !!String(env.ADMIN_TOKEN || '').trim() && k === String(env.ADMIN_TOKEN).trim();
+        const c = (isAdmin(req, env) || admK) ? { ok: true } : await cellCheck(req, env, k);
         if (!c.ok) return new Response(c.error, { status: c.status, headers: CORS });
         const meta = (await getJSON(env, `cell:fmeta:${cf[1]}`)) || {};
         const buf = await env.QT_KV.get(`cell:file:${cf[1]}`, 'arrayBuffer');
@@ -1498,6 +1500,7 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <label>제목</label><input id="ct" placeholder="예: 10월 셀리더 교재">
 <label>내용 (선택)</label><textarea id="cb" rows="3"></textarea>
 <label>파일 (사진·PDF·한글·엑셀 등 여러 개 — 끌어다 놓아도 됩니다)</label>
+<p style="font-size:12px;color:#889;margin:0 0 6px">사진과 PDF만 앱 화면에 쪽마다 펼쳐집니다. 한글(hwp)·워드·엑셀은 내려받기만 되므로, 화면에 보이게 하려면 한글에서 「파일 → PDF로 저장」한 PDF를 함께 올리세요.</p>
 <div id="cdrop" style="border:2px dashed #b9cbe3;border-radius:12px;padding:18px;text-align:center;color:#557;background:#f7faff">여기로 파일을 끌어다 놓거나 <b>눌러서 선택</b><input id="cf" type="file" multiple style="display:none"></div>
 <div id="cfl" style="margin-top:8px;font-size:14px"></div>
 <div class="row"><input id="cpin" type="checkbox"> 📌 맨 위에 고정</div>
@@ -1793,7 +1796,8 @@ function cThumbs(){var rows=cKeep.map(function(f,i){return '<div class="row" sty
  .concat(cFiles.map(function(it,i){return '<div class="row" style="justify-content:space-between"><span>📎 '+esc(it.file.name)+' <small style="color:#889">('+vFmt(it.file.size)+(it.pages.length?' · 화면 '+it.pages.length+'쪽':'')+')</small></span><button class="del" data-cx="'+i+'">빼기</button></div>';}));
  $('#cfl').innerHTML=rows.join('')||'<p class="msg" style="color:#889">아직 고른 파일이 없습니다</p>';}
 async function cAdd(files){for(var i=0;i<files.length;i++){var f=files[i];if(f.size>25*1024*1024){$('#m18').style.color='#c33';$('#m18').textContent=f.name+' 은 25MB가 넘어 올릴 수 없습니다';continue;}
-  var it={file:f,pages:[]};try{if(/pdf/i.test(f.type)||/\\.pdf$/i.test(f.name))it.pages=await pdfFile(f,'#m18');else if(/^image/.test(f.type))it.pages=[await imgFile(f)];}catch(e){}cFiles.push(it);}cThumbs();}
+  var it={file:f,pages:[]};try{if(/pdf/i.test(f.type)||/\\.pdf$/i.test(f.name))it.pages=await pdfFile(f,'#m18');else if(/^image/.test(f.type))it.pages=[await imgFile(f)];}catch(e){}cFiles.push(it);
+  if(!it.pages.length){$('#m18').style.color='#b65';$('#m18').textContent=f.name+' — 한글(hwp)·워드 같은 문서는 앱 화면에 펼쳐지지 않고 내려받기만 됩니다. 화면에 보이게 하려면 한글에서 「파일 → PDF로 저장」한 PDF를 함께 올려 주세요.';}}cThumbs();}
 $('#cfl').onclick=function(e){var k=e.target.closest('[data-ck]'),x=e.target.closest('[data-cx]');if(k)cKeep.splice(+k.dataset.ck,1);if(x)cFiles.splice(+x.dataset.cx,1);if(k||x)cThumbs();};
 $('#cf').onchange=function(){var fs=byName($('#cf').files);$('#cf').value='';cAdd(fs);};
 $('#cdrop').onclick=function(e){if(e.target.id!=='cf')$('#cf').click();};

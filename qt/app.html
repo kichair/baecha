@@ -810,7 +810,7 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
             <input id="admCellId" type="hidden">
             <label for="admCellTitle">제목</label><input id="admCellTitle" maxlength="80" placeholder="예: 10월 셀리더 교재">
             <label for="admCellBody">내용 (선택)</label><textarea id="admCellBody" rows="3"></textarea>
-            <label for="admCellFile">파일 (사진·PDF·문서, 여러 개 가능)</label><input id="admCellFile" type="file" multiple>
+            <label for="admCellFile">파일 (사진·PDF·문서, 여러 개 가능 — 화면에 펼쳐지는 것은 사진·PDF)</label><input id="admCellFile" type="file" multiple>
             <div id="admCellFl" style="font-size:13.5px;margin-top:6px"></div>
             <label class="adm-check"><input id="admCellPin" type="checkbox"> 📌 맨 위에 고정</label>
             <button id="admCellSave" class="adm-btn" type="button">자료 올리기</button>
@@ -3177,7 +3177,7 @@ if($('#thanksButton')) $('#thanksButton').addEventListener('click',()=>{ $('#tha
 const cellModal=$('#cellModal'); let CELL={pass:'',list:[]};
 try{ CELL.pass=sessionStorage.getItem('cell-pass')||''; }catch(e){}
 const cellK=()=>(typeof admToken!=='undefined'&&admToken)?'':CELL.pass;
-function cellFileUrl(u,dl){ return API()+u+'?k='+encodeURIComponent(CELL.pass)+(dl?'&dl=1':''); }
+function cellFileUrl(u,dl){ const k=CELL.pass||((typeof admToken!=='undefined'&&admToken)?admToken:''); return API()+u+'?k='+encodeURIComponent(k)+(dl?'&dl=1':''); }
 function fmtSize(b){ return b>=1048576?(b/1048576).toFixed(1)+'MB':Math.max(1,Math.round(b/1024))+'KB'; }
 function cellRender(){
   const box=$('#cellList'); const list=CELL.list||[];
@@ -3189,7 +3189,8 @@ function cellRender(){
     const docs=(c.files||[]).map(f=>{ const pages=f.pages||[];
       const dl=`<p class="cdl"><b>📎 ${esc(f.name)}</b><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드 (${fmtSize(f.size||0)})</a></p>`;
       const imgs=pages.map((u,i)=>`<img class="cp" src="${esc(cellFileUrl(u))}" alt="${esc(f.name)} ${i+1}쪽" loading="lazy" data-cp="${n++}">`+(pages.length>1?`<p class="cpn">${i+1} / ${pages.length}</p>`:'')).join('');
-      return `<div class="cell-doc">${dl}${imgs}${pages.length?`<p class="cdl" style="margin:4px 0 0;justify-content:flex-end"><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드</a></p>`:''}</div>`; }).join('');
+      const note=pages.length?'':`<p class="cdl" style="color:#94a3b8;margin:0">이 파일은 화면에 펼쳐지지 않습니다 — 위 다운로드를 눌러 열어 주세요${/\.(hwpx?|docx?)$/i.test(f.name)?' (한글·워드 문서는 PDF로 저장해 올리면 화면에 보입니다)':''}</p>`;
+      return `<div class="cell-doc">${dl}${note}${imgs}${pages.length?`<p class="cdl" style="margin:4px 0 0;justify-content:flex-end"><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드</a></p>`:''}</div>`; }).join('');
     return `<div class="cell-post" data-cid="${esc(c.id)}"><h4>${c.pin?'📌 ':''}${esc(c.title)}</h4><small>${d(c.at)}</small>${c.body?`<p class="cb">${esc(c.body)}</p>`:''}${docs}</div>`;
   }).join('');
 }
@@ -3599,7 +3600,7 @@ $('#admCellFl').addEventListener('click',e=>{ const k=e.target.closest('[data-ck
 $('#admCellFile').addEventListener('change',async()=>{ const fs=[...$('#admCellFile').files].sort((a,b)=>a.name.localeCompare(b.name,'ko',{numeric:true})); $('#admCellFile').value='';
   for(const f of fs){ if(f.size>25*1024*1024){ admSay('#admCellMsg',f.name+' 은 25MB가 넘어 올릴 수 없습니다',true); continue; } const it={file:f,pages:[]};
     try{ if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)) it.pages=await admPdfPages(f,t=>admSay('#admCellMsg',t)); else if(/^image/.test(f.type)) it.pages=[await newsShrink(f)]; }catch(e){}
-    cellFiles.push(it); } admSay('#admCellMsg',''); cellThumbs(); });
+    cellFiles.push(it); if(!it.pages.length) admSay('#admCellMsg',f.name+' — 한글·워드 같은 문서는 화면에 펼쳐지지 않고 내려받기만 됩니다. 화면에 보이게 하려면 PDF로 저장해 함께 올려 주세요'); else admSay('#admCellMsg',''); } cellThumbs(); });
 function cellClear(){ ['#admCellId','#admCellTitle','#admCellBody'].forEach(q=>$(q).value=''); $('#admCellPin').checked=false; cellFiles=[]; cellKeep=[]; cellThumbs(); $('#admCellSave').textContent='자료 올리기'; }
 $('#admCellNew').addEventListener('click',()=>{ cellClear(); admSay('#admCellMsg',''); });
 function admPutFile(url,body,type,say,label){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('PUT',API()+url); x.setRequestHeader('Authorization','Bearer '+admToken); x.setRequestHeader('Content-Type',type);
