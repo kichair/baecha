@@ -1811,12 +1811,32 @@ async function hwpPages(blob,say){
   try{
     var bin=new Uint8Array(await blob.arrayBuffer());
     new HWP.Viewer(box,bin,{type:'array'});
+    hwpFixSpacing(box,bin);
     var pages=Array.prototype.slice.call(box.firstElementChild.children[2].children).filter(function(p){ return p.getBoundingClientRect().height>50; });
     var out=[];
     for(var i=0;i<pages.length;i++){ if(say) say('한글 문서 '+(i+1)+'/'+pages.length+'쪽을 사진으로 바꾸는 중…'); var cv=await html2canvas(pages[i],{scale:2,backgroundColor:'#fff',logging:false}); out.push(cropBottom(cv).toDataURL('image/jpeg',.85)); }
     if(!out.length) throw new Error('쪽을 찾지 못했습니다');
     return out;
   } finally { box.remove(); }
+}
+// 원본 줄 간격 살리기: 한글 파일 안의 줄 높이·줄 간격(1/7200인치)을 읽어 문단마다 같은 간격을 주고, 빈 문단도 그 높이만큼 비움 (그리기 라이브러리는 이 값을 쓰지 않음)
+function hwpFixSpacing(box,bin){
+  try{
+    var strip=function(t){ return String(t||'').replace(/\\s+/g,''); };
+    var doc=HWP.parse(bin,{type:'array'}), paras=[], freq={};
+    doc.sections.forEach(function(s){ s.content.forEach(function(p){ var segs=p.lineSegments||[]; var px=segs.map(function(l){ return (l.height+l.lineSpacing)/7200*96; });
+      var pitch=px.length?px.reduce(function(a,b){ return a+b; },0)/px.length:0;
+      paras.push({ text:strip(p.content.filter(function(c){ return c.type===0; }).map(function(c){ return c.value; }).join('')), pitch:pitch });
+      px.forEach(function(v){ var k=Math.round(v); freq[k]=(freq[k]||0)+1; }); }); });
+    var mode=+(Object.keys(freq).sort(function(a,b){ return freq[b]-freq[a]; })[0]||0), oi=0;
+    Array.prototype.slice.call(box.firstElementChild.children[2].children).forEach(function(pg){ Array.prototype.slice.call(pg.children).forEach(function(div){
+      if(div.className||div.querySelector('table')) return;
+      var d=strip(div.innerText), pitch=0;
+      for(var j=oi;j<Math.min(paras.length,oi+6);j++){ if(paras[j].text===d){ pitch=paras[j].pitch; oi=j+1; break; } }
+      if(!pitch) pitch=mode; if(!pitch) return;
+      div.style.minHeight=pitch+'px';
+      Array.prototype.slice.call(div.children).forEach(function(t){ if(t.tagName==='DIV'&&!t.querySelector('table')) t.style.lineHeight=pitch+'px'; }); }); });
+  }catch(e){}
 }
 var isHwp=function(f){ return /\\.hwp$/i.test(f.name||'')||/haansofthwp$/i.test(f.type||''); };   // hwpx(새 형식)는 아직 안 됨
 
