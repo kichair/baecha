@@ -2290,7 +2290,7 @@ const store = {
 };
 const readJSON = (k, fallback={}) => { try { return JSON.parse(store.get(k) || 'null') ?? fallback; } catch(e) { return fallback; } };
 
-// 2026-10-10 성경 지명 → 지금 지도의 이름. 해설·배경·묵상 글에 지명이 처음 나올 때 한 번 "갈라디아(지금의 터키)"처럼 붙임
+// 2026-10-10 성경 지명 → 지금 지도의 이름. 해설·배경·묵상 글에 지명이 처음 나올 때 한 번 "갈라디아(터키)"처럼 붙임
 //   (AI가 이미 괄호를 붙였거나, 책 이름(로마서·갈라디아서…)이면 건너뜀)
 const PLACE_NOW = [
   ['바벨론','이라크'],['앗수르','이라크 북부'],['니느웨','이라크 모술'],['갈대아','이라크 남부'],['메소보다미아','이라크'],
@@ -2313,7 +2313,7 @@ function placeNow(text){
       // 다른 낱말의 일부(예: '사아덴'), 책 이름(로마서·갈라디아서·고린도전서), 이미 괄호가 있는 경우는 건너뜀
       if (isKo(prev) || next === '서' || next === '전' || next === '후' || next === '(' || next === '（') { from = i + name.length; continue; }
       // 로마·다소·실로·헬라·스바·바벨처럼 다른 낱말과 겹치는 이름은 사전에서 뺐음
-      t = t.slice(0, i + name.length) + '(지금의 ' + now + ')' + t.slice(i + name.length);
+      t = t.slice(0, i + name.length) + '(' + now + ')' + t.slice(i + name.length);
       break;   // 처음 한 번만
     }
   }
