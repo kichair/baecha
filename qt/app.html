@@ -961,9 +961,14 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
   .cell-post{border:1px solid #e3e9f1;border-radius:14px;padding:14px;margin:10px 0;background:#fff}
   .cell-post h4{margin:0 0 2px;font-size:16px;color:#163b70}.cell-post small{color:#94a3b8;font-size:12px}
   .cell-post .cb{margin:8px 0 0;white-space:pre-wrap;font-size:14.5px;line-height:1.7;color:#33445c;word-break:keep-all}
-  .cell-post .cp{display:block;width:100%;margin-top:8px;border-radius:10px;border:1px solid #e3e9f1;cursor:zoom-in}
-  .cell-post .cfile{display:flex;align-items:center;gap:8px;margin-top:8px;padding:10px 12px;border-radius:10px;background:#eef4fb;color:#1d4f91;font-weight:700;text-decoration:none;font-size:14px}
-  .cell-post .cfile small{color:#68778c;font-weight:400;margin-left:auto;white-space:nowrap}
+  .cell-box{padding-left:10px;padding-right:10px}
+  .cell-post{padding:12px 10px}
+  .cell-doc{margin-top:14px;padding-top:10px;border-top:1px solid #e3e9f1}
+  .cell-doc .cdl{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:#68778c;margin:0 0 6px}
+  .cell-doc .cdl b{color:#33445c;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cell-doc .cdl a{color:#1d6fd6;text-decoration:underline;white-space:nowrap;font-weight:700}
+  .cell-doc .cp{display:block;width:100%;margin-top:6px;border-radius:8px;border:1px solid #e3e9f1;cursor:zoom-in}
+  .cell-doc .cpn{font-size:11.5px;color:#94a3b8;text-align:right;margin:2px 0 4px}
   .cell-empty{text-align:center;color:#68778c;padding:20px 0}
   </style>
   <div id="cellModal" class="directory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cellTitle">
@@ -3180,10 +3185,12 @@ function cellRender(){
   if(!list.length){ box.innerHTML='<p class="cell-empty">아직 올라온 자료가 없습니다.</p>'; return; }
   const d=s=>{const t=new Date(s);return `${t.getMonth()+1}월 ${t.getDate()}일`;};
   box.innerHTML=list.map(c=>{
-    const pages=[]; (c.files||[]).forEach(f=>(f.pages||[]).forEach(u=>pages.push(u)));
-    return `<div class="cell-post" data-cid="${esc(c.id)}"><h4>${c.pin?'📌 ':''}${esc(c.title)}</h4><small>${d(c.at)}</small>${c.body?`<p class="cb">${esc(c.body)}</p>`:''}`+
-      pages.map((u,i)=>`<img class="cp" src="${esc(cellFileUrl(u))}" alt="" loading="lazy" data-cp="${i}">`).join('')+
-      (c.files||[]).map(f=>`<a class="cfile" href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ ${esc(f.name)}<small>${fmtSize(f.size||0)}</small></a>`).join('')+`</div>`;
+    let n=0;   // 글 안의 쪽 번호 (크게 보기에서 넘기기용)
+    const docs=(c.files||[]).map(f=>{ const pages=f.pages||[];
+      const dl=`<p class="cdl"><b>📎 ${esc(f.name)}</b><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드 (${fmtSize(f.size||0)})</a></p>`;
+      const imgs=pages.map((u,i)=>`<img class="cp" src="${esc(cellFileUrl(u))}" alt="${esc(f.name)} ${i+1}쪽" loading="lazy" data-cp="${n++}">`+(pages.length>1?`<p class="cpn">${i+1} / ${pages.length}</p>`:'')).join('');
+      return `<div class="cell-doc">${dl}${imgs}${pages.length?`<p class="cdl" style="margin:4px 0 0;justify-content:flex-end"><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드</a></p>`:''}</div>`; }).join('');
+    return `<div class="cell-post" data-cid="${esc(c.id)}"><h4>${c.pin?'📌 ':''}${esc(c.title)}</h4><small>${d(c.at)}</small>${c.body?`<p class="cb">${esc(c.body)}</p>`:''}${docs}</div>`;
   }).join('');
 }
 async function cellLoad(pass){
