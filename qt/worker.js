@@ -28,6 +28,7 @@
  * 2026-10-07 관리자 ⑧ 선교기도: 이미지만 매달 올리기 (사진·PDF, 지난 이미지 바꾸기) — 선교지 이름 필요 없음
  * 2026-10-07 스마트요람 교인 추가·수정 (POST /api/dir/person) — 앱 관리자 모드에서 새가족 등록, 셀 이동 등
  * 2026-10-10 관리자 ⑨ 주간사역 갤러리: 사진 묶음 올리기·수정·삭제 (GET /api/gallery, POST·DELETE /api/gallery, 사진 /gallery-img/<키>)
+ *   - 새 묶음을 올리면 지난 묶음은 사진까지 자동 삭제 (GALLERY_MAX=1). 같은 묶음 수정은 그대로
  *   - 앱 관리자 모드에서도 같은 주소(POST /api/gallery, 관리자 비밀번호)로 올리고 고칠 수 있음
  * 2026-10-10 선교기도·갤러리·주보: 파일 여러 개를 고르면 이름의 숫자 순(1, 2, 3 …)으로 올려 1번이 맨 위에 나옴
  * 2026-10-10 함께 기도해요: 관리자가 기도제목 고치기 (POST /api/prayers/edit) — 앱 관리자 모드에서 이름·내용·비공개 수정
@@ -563,7 +564,7 @@ async function dirSetPhoto(env, id, has) {
 // ---------- 주간사역 갤러리 ----------
 // 목록: KV 'gallery:list' = [{ id, date, title, body, images: ['/gallery-img/<키>', …], at, updatedAt }] (최근 날짜가 앞)
 // 사진: KV 'gallery:img:<키>' (JPEG)
-const GALLERY_MAX = 100;                                     // 묶음 보관 개수 — 넘치면 오래된 묶음을 사진까지 지움
+const GALLERY_MAX = 1;                                       // 묶음 보관 개수 — 새 묶음을 올리면 지난 묶음은 사진까지 자동 삭제 (여러 묶음을 남기려면 숫자를 키움)
 const galleryList = async env => JSON.parse((await env.QT_KV.get('gallery:list')) || '[]');
 async function galleryDropImages(env, urls) {
   for (const u of urls || []) { const k = (String(u).match(/gallery-img\/([\w-]+)/) || [])[1]; if (k) await env.QT_KV.delete(`gallery:img:${k}`); }
@@ -933,6 +934,8 @@ export default {
         const id = b.id || Date.now().toString(36);
         const old = list.find(g => g.id === id);
         const date = validDate(b.date) ? b.date : (old?.date || kstDateKey());
+        // 새 묶음이면 지난 묶음은 전부 사진까지 지움 (같은 묶음을 고칠 때는 그대로)
+        if (!old && GALLERY_MAX <= 1) for (const g of list) await galleryDropImages(env, g.images);
         const before = old?.images || [];
         const images = Array.isArray(b.keep) ? before.filter(u => b.keep.includes(u)) : before.slice();
         await galleryDropImages(env, before.filter(u => !images.includes(u)));        // 빼기로 한 사진 삭제
@@ -943,10 +946,10 @@ export default {
         }
         if (!images.length) return json({ ok: false, error: '사진을 한 장 이상 넣어주세요' }, 400);
         const item = { id, date, title, body, images, at: old?.at || new Date().toISOString(), updatedAt: new Date().toISOString() };
-        const rest = list.filter(g => g.id !== id);
+        const rest = (!old && GALLERY_MAX <= 1) ? [] : list.filter(g => g.id !== id);
         rest.unshift(item);
         rest.sort((a, z) => String(z.date || '').localeCompare(String(a.date || '')) || String(z.at || '').localeCompare(String(a.at || '')));
-        for (const g of rest.slice(GALLERY_MAX)) await galleryDropImages(env, g.images);   // 너무 오래된 묶음은 사진까지 정리
+        for (const g of rest.slice(GALLERY_MAX)) await galleryDropImages(env, g.images);   // 보관 개수를 넘는 오래된 묶음은 사진까지 정리
         await env.QT_KV.put('gallery:list', JSON.stringify(rest.slice(0, GALLERY_MAX)));
         return json({ ok: true, item });
       }
@@ -1316,7 +1319,7 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <button id="msv">선교기도 이미지 올리기</button><div id="m5" class="msg"></div></section>
 
 <section><h2>⑨ 주간사역 갤러리 사진 올리기</h2>
-<p style="font-size:13px;color:#557;margin:0 0 6px">한 주 사역 사진을 한 묶음으로 올리면 앱 <b>주간사역 갤러리</b>에 바로 나옵니다. 휴대폰 앱의 관리자 모드에서도 똑같이 올리고 고칠 수 있습니다.</p>
+<p style="font-size:13px;color:#557;margin:0 0 6px">한 주 사역 사진을 한 묶음으로 올리면 앱 <b>주간사역 갤러리</b>에 바로 나옵니다. <b>새 묶음을 올리면 지난 묶음은 자동으로 지워집니다.</b> 휴대폰 앱의 관리자 모드에서도 똑같이 올리고 고칠 수 있습니다.</p>
 <label>날짜</label><input id="gd" type="date">
 <label>제목</label><input id="gt" placeholder="예: 10월 둘째 주 주간사역">
 <label>설명 (선택)</label><textarea id="gb" rows="3"></textarea>
@@ -1541,7 +1544,7 @@ $('#gsv').onclick=async function(){var title=$('#gt').value.trim();$('#m16').sty
  $('#m16').style.color='#3a5';$('#m16').textContent='올리는 중… (사진이 많으면 조금 걸립니다)';
  try{var j=await (await fetch('/api/gallery',{method:'POST',headers:Object.assign({},H(),{'Content-Type':'application/json'}),body:JSON.stringify({id:$('#gid').value,date:$('#gd').value,title:title,body:$('#gb').value,keep:gKeep,imagesData:gNew})})).json();
   if(!j.ok){$('#m16').style.color='#c33';$('#m16').textContent='실패: '+j.error;return;}
-  $('#m16').textContent='올렸습니다: '+j.item.title+' (사진 '+j.item.images.length+'장) — 앱 주간사역 갤러리에 바로 나옵니다';gClear();gLoad();}
+  $('#m16').textContent='올렸습니다: '+j.item.title+' (사진 '+j.item.images.length+'장) — 앱 주간사역 갤러리에 바로 나옵니다 (지난 묶음은 지워졌습니다)';gClear();gLoad();}
  catch(e){$('#m16').style.color='#c33';$('#m16').textContent='실패: 연결 오류';}};
 async function gLoad(){try{var j=await (await fetch('/api/gallery',{cache:'no-store'})).json();gData=j.list||[];}catch(e){gData=[];}
  $('#glist').innerHTML=gData.length?'<p style="font-weight:800;margin:16px 0 6px">올린 갤러리 ('+gData.length+')</p>'+gData.map(function(g){return '<div style="border:1px solid #e3e8ef;border-radius:10px;padding:10px;margin:8px 0"><b>'+esc(g.title)+'</b> 📷'+(g.images||[]).length+' <span style="color:#889;font-size:13px">'+esc(g.date||'')+'</span><div style="display:flex;gap:4px;margin-top:6px;overflow-x:auto">'+(g.images||[]).slice(0,6).map(function(u){return '<img src="'+esc(u)+'" style="width:56px;height:56px;object-fit:cover;margin:0;flex:none">';}).join('')+'</div><div class="row"><button class="sub" style="margin:0;padding:8px" data-ge="'+esc(g.id)+'">수정</button><button class="sub" style="margin:0;padding:8px;color:#c33" data-gd="'+esc(g.id)+'">삭제</button></div></div>';}).join(''):'<p class="msg" style="color:#889">아직 올린 갤러리가 없습니다</p>';}
