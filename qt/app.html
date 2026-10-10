@@ -643,8 +643,8 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
 .gal-viewer.hidden{display:none}
 .gal-viewer .gv-top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;z-index:2;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0));color:#fff;font-size:14px;font-weight:700}
 .gal-viewer .gv-close{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:800}
-.gal-viewer .gv-stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.gal-viewer .gv-stage img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;transform-origin:0 0;will-change:transform;-webkit-user-drag:none}
+.gal-viewer .gv-stage{flex:1;position:relative;overflow:hidden}
+.gal-viewer .gv-stage img{position:absolute;left:0;top:0;max-width:100%;max-height:100%;width:auto;height:auto;display:block;transform-origin:0 0;will-change:transform;-webkit-user-drag:none}
 .gal-viewer .gv-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:64px;border:0;background:rgba(0,0,0,.35);color:#fff;font-size:34px;line-height:1;border-radius:10px}
 .gal-viewer .gv-prev{left:6px}.gal-viewer .gv-next{right:6px}
 .gal-viewer .gv-nav[disabled]{opacity:.25}
@@ -3339,6 +3339,7 @@ $('#galAlbums').addEventListener('click',e=>{ const b=e.target.closest('[data-ga
   st.addEventListener('click',e=>{ if(e.target.closest('[data-zoom]')&&galUrls.length) galViewerOpen(galUrls,galN); }); })();
 // ----- 사진 크게 보기 화면 -----
 const gvEl=$('#galViewer'), gvImg=$('#gvImg'), gvStage=$('#gvStage');
+document.body.appendChild(gvEl);   // 본문 상자 안에 있으면 아래 메뉴보다 뒤에 깔리므로 body 바로 아래로 옮김
 let gv={urls:[],i:0,s:1,tx:0,ty:0,open:false};
 function gvApply(anim){ gvImg.style.transition=anim?'transform .2s ease':'none'; gvImg.style.transform=`translate(${gv.tx}px,${gv.ty}px) scale(${gv.s})`; }
 function gvClamp(){ const r=gvStage.getBoundingClientRect(), w=gvImg.clientWidth*gv.s, h=gvImg.clientHeight*gv.s, ox=(r.width-gvImg.clientWidth)/2, oy=(r.height-gvImg.clientHeight)/2;
