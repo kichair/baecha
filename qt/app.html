@@ -567,9 +567,9 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
         <button class="shortcut smart-directory-shortcut" id="smartDirectoryButton" aria-label="스마트요람">
           <svg class="shortcut-icon" viewBox="0 0 24 24"><path d="M4 4.5h16v15H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
           <strong>스마트요람</strong><small>교회 가족 안내</small></button>
-        <button class="shortcut thanks" id="thanksButton" aria-label="오늘도 감사">
-          <svg class="shortcut-icon" viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18.5 14.5l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9zM5.5 15l.7 1.5 1.5.7-1.5.7-.7 1.5-.7-1.5-1.5-.7 1.5-.7z"/></svg>
-          <strong>오늘도 감사...</strong><small>감사 나눔</small></button>
+        <button class="shortcut thanks" id="cellButton" aria-label="셀리더교제">
+          <svg class="shortcut-icon" viewBox="0 0 24 24"><path d="M4 7.5h16v12H4z"/><path d="M4 7.5l2.5-3h11l2.5 3"/><path d="M9 12h6"/></svg>
+          <strong>셀리더교제</strong><small>셀리더 자료방</small></button>
       </section>
 
       <div class="duo-row">
@@ -805,6 +805,18 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
             <button id="admGalNew" class="adm-btn sub" type="button">새로 쓰기 (입력칸 비우기)</button>
             <div id="admGalMsg" class="adm-msg"></div>
             <div id="admGalList"></div></div>
+          <div class="adm-card"><h3>📎 셀리더교제 자료 올리기</h3>
+            <p style="margin:0;font-size:13.5px;color:#68778c">첫 화면 <b>셀리더교제</b>(비밀번호 0109)에 보이는 자료입니다. 사진·PDF는 화면에 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
+            <input id="admCellId" type="hidden">
+            <label for="admCellTitle">제목</label><input id="admCellTitle" maxlength="80" placeholder="예: 10월 셀리더 교재">
+            <label for="admCellBody">내용 (선택)</label><textarea id="admCellBody" rows="3"></textarea>
+            <label for="admCellFile">파일 (사진·PDF·문서, 여러 개 가능)</label><input id="admCellFile" type="file" multiple>
+            <div id="admCellFl" style="font-size:13.5px;margin-top:6px"></div>
+            <label class="adm-check"><input id="admCellPin" type="checkbox"> 📌 맨 위에 고정</label>
+            <button id="admCellSave" class="adm-btn" type="button">자료 올리기</button>
+            <button id="admCellNew" class="adm-btn sub" type="button">새로 쓰기 (입력칸 비우기)</button>
+            <div id="admCellMsg" class="adm-msg"></div>
+            <div id="admCellList"></div></div>
           <div class="adm-card"><h3>🎶 오늘의 찬양을 CCM으로 바꾸기</h3>
             <p style="margin:0;font-size:13.5px;color:#68778c">CCM 악보를 올리면 그날은 찬송가 대신 이 찬양이 나옵니다. 제목은 사진에서 자동으로 읽거나 직접 쓰세요.</p>
             <label for="admCcmDate">날짜</label><input id="admCcmDate" type="date">
@@ -943,6 +955,37 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
     <div class="ye-chk"><input id="yeNew" type="checkbox"> 💞 새가족 (새가족 타일에 표시)</div>
     <button id="yeSave" class="ye-save" type="button">저장</button><div id="yeMsg" class="ye-msg"></div>
   </div></div>
+  <!-- 2026-10-10 셀리더교제 자료방: 비밀번호(0109, 서버 확인) → 관리자가 올린 글·파일. 사진·PDF는 바로 펼쳐 보이고 파일은 내려받기 -->
+  <style>
+  .cell-box{max-height:88vh;overflow:auto}
+  .cell-post{border:1px solid #e3e9f1;border-radius:14px;padding:14px;margin:10px 0;background:#fff}
+  .cell-post h4{margin:0 0 2px;font-size:16px;color:#163b70}.cell-post small{color:#94a3b8;font-size:12px}
+  .cell-post .cb{margin:8px 0 0;white-space:pre-wrap;font-size:14.5px;line-height:1.7;color:#33445c;word-break:keep-all}
+  .cell-post .cp{display:block;width:100%;margin-top:8px;border-radius:10px;border:1px solid #e3e9f1;cursor:zoom-in}
+  .cell-post .cfile{display:flex;align-items:center;gap:8px;margin-top:8px;padding:10px 12px;border-radius:10px;background:#eef4fb;color:#1d4f91;font-weight:700;text-decoration:none;font-size:14px}
+  .cell-post .cfile small{color:#68778c;font-weight:400;margin-left:auto;white-space:nowrap}
+  .cell-empty{text-align:center;color:#68778c;padding:20px 0}
+  </style>
+  <div id="cellModal" class="directory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cellTitle">
+    <div class="directory-login cell-box">
+      <button id="cellClose" class="directory-close" type="button" aria-label="셀리더교제 닫기">✕</button>
+      <p class="eyebrow">CELL LEADERS</p>
+      <h2 id="cellTitle">셀리더교제</h2>
+      <div id="cellLogin">
+        <p class="login-desc">셀리더를 위한 자료방입니다. 비밀번호를 입력해 주세요.</p>
+        <form id="cellLoginForm" autocomplete="off">
+          <label for="cellPassword">비밀번호</label>
+          <input id="cellPassword" name="password" type="password" inputmode="numeric" autocomplete="off" required placeholder="비밀번호 입력">
+          <button class="directory-login-button" type="submit">들어가기</button>
+        </form>
+        <p id="cellLoginMsg" style="color:#d33;font-weight:700;min-height:20px;margin:10px 0 0"></p>
+      </div>
+      <div id="cellBody" class="hidden">
+        <button id="cellWrite" class="news-more" type="button" hidden>📎 자료 올리기 (관리자)</button>
+        <div id="cellList"></div>
+      </div>
+    </div>
+  </div>
   <div id="thanksModal" class="birthday-modal hidden"><div class="birthday-box" style="width:min(100%,430px)"><button id="thanksClose" class="birthday-close">✕</button><h2>🌼 오늘도 감사...</h2><p style="margin:0 0 12px">오늘도 주님께 감사할 게 있다면 이곳을 통해서 함께 공유해보시기 바랍니다.</p><input id="thanksName" type="text" maxlength="20" placeholder="이름 (비우면 익명)" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #e6dcc6;border-radius:12px;font-size:16px"><textarea id="thanksText" rows="3" maxlength="1000" placeholder="오늘 감사한 일을 적어주세요." style="width:100%;box-sizing:border-box;margin-top:8px;padding:12px;border:1px solid #e6dcc6;border-radius:12px;font-size:16px;resize:vertical"></textarea><button id="thanksSubmit" type="button" style="width:100%;margin-top:10px;padding:14px;border:0;border-radius:12px;background:#d69a00;color:#fff;font-size:17px;font-weight:800">감사 나누기</button><p id="thanksStatus" style="margin:8px 0 0;font-size:14px"></p><div id="thanksList" style="max-height:36vh;overflow-y:auto;margin-top:6px"></div></div></div>
   <div id="missionModal" class="birthday-modal hidden"><div class="birthday-box"><button id="missionClose" class="birthday-close">✕</button><h2>선교기도</h2><p style="margin:0 0 12px;color:#64748b;line-height:1.6">우리 교회가 함께 기도하는 선교지와 선교사님들의 기도제목입니다.</p><div id="missionContent" style="max-height:55vh;overflow-y:auto"></div><button id="missionPrayed" type="button" style="width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:#0e7c8f;color:white;font-size:17px;font-weight:800">🙏 오늘 선교를 위해 기도했어요 <span id="missionCount"></span></button></div></div>
   <div id="intercessionModal" class="birthday-modal hidden"><div class="birthday-box"><button id="intercessionClose" class="birthday-close">✕</button><h2>중보기도</h2><p style="margin:0 0 14px;color:#64748b;line-height:1.6">함께 기도하기 원하는 기도제목을 남겨주세요.</p><label for="intercessionName" style="display:block;font-weight:700;margin:10px 0 6px">이름</label><input id="intercessionName" type="text" placeholder="이름" style="width:100%;box-sizing:border-box;padding:13px;border:1px solid #dbe3ee;border-radius:12px;font-size:16px"><label for="intercessionText" style="display:block;font-weight:700;margin:14px 0 6px">기도제목</label><textarea id="intercessionText" rows="6" placeholder="기도제목을 적어주세요." style="width:100%;box-sizing:border-box;padding:13px;border:1px solid #dbe3ee;border-radius:12px;font-size:16px;resize:vertical"></textarea><label style="display:flex;gap:8px;align-items:center;margin:12px 0;color:#475569"><input id="intercessionPrivate" type="checkbox"> 관리자에게만 공개</label><button id="intercessionSubmit" type="button" style="width:100%;padding:14px;border:0;border-radius:12px;background:#238b57;color:white;font-size:17px;font-weight:800">기도제목 등록</button><p id="intercessionStatus" style="margin:12px 0 0;color:#64748b;font-size:14px"></p></div></div>
@@ -3124,7 +3167,46 @@ const thanksModal=$('#thanksModal');
 function thanksTime(at){ const d=new Date(at); const diff=(Date.now()-d)/1000; if(diff<60) return '방금'; if(diff<3600) return Math.floor(diff/60)+'분 전'; if(diff<86400) return Math.floor(diff/3600)+'시간 전'; return `${d.getMonth()+1}월 ${d.getDate()}일`; }
 function thanksRender(list){ $('#thanksList').innerHTML = list.length ? list.map(t=>`<div class="thanks-item"><b>${esc(t.name)}</b><small>${thanksTime(t.at)}</small><p>${esc(t.text)}</p></div>`).join('') : '<p style="color:#94a3b8;text-align:center;padding:14px 0">첫 번째 감사를 나눠주세요 🙏</p>'; }
 async function loadThanks(){ try{ const j=await (await fetch(`${QT_API.replace(/\/$/,'')}/api/thanks`,{cache:'no-cache'})).json(); if(j.ok) thanksRender(j.list); }catch(e){ $('#thanksList').innerHTML='<p style="color:#94a3b8;text-align:center">인터넷 연결을 확인해 주세요.</p>'; } }
-$('#thanksButton').addEventListener('click',()=>{ $('#thanksName').value=store.get('thanks:name')||''; $('#thanksStatus').textContent=''; openModal(thanksModal); loadThanks(); });
+if($('#thanksButton')) $('#thanksButton').addEventListener('click',()=>{ $('#thanksName').value=store.get('thanks:name')||''; $('#thanksStatus').textContent=''; openModal(thanksModal); loadThanks(); });   // 2026-10-10 첫 화면 칸은 셀리더교제로 바뀜
+// ===== 셀리더교제 자료방 =====
+const cellModal=$('#cellModal'); let CELL={pass:'',list:[]};
+try{ CELL.pass=sessionStorage.getItem('cell-pass')||''; }catch(e){}
+const cellK=()=>(typeof admToken!=='undefined'&&admToken)?'':CELL.pass;
+function cellFileUrl(u,dl){ return API()+u+'?k='+encodeURIComponent(CELL.pass)+(dl?'&dl=1':''); }
+function fmtSize(b){ return b>=1048576?(b/1048576).toFixed(1)+'MB':Math.max(1,Math.round(b/1024))+'KB'; }
+function cellRender(){
+  const box=$('#cellList'); const list=CELL.list||[];
+  $('#cellWrite').hidden=!(typeof admToken!=='undefined'&&admToken);
+  if(!list.length){ box.innerHTML='<p class="cell-empty">아직 올라온 자료가 없습니다.</p>'; return; }
+  const d=s=>{const t=new Date(s);return `${t.getMonth()+1}월 ${t.getDate()}일`;};
+  box.innerHTML=list.map(c=>{
+    const pages=[]; (c.files||[]).forEach(f=>(f.pages||[]).forEach(u=>pages.push(u)));
+    return `<div class="cell-post" data-cid="${esc(c.id)}"><h4>${c.pin?'📌 ':''}${esc(c.title)}</h4><small>${d(c.at)}</small>${c.body?`<p class="cb">${esc(c.body)}</p>`:''}`+
+      pages.map((u,i)=>`<img class="cp" src="${esc(cellFileUrl(u))}" alt="" loading="lazy" data-cp="${i}">`).join('')+
+      (c.files||[]).map(f=>`<a class="cfile" href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ ${esc(f.name)}<small>${fmtSize(f.size||0)}</small></a>`).join('')+`</div>`;
+  }).join('');
+}
+async function cellLoad(pass){
+  const r=await fetch(API()+'/api/cell',{headers:pass?{'X-Cell-Pass':pass}:(typeof admH==='function'?admH():{}),cache:'no-store'});
+  const j=await r.json().catch(()=>({ok:false,error:'서버 응답 오류'}));
+  if(!j.ok) throw new Error(j.error||'불러오지 못했습니다');
+  if(pass){ CELL.pass=pass; try{ sessionStorage.setItem('cell-pass',pass); }catch(e){} }
+  CELL.list=j.list||[]; cellRender();
+}
+function cellShowBody(on){ $('#cellLogin').classList.toggle('hidden',on); $('#cellBody').classList.toggle('hidden',!on); }
+$('#cellButton').addEventListener('click',async()=>{
+  openModal(cellModal); $('#cellLoginMsg').textContent='';
+  const adm=(typeof admToken!=='undefined'&&admToken);
+  if(CELL.pass||adm){ try{ await cellLoad(adm?'':CELL.pass); cellShowBody(true); return; }catch(e){ CELL.pass=''; } }
+  cellShowBody(false); setTimeout(()=>$('#cellPassword').focus(),50);
+});
+$('#cellLoginForm').addEventListener('submit',async e=>{ e.preventDefault(); const pw=$('#cellPassword').value.trim(); if(!pw) return;
+  $('#cellLoginMsg').textContent='확인 중…'; try{ await cellLoad(pw); $('#cellPassword').value=''; $('#cellLoginMsg').textContent=''; cellShowBody(true); }catch(err){ $('#cellLoginMsg').textContent=err.message; } });
+$('#cellClose').addEventListener('click',()=>closeModal(cellModal));
+cellModal.addEventListener('click',e=>{ if(e.target===cellModal) closeModal(cellModal); });
+$('#cellList').addEventListener('click',e=>{ const im=e.target.closest('[data-cp]'); if(!im) return;
+  const post=im.closest('.cell-post'); const urls=[...post.querySelectorAll('[data-cp]')].map(x=>x.src); galViewerOpen(urls,+im.dataset.cp); });
+$('#cellWrite').addEventListener('click',()=>{ closeModal(cellModal); $('#adminOpen').click(); setTimeout(()=>{ const c=$('#admCellTitle'); if(c){ c.scrollIntoView({behavior:'smooth',block:'center'}); c.focus(); } },700); });
 $('#thanksClose').addEventListener('click',()=>closeModal(thanksModal));
 thanksModal.addEventListener('click',e=>{if(e.target===thanksModal)closeModal(thanksModal);});
 $('#thanksSubmit').addEventListener('click',async()=>{
@@ -3154,7 +3236,7 @@ function admSay(id,text,err){const el=$(id);el.textContent=text;el.classList.tog
 async function admCall(path,opt={}){const r=await fetch(API()+path,{cache:'no-cache',...opt});let j={};try{j=await r.json();}catch(e){j={ok:false,error:'서버 응답 오류 ('+r.status+')'};}return j;}
 // 비밀번호 확인: 일부러 잘못된 날짜로 저장을 요청 → 비번이 맞으면 "날짜 형식 오류", 틀리면 "권한 없음" (아무것도 저장되지 않음)
 async function admCheck(tok){const r=await fetch(API()+'/api/qt',{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({date:'x'})});return r.status===400;}
-function admShow(on){$('#admLogin').classList.toggle('hidden',on);$('#admPanel').classList.toggle('hidden',!on);if(on){const k=keyForToday();$('#admColDate').value=$('#admDate').value=k;$('#admScoreNo').value=getTodayQT().hymnNo||'';$('#admCcmDate').value=k;if(!$('#admGalDate').value)$('#admGalDate').value=k;admNewsList();admGalList();admStatus();}}
+function admShow(on){$('#admLogin').classList.toggle('hidden',on);$('#admPanel').classList.toggle('hidden',!on);if(on){const k=keyForToday();$('#admColDate').value=$('#admDate').value=k;$('#admScoreNo').value=getTodayQT().hymnNo||'';$('#admCcmDate').value=k;if(!$('#admGalDate').value)$('#admGalDate').value=k;admNewsList();admGalList();admCellList();cellThumbs();admStatus();}}
 async function admStatus(){
   admSay('#admStatus','확인 중…');
   try{const j=await admCall('/api/last-run');
@@ -3495,6 +3577,43 @@ $('#admGalList').addEventListener('click',async e=>{const box=$('#admGalList');c
     galKeep=[...(g.images||[])];galThumbs();galBtnLabel();admSay('#admGalMsg','수정 중: '+g.title+'\n고친 뒤 「💾 수정 내용 서버에 저장」을 누르세요');$('#admGalTitle').focus();}
   if(dl){const g=(box._list||[]).find(x=>x.id===dl.dataset.gd);if(!confirm((g?g.title:'이 갤러리')+'를 지울까요?\n(사진도 함께 지워지며 되돌릴 수 없습니다)'))return;
     const j=await admCall('/api/gallery?id='+encodeURIComponent(dl.dataset.gd),{method:'DELETE',headers:admH()}).catch(()=>({ok:false}));if(j.ok){admGalList();loadGallery();}else alert('실패: '+(j.error||''));}});
+
+// 관리자: 셀리더교제 자료 올리기 — 파일은 그대로(내려받기용) + 사진·PDF는 화면용 쪽 그림(JPEG)도 함께
+let cellFiles=[], cellKeep=[];
+function admPdfJs(){ return new Promise((res,rej)=>{ if(window.pdfjsLib) return res(window.pdfjsLib); const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(pdfjsLib); }; sc.onerror=rej; document.head.appendChild(sc); }); }
+async function admPdfPages(f,say){ const lib=await admPdfJs(); const pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise; const out=[];
+  for(let p=1;p<=Math.min(pdf.numPages,30);p++){ say('PDF '+p+'/'+pdf.numPages+'쪽 변환 중…'); const pg=await pdf.getPage(p); const v=pg.getViewport({scale:1}); const sc=1600/Math.max(v.width,v.height); const vp=pg.getViewport({scale:sc});
+    const c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); await pg.render({canvasContext:x,viewport:vp}).promise; out.push(c.toDataURL('image/jpeg',.85)); }
+  return out; }
+function cellThumbs(){ const rows=cellKeep.map((f,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #eef">📎 ${esc(f.name)} <small style="color:#94a3b8">(${fmtSize(f.size||0)}${(f.pages||[]).length?' · 화면 '+f.pages.length+'쪽':''}) 올라가 있음</small><button type="button" data-ck="${i}" style="border:0;background:#fdecea;color:#c0392b;border-radius:8px;padding:4px 8px">빼기</button></div>`)
+  .concat(cellFiles.map((it,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #eef">📎 ${esc(it.file.name)} <small style="color:#94a3b8">(${fmtSize(it.file.size)}${it.pages.length?' · 화면 '+it.pages.length+'쪽':''})</small><button type="button" data-cx="${i}" style="border:0;background:#fdecea;color:#c0392b;border-radius:8px;padding:4px 8px">빼기</button></div>`));
+  $('#admCellFl').innerHTML=rows.join('')||'<span style="color:#94a3b8">아직 고른 파일이 없습니다</span>'; }
+$('#admCellFl').addEventListener('click',e=>{ const k=e.target.closest('[data-ck]'),x=e.target.closest('[data-cx]'); if(k) cellKeep.splice(+k.dataset.ck,1); if(x) cellFiles.splice(+x.dataset.cx,1); if(k||x) cellThumbs(); });
+$('#admCellFile').addEventListener('change',async()=>{ const fs=[...$('#admCellFile').files].sort((a,b)=>a.name.localeCompare(b.name,'ko',{numeric:true})); $('#admCellFile').value='';
+  for(const f of fs){ if(f.size>25*1024*1024){ admSay('#admCellMsg',f.name+' 은 25MB가 넘어 올릴 수 없습니다',true); continue; } const it={file:f,pages:[]};
+    try{ if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)) it.pages=await admPdfPages(f,t=>admSay('#admCellMsg',t)); else if(/^image/.test(f.type)) it.pages=[await newsShrink(f)]; }catch(e){}
+    cellFiles.push(it); } admSay('#admCellMsg',''); cellThumbs(); });
+function cellClear(){ ['#admCellId','#admCellTitle','#admCellBody'].forEach(q=>$(q).value=''); $('#admCellPin').checked=false; cellFiles=[]; cellKeep=[]; cellThumbs(); $('#admCellSave').textContent='자료 올리기'; }
+$('#admCellNew').addEventListener('click',()=>{ cellClear(); admSay('#admCellMsg',''); });
+function admPutFile(url,body,type,say,label){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('PUT',API()+url); x.setRequestHeader('Authorization','Bearer '+admToken); x.setRequestHeader('Content-Type',type);
+  x.upload.onprogress=e=>{ if(e.lengthComputable) say(label+' 올리는 중… '+Math.round(e.loaded/e.total*100)+'%'); };
+  x.onload=()=>{ try{ const j=JSON.parse(x.responseText); j.ok?res(j):rej(new Error(j.error||'실패')); }catch(e){ rej(new Error('서버 응답 오류 '+x.status)); } }; x.onerror=()=>rej(new Error('연결 오류')); x.send(body); }); }
+async function admCellUploadOne(it,say,label){ const f=it.file; const j=await admPutFile('/api/cell-file?name='+encodeURIComponent(f.name)+'&type='+encodeURIComponent(f.type||'application/octet-stream'),f,f.type||'application/octet-stream',say,label);
+  const pages=[]; for(let i=0;i<it.pages.length;i++){ const pb=await (await fetch(it.pages[i])).blob(); const pj=await admPutFile('/api/cell-file?name='+encodeURIComponent(f.name+' - '+(i+1)+'쪽.jpg')+'&type=image/jpeg',pb,'image/jpeg',say,label+' 화면용 '+(i+1)+'쪽'); pages.push(pj.file.url); }
+  return {key:j.file.key,name:j.file.name,type:j.file.type,size:j.file.size,url:j.file.url,pages}; }
+$('#admCellSave').addEventListener('click',async()=>{ const btn=$('#admCellSave'); const title=$('#admCellTitle').value.trim(); const say=(t,err)=>admSay('#admCellMsg',t,err);
+  if(!title) return say('제목을 넣어주세요',true); if(!cellKeep.length&&!cellFiles.length&&!$('#admCellBody').value.trim()) return say('파일이나 내용을 넣어주세요',true);
+  btn.disabled=true;
+  try{ const files=cellKeep.slice(); for(let i=0;i<cellFiles.length;i++) files.push(await admCellUploadOne(cellFiles[i],say,'파일 '+(i+1)+'/'+cellFiles.length));
+    const j=await admCall('/api/cell',{method:'POST',headers:admH(true),body:JSON.stringify({id:$('#admCellId').value,title,body:$('#admCellBody').value,pin:$('#admCellPin').checked,files})});
+    if(!j.ok) throw new Error(j.error||'실패'); say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 첫 화면 셀리더교제 칸에 바로 나옵니다'); cellClear(); admCellList(); if(CELL) CELL.list=[];
+  }catch(e){ say('실패: '+e.message,true); } btn.disabled=false; });
+async function admCellList(){ const box=$('#admCellList'); try{ const j=await admCall('/api/cell',{headers:admH()}); const l=j.list||[]; box._list=l;
+  box.innerHTML=l.length?l.map(c=>`<div style="border-top:1px solid #e3e9f1;padding:9px 0;display:flex;gap:8px;align-items:center"><div style="flex:1;font-size:13.5px"><b>${c.pin?'📌 ':''}${esc(c.title)}</b> 📎${(c.files||[]).length}<br><small style="color:#94a3b8">${new Date(c.at).toLocaleDateString('ko-KR')} · ${(c.files||[]).map(f=>esc(f.name)).join(', ')}</small></div><button data-cle="${esc(c.id)}" type="button" style="border:0;background:#e9f1fb;color:#1d6fd6;border-radius:9px;padding:6px 10px;font-weight:800">수정</button><button data-cld="${esc(c.id)}" type="button" style="border:0;background:#fdecea;color:#c0392b;border-radius:9px;padding:6px 10px;font-weight:800">삭제</button></div>`).join(''):'<p class="adm-msg">올린 자료가 없습니다</p>';
+  }catch(e){ box.innerHTML='<p class="adm-msg err">서버에 연결할 수 없습니다</p>'; } }
+$('#admCellList').addEventListener('click',async e=>{ const box=$('#admCellList'); const ed=e.target.closest('[data-cle]'),dl=e.target.closest('[data-cld]');
+  if(ed){ const c=(box._list||[]).find(x=>x.id===ed.dataset.cle); if(!c) return; cellClear(); $('#admCellId').value=c.id; $('#admCellTitle').value=c.title; $('#admCellBody').value=c.body||''; $('#admCellPin').checked=!!c.pin; cellKeep=(c.files||[]).slice(); cellThumbs(); $('#admCellSave').textContent='💾 수정 내용 서버에 저장'; admSay('#admCellMsg','수정 중: '+c.title); $('#admCellTitle').focus(); }
+  if(dl){ const c=(box._list||[]).find(x=>x.id===dl.dataset.cld); if(!confirm((c?c.title:'이 자료')+'를 지울까요?\n(파일도 함께 지워집니다)')) return; const j=await admCall('/api/cell?id='+encodeURIComponent(dl.dataset.cld),{method:'DELETE',headers:admH()}).catch(()=>({ok:false})); if(j.ok){ admCellList(); if(CELL) CELL.list=[]; } else alert('실패: '+(j.error||'')); } });
 
 // ===== 함께 기도해요 =====
 let prayersAll=[], prayersOpen=false;

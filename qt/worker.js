@@ -20,6 +20,7 @@
  *  - 비밀값     DURANNO_ID / DURANNO_PW : 두란노 로그인 아이디·비밀번호 (대시보드 Secret으로만 저장)
  *  - 변수       LOGIN_PAGE / LOGIN_URL / LOGIN_ID_FIELD / LOGIN_PW_FIELD : 두란노 로그인 양식 정보
  *  - (선택)     DIR_PASS   : 스마트요람 비밀번호 — 없으면 0191
+ *  - (선택)     CELL_PASS  : 셀리더교제 비밀번호 — 없으면 0109
  *
  * 2026-10-06 관리자 페이지 칸 번호를 위에서부터 ①~⑦ 순서로 정리
  * 2026-10-06 변경: 원어 해설 강화 (⭐ 열쇠 단어 + 📖 직역 + [어원] + [시제](필요할 때만) + [핵심 절] 설명 + 요약 필수 (👉 적용 칸 없음), 성도용 쉬운 말)
@@ -36,6 +37,10 @@
  * 2026-10-10 선교기도·갤러리·주보: 파일 여러 개를 고르면 이름의 숫자 순(1, 2, 3 …)으로 올려 1번이 맨 위에 나옴
  * 2026-10-10 해설·원어 배경: 지명이 나오면 지금 지도의 이름을 괄호로 — 갈라디아(지금의 터키) (앱은 이미 쓴 해설에도 지명 사전으로 붙임)
  * 2026-10-10 원어 해설: 핵심 단어 5~7개(보통 6개)로 늘림 (WORDS_V=5, 2026-10-10부터 다시 씀)
+ * 2026-10-10 셀리더교제 자료방 (비밀번호 0109): 관리자가 올린 파일(사진·PDF·문서)을 성도가 보고 내려받음
+ *   - GET /api/cell (X-Cell-Pass) · POST/DELETE /api/cell (관리자) · PUT /api/cell-file?name=&type= (관리자, 파일 바이트 25MB 이하)
+ *   - GET /cell-file/<키>?k=비밀번호(&dl=1 내려받기) — PDF는 올릴 때 쪽마다 그림으로 바꿔 함께 저장해 화면에 바로 펼쳐 보임
+ *   - 새 자료를 올리면 지난 자료는 파일까지 자동 삭제 (CELL_MAX=1). 같은 글 수정은 그대로
  * 2026-10-10 함께 기도해요: 관리자가 기도제목 고치기 (POST /api/prayers/edit) — 앱 관리자 모드에서 이름·내용·비공개 수정
  */
 
@@ -535,7 +540,7 @@ async function fetchSermons(env) {
 }
 
 // ---------- 응답 도우미 ----------
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Dir-Pass' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Dir-Pass,X-Cell-Pass' };
 const json = (obj, status = 200, extra = {}) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS, ...extra } });
 function isAdmin(req, env) {
   const t = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();   // 앞뒤 공백·줄바꿈은 무시
@@ -548,16 +553,26 @@ const dataUrlBytes = data => Uint8Array.from(atob(String(data).split(',')[1] || 
 // ---------- 스마트요람 (비밀번호로 보호) ----------
 // 명단: KV 'dir:data' (가족 단위 JSON) / 사진: KV 'dir:img:<ID>'
 const dirPass = env => String(env.DIR_PASS || '0191');
+const cellPass = env => String(env.CELL_PASS || '0109');
 // 비밀번호 확인 — 틀리면 IP별로 횟수를 세고, 10분에 10번 넘게 틀리면 잠시 막음
-async function dirCheck(req, env, given) {
+async function passCheck(req, env, given, want, prefix) {
   const ip = req.headers.get('CF-Connecting-IP') || '';
-  const failKey = `dir:fail:${ip}`;
+  const failKey = `${prefix}:fail:${ip}`;
   const fails = ip ? Number((await env.QT_KV.get(failKey)) || 0) : 0;
   if (fails >= 10) return { ok: false, status: 429, error: '비밀번호를 여러 번 틀렸습니다. 10분 뒤에 다시 해 주세요' };
-  if (String(given || '') === dirPass(env)) return { ok: true };
+  if (String(given || '') === want) return { ok: true };
   if (ip) await env.QT_KV.put(failKey, String(fails + 1), { expirationTtl: 600 });
   return { ok: false, status: 401, error: '비밀번호가 맞지 않습니다' };
 }
+const dirCheck = (req, env, given) => passCheck(req, env, given, dirPass(env), 'dir');
+const cellCheck = (req, env, given) => passCheck(req, env, given, cellPass(env), 'cell');
+// ---------- 셀리더교제 자료방 ----------
+// 목록 KV 'cell:list' = [{ id, title, body, at, files: [{ key, name, type, size, pages: ['/cell-file/<키>', …] }] }]
+// 파일 KV 'cell:file:<키>' (바이트) + 'cell:fmeta:<키>' ({name,type,size})
+const CELL_MAX = 1;                                          // 자료 보관 개수 — 새 자료를 올리면 지난 자료는 파일까지 자동 삭제 (여러 개 남기려면 숫자를 키움)
+const cellList = async env => JSON.parse((await env.QT_KV.get('cell:list')) || '[]');
+async function cellDropFile(env, url) { const k = (String(url || '').match(/cell-file\/([\w-]+)/) || [])[1]; if (k) { await env.QT_KV.delete(`cell:file:${k}`); await env.QT_KV.delete(`cell:fmeta:${k}`); } }
+async function cellDropPost(env, post) { for (const f of post?.files || []) { await cellDropFile(env, f.url || `/cell-file/${f.key}`); for (const u of f.pages || []) await cellDropFile(env, u); } }
 async function dirData(env) { return JSON.parse((await env.QT_KV.get('dir:data')) || 'null'); }
 async function dirSetPhoto(env, id, has) {
   const data = await dirData(env);
@@ -699,6 +714,74 @@ export default {
         await env.QT_KV.put('dir:data', JSON.stringify(data));
         await env.QT_KV.delete(`dir:img:${id}`);
         return json({ ok: true, name: hit.name, families: data.families.length, people: data.families.reduce((n, f) => n + f.m.length, 0) });
+      }
+      // ---------- 셀리더교제 자료방 ----------
+      // 목록 (앱): 헤더 X-Cell-Pass 또는 ?k= 에 비밀번호 (관리자 토큰도 됨)
+      if (path === '/api/cell' && req.method === 'GET') {
+        const c = isAdmin(req, env) ? { ok: true } : await cellCheck(req, env, req.headers.get('X-Cell-Pass') || url.searchParams.get('k'));
+        if (!c.ok) return json({ ok: false, error: c.error }, c.status);
+        return json({ ok: true, list: await cellList(env) }, 200, { 'Cache-Control': 'no-store' });
+      }
+      // 관리자: 파일 한 개 올리기 (바이트 그대로) — ?name=파일이름&type=형식 → { key, url }
+      if (path === '/api/cell-file' && req.method === 'PUT') {
+        if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
+        const buf = await req.arrayBuffer();
+        if (!buf.byteLength) return json({ ok: false, error: '빈 파일입니다' }, 400);
+        if (buf.byteLength > 25 * 1024 * 1024) return json({ ok: false, error: `파일이 너무 큽니다 (${(buf.byteLength / 1048576).toFixed(1)}MB — 25MB 이하만)` }, 400);
+        const key = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        const name = String(url.searchParams.get('name') || 'file').slice(0, 120);
+        const type = String(url.searchParams.get('type') || req.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim().slice(0, 80);
+        await env.QT_KV.put(`cell:file:${key}`, buf);
+        await env.QT_KV.put(`cell:fmeta:${key}`, JSON.stringify({ name, type, size: buf.byteLength }));
+        return json({ ok: true, file: { key, name, type, size: buf.byteLength, url: `/cell-file/${key}` } });
+      }
+      // 관리자: 글 올리기·고치기 — body: { id?, title, body?, files: [{key,name,type,size,url,pages:[…]}] }  (고칠 때 빠진 파일은 지움)
+      if (path === '/api/cell' && req.method === 'POST') {
+        if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
+        const b = await req.json().catch(() => ({}));
+        const title = String(b.title || '').trim().slice(0, 80), body = String(b.body || '').trim().slice(0, 3000);
+        if (!title) return json({ ok: false, error: '제목을 넣어주세요' }, 400);
+        const list = await cellList(env);
+        const id = b.id || Date.now().toString(36);
+        const old = list.find(x => x.id === id);
+        const files = (Array.isArray(b.files) ? b.files : (old?.files || [])).slice(0, 20).map(f => ({
+          key: String(f.key || '').replace(/[^\w-]/g, ''), name: String(f.name || '').slice(0, 120), type: String(f.type || '').slice(0, 80), size: Number(f.size) || 0,
+          url: `/cell-file/${String(f.key || '').replace(/[^\w-]/g, '')}`, pages: (Array.isArray(f.pages) ? f.pages : []).filter(u => /^\/cell-file\/[\w-]+$/.test(String(u))).slice(0, 30),
+        })).filter(f => f.key);
+        if (old) {                                                   // 빠진 파일 삭제
+          const keep = new Set(files.map(f => f.key));
+          for (const f of old.files || []) if (!keep.has(f.key)) { await cellDropFile(env, f.url); for (const u of f.pages || []) await cellDropFile(env, u); }
+        }
+        const item = { id, title, body, files, pin: !!b.pin, at: old?.at || new Date().toISOString(), updatedAt: new Date().toISOString() };
+        // 새 자료면 지난 자료는 전부 파일까지 지움 (같은 글 수정은 그대로)
+        if (!old && CELL_MAX <= 1) for (const g of list) await cellDropPost(env, g);
+        const rest = (!old && CELL_MAX <= 1) ? [] : list.filter(x => x.id !== id); rest.unshift(item);
+        rest.sort((a, z) => (z.pin - a.pin) || z.at.localeCompare(a.at));
+        for (const g of rest.slice(CELL_MAX)) await cellDropPost(env, g);   // 보관 개수를 넘는 오래된 자료는 파일까지 정리
+        await env.QT_KV.put('cell:list', JSON.stringify(rest.slice(0, CELL_MAX)));
+        return json({ ok: true, item });
+      }
+      if (path === '/api/cell' && req.method === 'DELETE') {
+        if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
+        const id = url.searchParams.get('id');
+        const list = await cellList(env);
+        const gone = list.find(x => x.id === id);
+        if (!gone) return json({ ok: false, error: '없는 글입니다' }, 404);
+        await cellDropPost(env, gone);
+        await env.QT_KV.put('cell:list', JSON.stringify(list.filter(x => x.id !== id)));
+        return json({ ok: true });
+      }
+      // 파일 보기·내려받기 (앱): ?k=비밀번호, &dl=1 이면 내려받기
+      const cf = path.match(/^\/cell-file\/([\w-]+)$/);
+      if (cf && (req.method === 'GET' || req.method === 'HEAD')) {
+        const c = isAdmin(req, env) ? { ok: true } : await cellCheck(req, env, url.searchParams.get('k'));
+        if (!c.ok) return new Response(c.error, { status: c.status, headers: CORS });
+        const meta = (await getJSON(env, `cell:fmeta:${cf[1]}`)) || {};
+        const buf = await env.QT_KV.get(`cell:file:${cf[1]}`, 'arrayBuffer');
+        if (!buf) return new Response('파일 없음', { status: 404, headers: CORS });
+        const fname = encodeURIComponent(meta.name || 'file');
+        const disp = (url.searchParams.get('dl') === '1' ? 'attachment' : 'inline') + `; filename*=UTF-8''${fname}`;
+        return rangeResponse(buf, meta.type || 'application/octet-stream', req, { 'Content-Disposition': disp, 'Cache-Control': 'private, max-age=86400' });
       }
       // 사진 보기 (앱): ?k=비밀번호
       const di = path.match(/^\/dir-img\/([\w가-힣%-]+)$/);
@@ -1409,6 +1492,17 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <canvas id="vcv" style="display:none"></canvas>
 <button id="vup">압축해서 올리기</button><button class="sub del" id="vdel" style="width:100%;margin-top:8px;padding:12px;font-size:15px">지금 올라간 영상 삭제</button>
 <div id="m17" class="msg"></div></section>
+
+<section><h2>⑩ 셀리더교제 자료 올리기</h2>
+<p style="font-size:13px;color:#557;margin:0 0 6px">앱 첫 화면 <b>셀리더교제</b> 칸에 들어가면(비밀번호 0109) 여기서 올린 글과 파일이 보입니다. 사진·PDF는 화면에 바로 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
+<label>제목</label><input id="ct" placeholder="예: 10월 셀리더 교재">
+<label>내용 (선택)</label><textarea id="cb" rows="3"></textarea>
+<label>파일 (사진·PDF·한글·엑셀 등 여러 개 — 끌어다 놓아도 됩니다)</label>
+<div id="cdrop" style="border:2px dashed #b9cbe3;border-radius:12px;padding:18px;text-align:center;color:#557;background:#f7faff">여기로 파일을 끌어다 놓거나 <b>눌러서 선택</b><input id="cf" type="file" multiple style="display:none"></div>
+<div id="cfl" style="margin-top:8px;font-size:14px"></div>
+<div class="row"><input id="cpin" type="checkbox"> 📌 맨 위에 고정</div>
+<input id="cid" type="hidden"><button id="csv">올리기</button><button class="sub" id="cnew">새로 쓰기 (입력칸 비우기)</button>
+<div id="m18" class="msg"></div><div id="clist"></div></section>
 </main><script>
 const $=q=>document.querySelector(q);const today=new Date(Date.now()+9*36e5).toISOString().slice(0,10);$('#cd').value=$('#d').value=today;
 $('#tk').value=sessionStorage.getItem('tk')||'';
@@ -1692,6 +1786,39 @@ $('#vup').onclick=async function(){if(vBusy)return;var f=$('#vf').files[0];if(!f
 $('#vdel').onclick=async function(){if(!confirm('지금 올라간 주간사역 영상을 지울까요? (앱에서 영상 칸이 사라집니다)'))return;
  var j=await (await fetch('/api/gallery-video',{method:'DELETE',headers:H()})).json();$('#m17').style.color=j.ok?'#3a5':'#c33';$('#m17').textContent=j.ok?'지웠습니다':'실패: '+j.error;$('#vpv').style.display='none';vShow();};
 vShow();
+
+// ⑩ 셀리더교제 자료 — 파일은 그대로 올리고(내려받기용), 사진·PDF는 화면에 펼쳐 보이도록 쪽 그림(JPEG)도 함께 올림
+var cFiles=[], cKeep=[], cData=[];
+function cThumbs(){var rows=cKeep.map(function(f,i){return '<div class="row" style="justify-content:space-between"><span>📎 '+esc(f.name)+' <small style="color:#889">('+vFmt(f.size)+(f.pages&&f.pages.length?' · 화면 '+f.pages.length+'쪽':'')+') — 올라가 있음</small></span><button class="del" data-ck="'+i+'">빼기</button></div>';})
+ .concat(cFiles.map(function(it,i){return '<div class="row" style="justify-content:space-between"><span>📎 '+esc(it.file.name)+' <small style="color:#889">('+vFmt(it.file.size)+(it.pages.length?' · 화면 '+it.pages.length+'쪽':'')+')</small></span><button class="del" data-cx="'+i+'">빼기</button></div>';}));
+ $('#cfl').innerHTML=rows.join('')||'<p class="msg" style="color:#889">아직 고른 파일이 없습니다</p>';}
+async function cAdd(files){for(var i=0;i<files.length;i++){var f=files[i];if(f.size>25*1024*1024){$('#m18').style.color='#c33';$('#m18').textContent=f.name+' 은 25MB가 넘어 올릴 수 없습니다';continue;}
+  var it={file:f,pages:[]};try{if(/pdf/i.test(f.type)||/\\.pdf$/i.test(f.name))it.pages=await pdfFile(f,'#m18');else if(/^image/.test(f.type))it.pages=[await imgFile(f)];}catch(e){}cFiles.push(it);}cThumbs();}
+$('#cfl').onclick=function(e){var k=e.target.closest('[data-ck]'),x=e.target.closest('[data-cx]');if(k)cKeep.splice(+k.dataset.ck,1);if(x)cFiles.splice(+x.dataset.cx,1);if(k||x)cThumbs();};
+$('#cf').onchange=function(){var fs=byName($('#cf').files);$('#cf').value='';cAdd(fs);};
+$('#cdrop').onclick=function(e){if(e.target.id!=='cf')$('#cf').click();};
+$('#cdrop').ondragover=function(e){e.preventDefault();this.style.background='#e9f1fb';};
+$('#cdrop').ondragleave=function(){this.style.background='#f7faff';};
+$('#cdrop').ondrop=function(e){e.preventDefault();this.style.background='#f7faff';cAdd(byName(e.dataTransfer.files));};
+function cClear(){$('#cid').value='';$('#ct').value='';$('#cb').value='';$('#cpin').checked=false;cFiles=[];cKeep=[];cThumbs();$('#csv').textContent='올리기';}
+$('#cnew').onclick=function(){cClear();$('#m18').textContent='';};
+async function cUploadOne(it,say,label){var f=it.file;var j=await vPut('/api/cell-file?name='+encodeURIComponent(f.name)+'&type='+encodeURIComponent(f.type||'application/octet-stream'),f,f.type||'application/octet-stream',say,label);
+ var pages=[];for(var i=0;i<it.pages.length;i++){var pb=await (await fetch(it.pages[i])).blob();var pj=await vPut('/api/cell-file?name='+encodeURIComponent(f.name+' - '+(i+1)+'쪽.jpg')+'&type=image/jpeg',pb,'image/jpeg',say,label+' 화면용 '+(i+1)+'쪽');pages.push(pj.file.url);}
+ return {key:j.file.key,name:j.file.name,type:j.file.type,size:j.file.size,url:j.file.url,pages:pages};}
+$('#csv').onclick=async function(){var title=$('#ct').value.trim();var say=function(t,err){$('#m18').style.color=err?'#c33':'#3a5';$('#m18').textContent=t;};
+ if(!title)return say('제목을 넣어주세요',true);if(!cKeep.length&&!cFiles.length&&!$('#cb').value.trim())return say('파일이나 내용을 넣어주세요',true);
+ $('#csv').disabled=true;
+ try{var files=cKeep.slice();for(var i=0;i<cFiles.length;i++){files.push(await cUploadOne(cFiles[i],say,'파일 '+(i+1)+'/'+cFiles.length));}
+  var j=await (await fetch('/api/cell',{method:'POST',headers:Object.assign({},H(),{'Content-Type':'application/json'}),body:JSON.stringify({id:$('#cid').value,title:title,body:$('#cb').value,pin:$('#cpin').checked,files:files})})).json();
+  if(!j.ok)throw new Error(j.error||'실패');say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 앱 셀리더교제 칸에 바로 나옵니다');cClear();cLoad();}
+ catch(e){say('실패: '+e.message,true);}
+ $('#csv').disabled=false;};
+async function cLoad(){try{var j=await (await fetch('/api/cell',{headers:H(),cache:'no-store'})).json();cData=j.ok?(j.list||[]):[];if(!j.ok){$('#clist').innerHTML='<p class="msg" style="color:#889">'+(j.error||'')+' (관리자 비밀번호 확인)</p>';return;}}catch(e){cData=[];}
+ $('#clist').innerHTML=cData.length?'<p style="font-weight:800;margin:16px 0 6px">올린 자료 ('+cData.length+')</p>'+cData.map(function(c){return '<div style="border:1px solid #e3e8ef;border-radius:10px;padding:10px;margin:8px 0"><b>'+(c.pin?'📌 ':'')+esc(c.title)+'</b> 📎'+(c.files||[]).length+' <span style="color:#889;font-size:13px">'+new Date(c.at).toLocaleDateString('ko-KR')+'</span><div style="font-size:13px;color:#557;margin-top:4px">'+(c.files||[]).map(function(f){return esc(f.name)+' ('+vFmt(f.size)+')';}).join(', ')+'</div><div class="row"><button class="sub" style="margin:0;padding:8px" data-ce="'+esc(c.id)+'">수정</button><button class="sub" style="margin:0;padding:8px;color:#c33" data-cd="'+esc(c.id)+'">삭제</button></div></div>';}).join(''):'<p class="msg" style="color:#889">아직 올린 자료가 없습니다</p>';}
+$('#clist').onclick=async function(e){var ed=e.target.closest('[data-ce]'),dl=e.target.closest('[data-cd]');
+ if(ed){var c=cData.find(function(x){return x.id===ed.dataset.ce;});if(!c)return;cClear();$('#cid').value=c.id;$('#ct').value=c.title;$('#cb').value=c.body||'';$('#cpin').checked=!!c.pin;cKeep=(c.files||[]).slice();cThumbs();$('#csv').textContent='수정 내용 저장';$('#m18').style.color='#3a5';$('#m18').textContent='수정 중: '+c.title;window.scrollTo({top:$('#ct').getBoundingClientRect().top+scrollY-120,behavior:'smooth'});}
+ if(dl){var c2=cData.find(function(x){return x.id===dl.dataset.cd;});if(!confirm((c2?c2.title:'이 자료')+'를 지울까요?\\n(파일도 함께 지워집니다)'))return;var j=await (await fetch('/api/cell?id='+encodeURIComponent(dl.dataset.cd),{method:'DELETE',headers:H()})).json();$('#m18').style.color=j.ok?'#3a5':'#c33';$('#m18').textContent=j.ok?'삭제했습니다':'실패: '+j.error;cLoad();}};
+cClear();cLoad();
 $('#appup').onclick=async()=>{const f=$('#appf').files[0];if(!f)return $('#m0').textContent='파일을 선택해 주세요';
  const r=await fetch('/api/app',{method:'PUT',headers:{...H(),'Content-Type':'text/html; charset=utf-8'},body:await f.text()});const j=await r.json();
  $('#m0').textContent=j.ok?'앱을 올렸습니다 ('+Math.round(j.size/1024)+'KB). 휴대폰에서 '+location.origin+'/ 로 열어보세요':'실패: '+j.error;};
