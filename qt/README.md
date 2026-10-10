@@ -27,7 +27,7 @@
 ### 📎 셀리더교제 자료방 (비밀번호 0109)
 - 앱 첫 화면의 "오늘도 감사" 칸이 **셀리더교제**로 바뀜. 비밀번호(0109, 서버 확인 — 바꾸려면 Cloudflare 변수 `CELL_PASS`)를 넣으면 관리자가 올린 글·파일이 보임
 - 사진·PDF·**한글(hwp)** 파일은 올릴 때 브라우저가 쪽마다 그림으로 바꿔 함께 저장 → 앱에서 원본 모양대로 펼쳐짐(누르면 크게 보기). 모든 파일은 ⬇ 다운로드. 파일 하나 25MB 이하
-- 한글은 hwp.js(Apache-2.0, hahnlee/hwp.js)를 worker 가 `/lib/hwp.min.js` 로 서빙하고 html2canvas(cdnjs)로 사진화. 이미 올라간 한글 파일은 목록의 「📄 쪽 만들기」로 변환. hwpx·워드·엑셀은 내려받기만
+- 한글은 hwp.js(Apache-2.0, hahnlee/hwp.js)를 worker 가 `/lib/hwp.min.js` 로 서빙하고 html2canvas(cdnjs)로 사진화. 서버에 쪽 그림이 없는 한글 파일은 앱이 열 때 그 자리에서 자동으로 그려 보여주고, 관리자가 열면 그 결과를 서버에 저장(이후 바로 뜸). 목록의 「📄 쪽 만들기」로 직접 변환도 가능. hwpx·워드·엑셀은 내려받기만
 - 올리기: PC 관리자 페이지 ⑩ 또는 앱 관리자 모드 "📎 셀리더교제 자료 올리기". PDF는 올릴 때 쪽마다 그림으로 바꿔 함께 저장
 - **새 자료를 올리면 지난 자료는 파일까지 자동 삭제**(`CELL_MAX = 1`). 같은 글 수정은 그대로
 - 주소: `GET /api/cell`(X-Cell-Pass) · `PUT /api/cell-file?name=&type=` · `POST/DELETE /api/cell`(관리자) · `GET /cell-file/<키>?k=비밀번호[&dl=1]`

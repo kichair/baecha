@@ -3186,14 +3186,41 @@ function cellRender(){
   const d=s=>{const t=new Date(s);return `${t.getMonth()+1}월 ${t.getDate()}일`;};
   box.innerHTML=list.map(c=>{
     let n=0;   // 글 안의 쪽 번호 (크게 보기에서 넘기기용)
-    const docs=(c.files||[]).map(f=>{ const pages=f.pages||[];
+    const docs=(c.files||[]).map(f=>{ const pages=(f.pages&&f.pages.length)?f.pages:(f._pages||[]);   // _pages: 이 휴대폰에서 방금 그린 쪽 (서버에 없을 때)
       const dl=`<p class="cdl"><b>📎 ${esc(f.name)}</b><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드 (${fmtSize(f.size||0)})</a></p>`;
-      const imgs=pages.map((u,i)=>`<img class="cp" src="${esc(cellFileUrl(u))}" alt="${esc(f.name)} ${i+1}쪽" loading="lazy" data-cp="${n++}">`+(pages.length>1?`<p class="cpn">${i+1} / ${pages.length}</p>`:'')).join('');
-      const note=pages.length?'':`<p class="cdl" style="color:#94a3b8;margin:0">이 파일은 아직 화면에 펼쳐지지 않습니다 — 위 다운로드를 눌러 열어 주세요${/\.hwp$/i.test(f.name)?' (관리자: 자료 올리기 목록의 「쪽 만들기」를 누르면 화면에 보입니다)':''}</p>`;
+      const imgs=pages.map((u,i)=>`<img class="cp" src="${esc(u.startsWith('data:')?u:cellFileUrl(u))}" alt="${esc(f.name)} ${i+1}쪽" loading="lazy" data-cp="${n++}">`+(pages.length>1?`<p class="cpn">${i+1} / ${pages.length}</p>`:'')).join('');
+      const hwpWait=!pages.length&&typeof isHwp==='function'&&isHwp(f)&&!f._failed;
+      const note=pages.length?'':(hwpWait?`<p class="cdl cell-wait" data-fkey="${esc(f.key)}" style="color:#1d6fd6;margin:0">⏳ 한글 문서를 화면에 그리는 중입니다… 잠시만 기다려 주세요</p>`:`<p class="cdl" style="color:#94a3b8;margin:0">이 파일은 화면에 펼쳐지지 않습니다 — 위 다운로드를 눌러 열어 주세요${f._failed?' (화면 변환 실패: '+esc(f._failed)+')':''}</p>`);
       return `<div class="cell-doc">${dl}${note}${imgs}${pages.length?`<p class="cdl" style="margin:4px 0 0;justify-content:flex-end"><a href="${esc(cellFileUrl(f.url,true))}" download="${esc(f.name)}">⬇ 다운로드</a></p>`:''}</div>`; }).join('');
     return `<div class="cell-post" data-cid="${esc(c.id)}"><h4>${c.pin?'📌 ':''}${esc(c.title)}</h4><small>${d(c.at)}</small>${c.body?`<p class="cb">${esc(c.body)}</p>`:''}${docs}</div>`;
   }).join('');
+  cellAutoPages();
 }
+// 서버에 쪽 그림이 없는 한글(.hwp) 파일은 이 휴대폰에서 바로 그려서 보여줌. 관리자가 열었으면 그 결과를 서버에도 저장해 다음부터 바로 뜨게
+let cellBusy=false;
+async function cellAutoPages(){
+  if(cellBusy||typeof hwpPages!=='function') return;
+  const todo=[]; (CELL.list||[]).forEach(c=>(c.files||[]).forEach(f=>{ if(!(f.pages&&f.pages.length)&&!(f._pages&&f._pages.length)&&!f._failed&&isHwp(f)) todo.push({c,f}); }));
+  if(!todo.length) return; cellBusy=true;
+  try{
+    for(const {c,f} of todo){
+      const say=t=>{ const el=document.querySelector(`.cell-wait[data-fkey="${f.key}"]`); if(el) el.textContent='⏳ '+t; };
+      try{
+        const r=await fetch(cellFileUrl(f.url)); if(!r.ok) throw new Error('파일을 받지 못했습니다 ('+r.status+')');
+        f._pages=await hwpPages(await r.blob(),say);
+      }catch(e){ f._failed=e.message||'오류'; }
+      cellRenderOnly();
+      // 관리자면 서버에 저장 (조용히)
+      if(f._pages&&typeof admToken!=='undefined'&&admToken){ try{
+        const urls=[]; for(let k=0;k<f._pages.length;k++){ const pb=await (await fetch(f._pages[k])).blob(); const pj=await admPutFile('/api/cell-file?name='+encodeURIComponent(f.name+' - '+(k+1)+'쪽.jpg')+'&type=image/jpeg',pb,'image/jpeg',()=>{},''); urls.push(pj.file.url); }
+        const files=(c.files||[]).map(x=>x.key===f.key?{...x,pages:urls}:x);
+        const j=await admCall('/api/cell',{method:'POST',headers:admH(true),body:JSON.stringify({id:c.id,title:c.title,body:c.body||'',pin:!!c.pin,files})});
+        if(j.ok){ f.pages=urls; if(typeof admCellList==='function'&&!$('#admPanel').classList.contains('hidden')) admCellList(); }
+      }catch(e){} }
+    }
+  } finally { cellBusy=false; }
+}
+function cellRenderOnly(){ const b=cellBusy; cellBusy=true; try{ cellRender(); } finally { cellBusy=b; } }
 async function cellLoad(pass){
   const r=await fetch(API()+'/api/cell',{headers:pass?{'X-Cell-Pass':pass}:(typeof admH==='function'?admH():{}),cache:'no-store'});
   const j=await r.json().catch(()=>({ok:false,error:'서버 응답 오류'}));
