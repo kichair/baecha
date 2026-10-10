@@ -29,6 +29,9 @@
  * 2026-10-07 스마트요람 교인 추가·수정 (POST /api/dir/person) — 앱 관리자 모드에서 새가족 등록, 셀 이동 등
  * 2026-10-10 관리자 ⑨ 주간사역 갤러리: 사진 묶음 올리기·수정·삭제 (GET /api/gallery, POST·DELETE /api/gallery, 사진 /gallery-img/<키>)
  *   - 새 묶음을 올리면 지난 묶음은 사진까지 자동 삭제 (GALLERY_MAX=1). 같은 묶음 수정은 그대로
+ * 2026-10-10 주간사역 영상 (갤러리 아래 재생 칸): 관리자 페이지 ⑨에서 영상 파일을 고르면 브라우저가 720p로 압축해 올림 (KV, 25MB 이하)
+ *   - PUT /api/gallery-video (영상 바이트) · PUT /api/gallery-poster (표지 JPEG) · DELETE /api/gallery-video · GET /api/gallery-video (정보)
+ *   - 재생: GET /gallery-video (Range 지원 — 아이폰도 재생) · GET /gallery-poster. 새 영상을 올리면 지난 영상은 자동 삭제(덮어씀)
  *   - 앱 관리자 모드에서도 같은 주소(POST /api/gallery, 관리자 비밀번호)로 올리고 고칠 수 있음
  * 2026-10-10 선교기도·갤러리·주보: 파일 여러 개를 고르면 이름의 숫자 순(1, 2, 3 …)으로 올려 1번이 맨 위에 나옴
  * 2026-10-10 함께 기도해요: 관리자가 기도제목 고치기 (POST /api/prayers/edit) — 앱 관리자 모드에서 이름·내용·비공개 수정
@@ -566,6 +569,21 @@ async function dirSetPhoto(env, id, has) {
 // 사진: KV 'gallery:img:<키>' (JPEG)
 const GALLERY_MAX = 1;                                       // 묶음 보관 개수 — 새 묶음을 올리면 지난 묶음은 사진까지 자동 삭제 (여러 묶음을 남기려면 숫자를 키움)
 const galleryList = async env => JSON.parse((await env.QT_KV.get('gallery:list')) || '[]');
+// 주간사역 영상 (1개) — KV 'gallery:video' (바이트, 25MB 이하) / 'gallery:video:poster' (JPEG) / 'gallery:video:meta' ({type,size,dur,title,at})
+const VIDEO_MAX = 25 * 1024 * 1024;
+const videoMeta = env => getJSON(env, 'gallery:video:meta');
+// 영상 파일 응답 — Range(일부 구간) 요청을 처리해야 아이폰·사파리에서 재생됨
+function rangeResponse(buf, type, req, extra = {}) {
+  const total = buf.byteLength;
+  const base = { 'Content-Type': type, 'Accept-Ranges': 'bytes', ...CORS, ...extra };
+  const m = (req.headers.get('Range') || '').match(/^bytes=(\d*)-(\d*)$/);
+  if (!m || (m[1] === '' && m[2] === '')) return new Response(req.method === 'HEAD' ? null : buf, { headers: { ...base, 'Content-Length': String(total) } });
+  let start = m[1] === '' ? Math.max(0, total - Number(m[2])) : Number(m[1]);
+  let end = m[1] !== '' && m[2] !== '' ? Math.min(Number(m[2]), total - 1) : total - 1;
+  if (start >= total || start > end) return new Response(null, { status: 416, headers: { ...base, 'Content-Range': `bytes */${total}` } });
+  const part = buf.slice(start, end + 1);
+  return new Response(req.method === 'HEAD' ? null : part, { status: 206, headers: { ...base, 'Content-Range': `bytes ${start}-${end}/${total}`, 'Content-Length': String(part.byteLength) } });
+}
 async function galleryDropImages(env, urls) {
   for (const u of urls || []) { const k = (String(u).match(/gallery-img\/([\w-]+)/) || [])[1]; if (k) await env.QT_KV.delete(`gallery:img:${k}`); }
 }
@@ -922,7 +940,57 @@ export default {
       // ---------- 주간사역 갤러리 (관리자 페이지 ⑨ · 앱 관리자 모드에서 올림, 앱은 GET /api/gallery 로 받아감) ----------
       // 목록 (누구나)
       if (path === '/api/gallery' && req.method === 'GET') {
-        return json({ ok: true, list: await galleryList(env) }, 200, { 'Cache-Control': 'no-cache' });
+        const [list, video] = await Promise.all([galleryList(env), videoMeta(env)]);
+        return json({ ok: true, list, video: video || null }, 200, { 'Cache-Control': 'no-cache' });
+      }
+      // ---------- 주간사역 영상 (1개 — 새로 올리면 지난 영상 삭제) ----------
+      if (path === '/api/gallery-video' && req.method === 'GET') {
+        return json({ ok: true, video: (await videoMeta(env)) || null }, 200, { 'Cache-Control': 'no-cache' });
+      }
+      // 관리자: 압축된 영상 올리기 — body 는 영상 바이트, Content-Type 은 video/mp4 또는 video/webm, ?title=&dur=초
+      if (path === '/api/gallery-video' && req.method === 'PUT') {
+        if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
+        const type = (req.headers.get('Content-Type') || '').split(';')[0].trim();
+        if (!/^video\/(mp4|webm|quicktime)$/.test(type)) return json({ ok: false, error: '영상 형식 오류 (mp4 또는 webm)' }, 400);
+        const buf = await req.arrayBuffer();
+        if (buf.byteLength < 1000) return json({ ok: false, error: '영상 파일이 비어 있습니다' }, 400);
+        if (buf.byteLength > VIDEO_MAX) return json({ ok: false, error: `영상이 너무 큽니다 (${(buf.byteLength / 1048576).toFixed(1)}MB — 25MB 이하로 압축해 주세요)` }, 400);
+        const at = Date.now().toString(36);
+        await env.QT_KV.put('gallery:video', buf);
+        const meta = { type, size: buf.byteLength, dur: Number(url.searchParams.get('dur')) || 0, title: String(url.searchParams.get('title') || '').trim().slice(0, 80), at, src: `/gallery-video?v=${at}`, poster: '' };
+        const oldMeta = await videoMeta(env);
+        if (oldMeta?.poster) { await env.QT_KV.delete('gallery:video:poster'); }   // 지난 영상 표지는 지움 (새 표지는 따로 올림)
+        await env.QT_KV.put('gallery:video:meta', JSON.stringify(meta));
+        return json({ ok: true, video: meta });
+      }
+      // 관리자: 영상 표지(첫 장면) JPEG 올리기
+      if (path === '/api/gallery-poster' && req.method === 'PUT') {
+        if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
+        const meta = await videoMeta(env);
+        if (!meta) return json({ ok: false, error: '먼저 영상을 올려 주세요' }, 400);
+        const buf = await req.arrayBuffer();
+        if (!buf.byteLength || buf.byteLength > 2 * 1024 * 1024) return json({ ok: false, error: '표지 크기 오류' }, 400);
+        await env.QT_KV.put('gallery:video:poster', buf);
+        meta.poster = `/gallery-poster?v=${meta.at}`;
+        await env.QT_KV.put('gallery:video:meta', JSON.stringify(meta));
+        return json({ ok: true, video: meta });
+      }
+      if (path === '/api/gallery-video' && req.method === 'DELETE') {
+        if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
+        await env.QT_KV.delete('gallery:video'); await env.QT_KV.delete('gallery:video:poster'); await env.QT_KV.delete('gallery:video:meta');
+        return json({ ok: true });
+      }
+      // 재생 (앱 <video> 태그) — Range 지원
+      if (path === '/gallery-video' && (req.method === 'GET' || req.method === 'HEAD')) {
+        const meta = await videoMeta(env);
+        const buf = meta && await env.QT_KV.get('gallery:video', 'arrayBuffer');
+        if (!buf) return new Response('영상 없음', { status: 404, headers: CORS });
+        return rangeResponse(buf, meta.type || 'video/mp4', req, { 'Cache-Control': 'public, max-age=2592000' });
+      }
+      if (path === '/gallery-poster' && req.method === 'GET') {
+        const body = await env.QT_KV.get('gallery:video:poster', 'arrayBuffer');
+        if (!body) return new Response('표지 없음', { status: 404, headers: CORS });
+        return new Response(body, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=2592000', ...CORS } });
       }
       // 관리자: 사진 묶음 올리기·고치기 — body: { id?(고칠 묶음), date, title, body?, keep?(남길 사진 주소), imagesData?(새 사진 data:image/jpeg;base64,…) }
       if (path === '/api/gallery' && req.method === 'POST') {
@@ -1327,7 +1395,16 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <div id="gdrop" style="border:2px dashed #b9cbe3;border-radius:12px;padding:18px;text-align:center;color:#557;background:#f7faff">여기로 사진을 끌어다 놓거나 <b>눌러서 선택</b><input id="gf" type="file" accept="image/*,application/pdf" multiple style="display:none"></div>
 <div id="gpv" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px"></div>
 <input id="gid" type="hidden"><button id="gsv">갤러리 올리기</button><button class="sub" id="gnew">새로 쓰기 (입력칸 비우기)</button>
-<div id="m16" class="msg"></div><div id="glist"></div></section>
+<div id="m16" class="msg"></div><div id="glist"></div>
+<h2 style="margin-top:22px">🎬 주간사역 영상 (갤러리 아래 재생 칸)</h2>
+<p style="font-size:13px;color:#557;margin:0 0 6px">영상 파일을 고르면 이 브라우저가 <b>720p로 자동 압축</b>한 뒤 올립니다 (1분 영상에 약 1분, 이 화면을 켜 둔 채 기다리세요). <b>새 영상을 올리면 지난 영상은 자동으로 지워집니다.</b> 4분 이하 영상만 됩니다.</p>
+<div id="vcur" class="msg" style="color:#334"></div>
+<label>영상 파일 (mp4, mov 등 — 휴대폰에서 찍은 그대로)</label><input id="vf" type="file" accept="video/*">
+<label>제목 (선택)</label><input id="vt" placeholder="예: 10월 둘째 주 사역 영상">
+<video id="vpv" style="width:100%;max-height:260px;background:#000;border-radius:10px;margin-top:8px;display:none" controls playsinline></video>
+<canvas id="vcv" style="display:none"></canvas>
+<button id="vup">압축해서 올리기</button><button class="sub del" id="vdel" style="width:100%;margin-top:8px;padding:12px;font-size:15px">지금 올라간 영상 삭제</button>
+<div id="m17" class="msg"></div></section>
 </main><script>
 const $=q=>document.querySelector(q);const today=new Date(Date.now()+9*36e5).toISOString().slice(0,10);$('#cd').value=$('#d').value=today;
 $('#tk').value=sessionStorage.getItem('tk')||'';
@@ -1553,6 +1630,64 @@ $('#glist').onclick=async function(e){var ed=e.target.closest('[data-ge]'),dl=e.
  if(dl){var g2=gData.find(function(x){return x.id===dl.dataset.gd;});if(!confirm((g2?g2.title:'이 갤러리')+'를 삭제할까요?\\n(사진도 함께 지워지며 되돌릴 수 없습니다)'))return;
   var j=await (await fetch('/api/gallery?id='+encodeURIComponent(dl.dataset.gd),{method:'DELETE',headers:H()})).json();$('#m16').style.color=j.ok?'#3a5':'#c33';$('#m16').textContent=j.ok?'삭제했습니다':'실패: '+j.error;gLoad();}};
 gClear();gLoad();
+
+// 🎬 주간사역 영상 — 브라우저에서 720p로 다시 녹화(압축)해서 올림. 새 영상을 올리면 서버가 지난 영상을 덮어씀
+var VMAX_SEC=240, VTARGET=19*1024*1024;   // 4분까지, 압축 결과 19MB 안쪽을 목표 (서버 한도 25MB)
+function vFmt(b){return b>=1048576?(b/1048576).toFixed(1)+'MB':Math.round(b/1024)+'KB';}
+function vDur(s){s=Math.round(s||0);return Math.floor(s/60)+'분 '+(s%60)+'초';}
+async function vShow(){try{var j=await (await fetch('/api/gallery-video',{cache:'no-store'})).json();var v=j.video;
+ $('#vcur').innerHTML=v?'지금 앱에 올라간 영상: <b>'+esc(v.title||'(제목 없음)')+'</b> · '+vFmt(v.size)+(v.dur?' · '+vDur(v.dur):'')+' · '+(v.type==='video/mp4'?'MP4':'WebM')+' <a href="/gallery-video?v='+esc(v.at)+'" target="_blank" style="color:#1d6fd6">재생해 보기</a>':'<span style="color:#889">아직 올린 영상이 없습니다</span>';}catch(e){$('#vcur').textContent='';}}
+// 녹화 형식: MP4(H.264)가 되면 그것(모든 휴대폰 재생), 안 되면 WebM
+function vMime(){var c=['video/mp4;codecs="avc1.42E01E,mp4a.40.2"','video/mp4;codecs="avc1.42E01E,opus"','video/mp4;codecs=avc1','video/mp4','video/webm;codecs="h264,opus"','video/webm;codecs="vp9,opus"','video/webm;codecs="vp8,opus"','video/webm'];
+ for(var i=0;i<c.length;i++)if(window.MediaRecorder&&MediaRecorder.isTypeSupported(c[i]))return c[i];return '';}
+// 영상 → 720p 녹화. 끝나면 {blob, poster, dur, w, h}
+function vCompress(file,say){return new Promise(function(res,rej){
+ var mime=vMime();if(!mime)return rej(new Error('이 브라우저는 영상 압축을 지원하지 않습니다 — PC Chrome 또는 Edge 최신 버전을 쓰세요'));
+ var v=document.createElement('video');v.muted=false;v.playsInline=true;v.preload='auto';v.src=URL.createObjectURL(file);
+ v.onerror=function(){rej(new Error('영상 파일을 열 수 없습니다 (형식 확인)'));};
+ v.onloadedmetadata=function(){
+  var dur=v.duration;if(!isFinite(dur)||dur<=0)return rej(new Error('영상 길이를 읽지 못했습니다'));
+  if(dur>VMAX_SEC)return rej(new Error('영상이 '+vDur(dur)+'입니다 — 4분 이하로 잘라서 올려 주세요'));
+  var W=v.videoWidth,H=v.videoHeight;if(!W||!H)return rej(new Error('영상 크기를 읽지 못했습니다'));
+  var sc=Math.min(1,1280/Math.max(W,H),720/Math.min(W,H));var w=Math.round(W*sc/2)*2,h=Math.round(H*sc/2)*2;
+  var cv=$('#vcv');cv.width=w;cv.height=h;var cx=cv.getContext('2d');
+  var abr=96000,vbr=Math.max(400000,Math.min(2200000,Math.floor(VTARGET*8/dur)-abr));   // 길이에 맞춰 화질 자동
+  var stream=cv.captureStream(30);
+  var ac=new (window.AudioContext||window.webkitAudioContext)();var dest=ac.createMediaStreamDestination();
+  try{ac.createMediaElementSource(v).connect(dest);dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t);});}catch(e){}
+  var rec,chunks=[];try{rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:vbr,audioBitsPerSecond:abr});}catch(e){return rej(new Error('녹화를 시작할 수 없습니다: '+e.message));}
+  rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+  var poster=null,stopped=false,raf=0;
+  function draw(){if(stopped)return;cx.drawImage(v,0,0,w,h);if(!poster&&v.currentTime>=0.8){try{poster=cv.toDataURL('image/jpeg',.82);}catch(e){}}
+   say('압축 중… '+Math.round(v.currentTime/dur*100)+'% ('+vDur(v.currentTime)+' / '+vDur(dur)+') — 이 화면을 닫지 마세요');
+   if(v.requestVideoFrameCallback)v.requestVideoFrameCallback(draw);else raf=requestAnimationFrame(draw);}
+  function finish(){if(stopped)return;stopped=true;cancelAnimationFrame(raf);try{rec.stop();}catch(e){}}
+  rec.onstop=function(){try{ac.close();}catch(e){}URL.revokeObjectURL(v.src);
+   var blob=new Blob(chunks,{type:mime.split(';')[0]});if(!poster){try{poster=cv.toDataURL('image/jpeg',.82);}catch(e){}}
+   res({blob:blob,poster:poster,dur:dur,w:w,h:h,mime:mime});};
+  v.onended=finish;v.onerror=function(){finish();rej(new Error('재생 중 오류'));};
+  v.currentTime=0;ac.resume().then(function(){return v.play();}).then(function(){rec.start(1000);draw();}).catch(function(e){rej(new Error('재생을 시작할 수 없습니다: '+e.message));});
+ };});}
+function vPut(url,body,type,say,label){return new Promise(function(res,rej){var x=new XMLHttpRequest();x.open('PUT',url);x.setRequestHeader('Authorization','Bearer '+$('#tk').value.trim());x.setRequestHeader('Content-Type',type);
+ x.upload.onprogress=function(e){if(e.lengthComputable)say(label+' 올리는 중… '+Math.round(e.loaded/e.total*100)+'%');};
+ x.onload=function(){try{var j=JSON.parse(x.responseText);j.ok?res(j):rej(new Error(j.error||'실패'));}catch(e){rej(new Error('서버 응답 오류 '+x.status));}};x.onerror=function(){rej(new Error('연결 오류'));};x.send(body);});}
+var vBusy=false;
+$('#vup').onclick=async function(){if(vBusy)return;var f=$('#vf').files[0];if(!f)return $('#m17').textContent='영상 파일을 선택해 주세요';
+ var say=function(t,err){$('#m17').style.color=err?'#c33':'#3a5';$('#m17').textContent=t;};vBusy=true;$('#vup').disabled=true;
+ try{say('원본 '+vFmt(f.size)+' — 영상을 여는 중…');
+  var r=await vCompress(f,say);
+  if(r.blob.size>25*1024*1024)throw new Error('압축 후에도 '+vFmt(r.blob.size)+'라 올릴 수 없습니다 — 영상을 더 짧게 잘라 주세요');
+  say('압축 완료: '+vFmt(f.size)+' → '+vFmt(r.blob.size)+' ('+r.w+'×'+r.h+'). 올리는 중…');
+  var j=await vPut('/api/gallery-video?title='+encodeURIComponent($('#vt').value.trim())+'&dur='+Math.round(r.dur),r.blob,r.blob.type||'video/webm',say,'영상');
+  if(r.poster){var pb=await (await fetch(r.poster)).blob();await vPut('/api/gallery-poster',pb,'image/jpeg',say,'표지').catch(function(){});}
+  var isMp4=/mp4/.test(j.video.type);
+  say('올렸습니다 — '+vFmt(j.video.size)+' · '+vDur(j.video.dur)+' · '+(isMp4?'MP4 (모든 휴대폰에서 재생됩니다)':'WebM — 아이폰에서는 재생이 안 될 수 있습니다. Chrome 또는 Edge 최신 버전으로 올리면 MP4가 됩니다')+'\\n지난 영상은 지워졌고, 앱 갤러리 아래 영상 칸에 바로 나옵니다.');
+  $('#vpv').src='/gallery-video?v='+j.video.at;$('#vpv').style.display='';$('#vf').value='';vShow();
+ }catch(e){say('실패: '+e.message,true);}
+ vBusy=false;$('#vup').disabled=false;};
+$('#vdel').onclick=async function(){if(!confirm('지금 올라간 주간사역 영상을 지울까요? (앱에서 영상 칸이 사라집니다)'))return;
+ var j=await (await fetch('/api/gallery-video',{method:'DELETE',headers:H()})).json();$('#m17').style.color=j.ok?'#3a5':'#c33';$('#m17').textContent=j.ok?'지웠습니다':'실패: '+j.error;$('#vpv').style.display='none';vShow();};
+vShow();
 $('#appup').onclick=async()=>{const f=$('#appf').files[0];if(!f)return $('#m0').textContent='파일을 선택해 주세요';
  const r=await fetch('/api/app',{method:'PUT',headers:{...H(),'Content-Type':'text/html; charset=utf-8'},body:await f.text()});const j=await r.json();
  $('#m0').textContent=j.ok?'앱을 올렸습니다 ('+Math.round(j.size/1024)+'KB). 휴대폰에서 '+location.origin+'/ 로 열어보세요':'실패: '+j.error;};
