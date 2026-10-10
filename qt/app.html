@@ -397,6 +397,11 @@ svg{display:block}
 .ws-btns button{font-size:calc(14px * var(--qs,1))}
 .cm-title{font-size:calc(15px * var(--qs,1))}.cm-text{font-size:calc(15px * var(--qs,1))}
 .cm-q{font-size:calc(14px * var(--qs,1))}.md-text{font-size:calc(15px * var(--qs,1))}
+/* 2026-10-10 📚 참고하기 — 성경 시대 풍습·제도·지리 (한절 묵상 아래) */
+.ref-box{margin-top:14px;padding:16px 16px 14px;border-radius:16px;background:linear-gradient(160deg,#f1f8ff,#e6f1fd);border:1px solid #cfe0f5}
+.ref-head{margin:0 0 8px;font-weight:900;color:#1d4f91;font-size:16px;border-bottom:1px solid #cfe0f5;padding-bottom:8px}
+.ref-head small{font-weight:700;color:#4a6a95;font-size:13px;margin-left:6px}
+.ref-text{margin:0;font-size:calc(15px * var(--qs,1));line-height:1.75;color:#2b3b55;word-break:keep-all;white-space:pre-wrap}
 .ws-close-hint{text-align:center;font-size:12px;color:#94a3b8;margin-top:10px}
 
 .md-box{margin-top:18px;padding:16px 16px 14px;border-radius:16px;background:linear-gradient(160deg,#fffaf0,#fff4dd);border:1px solid #f3e2bb}
@@ -2374,7 +2379,8 @@ function renderToday(fetchServer=true){
   $('#commentary').hidden = !cm;
   $('#commentary').innerHTML = cm ? `<div class="cm-head"><b>📖 본문 해설</b><small>AI가 작성한 참고용 해설입니다</small></div>` +
     cm.sections.map(s => `<div class="cm-sec"><p class="cm-title">${esc(s.title)}<span>${esc(s.range)}</span></p><p class="cm-text">${esc(placeNow(s.text))}</p>${s.question ? `<p class="cm-q">${esc(s.question)}</p>` : ''}</div>`).join('') +
-    (cm.meditation ? `<div class="md-box"><p class="md-head">✨ 한절 묵상</p><p class="md-text"><b>${esc(cm.meditation.ref)}</b><span class="md-bar">|</span>${esc(placeNow(cm.meditation.text))}</p></div>` : '') : '';
+    (cm.meditation ? `<div class="md-box"><p class="md-head">✨ 한절 묵상</p><p class="md-text"><b>${esc(cm.meditation.ref)}</b><span class="md-bar">|</span>${esc(placeNow(cm.meditation.text))}</p></div>` : '') +
+    (cm.note && cm.note.text ? `<div class="ref-box"><p class="ref-head">📚 참고하기<small>${esc(cm.note.title || '')}</small></p><p class="ref-text">${esc(placeNow(cm.note.text))}</p></div>` : '') : '';
 
   const record = readJSON(`qt:${renderedKey}`);
   $('#reflectionText').value = record.reflection || '';

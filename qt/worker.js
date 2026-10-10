@@ -42,6 +42,7 @@
  *   - GET /cell-file/<키>?k=비밀번호(&dl=1 내려받기) — PDF는 올릴 때 쪽마다 그림으로 바꿔 함께 저장해 화면에 바로 펼쳐 보임
  *   - 새 자료를 올리면 지난 자료는 파일까지 자동 삭제 (CELL_MAX=1). 같은 글 수정은 그대로
  *   - 한글(.hwp) 파일은 올릴 때 브라우저가 hwp.js(Apache-2.0, hahnlee/hwp.js)로 그려 쪽마다 사진으로 저장 → 앱에서 원본 모양 그대로 보임 (GET /lib/hwp.min.js)
+ * 2026-10-10 📚 참고하기: 한절 묵상 아래에 본문과 이어지는 성경 시대 풍습·제도·지리 이야기 (AI, 4~6문장, 관련 풍습이 없는 날은 비움) — commentary.note, 2026-10-10부터
  * 2026-10-10 함께 기도해요: 관리자가 기도제목 고치기 (POST /api/prayers/edit) — 앱 관리자 모드에서 이름·내용·비공개 수정
  */
 
@@ -341,6 +342,7 @@ async function prepareDay(env, date, force = false) {
   const base = await prepareBase(env, date);
   const done = [];
   if (force || needsCommentary(base)) { const c = await makeCommentary(env, date, force); done.push(`해설 ${c.sections.length}단락`); }
+  if (date >= NOTE_FROM && (force || !noteReady((await getQT(env, date))?.commentary, date))) { try { const n = await makeNote(env, date, force); done.push(n.skip ? '참고하기 (해당 없음)' : '참고하기'); } catch (e) { console.log('참고하기 실패:', e.message); } }
   if (force || !(await wordsReady(env, date))) { const w = await makeWords(env, date); done.push(`원어 ${w.words.length}단어`); }
   return { passage: base.passage, verses: base.verses.length, done };
 }
@@ -426,6 +428,30 @@ async function makeCommentary(env, date, force = false) {
   return commentary;
 }
 
+// 📚 참고하기 — 본문과 이어지는 성경 시대의 풍습·제도·지리 이야기 (한절 묵상 아래 칸). 관련 풍습이 없으면 비움(skip)
+const NOTE_FROM = '2026-10-10';
+const noteReady = (c, date) => date < NOTE_FROM || !!(c && c.note && (c.note.text || c.note.skip));
+async function makeNote(env, date, force = false) {
+  const qt = await getQT(env, date);
+  if (!qt || !qt.verses?.length) throw new Error('먼저 그날 QT 본문이 있어야 합니다');
+  if (qt.commentary && qt.commentary.note && (qt.commentary.note.text || qt.commentary.note.skip) && !force) return qt.commentary.note;
+  const bible = qt.verses.map(v => `${v[0]} ${v[1]}`).join('\n');
+  const messages = [
+    { role: 'system', content: SYS + ' 성경 시대(고대 이스라엘·유대인·고대 근동)의 풍습·문화·제도·지리를 잘 아는 교사로서, 성도가 본문을 "아, 그래서 그랬구나" 하고 이해하도록 돕습니다. 널리 알려진 사실만 쓰고 확실하지 않은 것은 쓰지 마세요.' },
+    { role: 'user', content: `오늘 QT 본문: ${qt.passage}\n\n[본문 말씀]\n${bible}\n\n이 본문을 이해하는 데 도움이 되는 성경 시대의 풍습·문화·제도·지리 이야기를 하나 골라 "참고하기" 글을 써 주세요.\n- title: 소재 이름 (예: "타작마당", "인구조사와 속전", "성전 문지기", "레위인의 반열", "유월절 식사", "성문 앞 재판")\n- text: 4~6문장. 그 풍습이 무엇이었고 왜 그렇게 했는지, 본문의 어느 절과 어떻게 이어지는지 쉽게 설명. ${PLACE_RULE}\n- 본문과 직접 이어지는 풍습·배경이 정말 없으면 title과 text를 빈 문자열로 주세요.\n\n출력 형식(JSON만):\n{"title":"...","text":"..."}` },
+  ];
+  const res = await aiJSON(env, messages, j => {
+    const text = String(j.text || '').trim(), title = String(j.title || '').trim().slice(0, 30);
+    if (!text) return { j, note: { skip: true } };
+    if (text.length < 60 || !/[가-힣]/.test(text)) throw new Error('참고하기가 너무 짧음');
+    return { j, note: { title: title || '성경 시대 이야기', text } };
+  }, 1500);
+  const cur = (await getQT(env, date)) || qt;
+  const note = { ...res.note, model: res.model, at: new Date().toISOString() };
+  await saveQT(env, date, { ...cur, commentary: { ...(cur.commentary || {}), note } });
+  return note;
+}
+
 // 원어 해설 (앱의 '원어로 보는 본문의 흐름' 형식) — 공부용: 핵심 단어 + 직역 + 문법·문맥 해석 + 요약(필수)
 async function makeWords(env, date) {
   const qt = await getQT(env, date);
@@ -486,6 +512,7 @@ async function fillMissing(env, date, needHymn) {
   if (await env.QT_KV.get(key)) return;
   await env.QT_KV.put(key, '1', { expirationTtl: 10 * 60 });
   if (needsCommentary(await getQT(env, date))) await makeCommentary(env, date).catch(e => console.log('해설 실패:', e.message));
+  if (!noteReady((await getQT(env, date))?.commentary, date)) await makeNote(env, date).catch(e => console.log('참고하기 실패:', e.message));
   if (!(await wordsReady(env, date))) await makeWords(env, date).catch(e => console.log('원어 실패:', e.message));
   if (needHymn) await fetchHymn(env, date).catch(e => console.log('찬송 실패:', e.message));
 }
@@ -857,7 +884,7 @@ export default {
         const cal = (await getJSON(env, `cal:${ym}`)) || {};
         const days = await Promise.all(Object.keys(cal).sort().map(async d => {
           const [q, w, h] = await Promise.all([getQT(env, d), getJSON(env, `words:${d}`), getJSON(env, `hymn:${d}`)]);
-          return { date: d, passage: cal[d], verses: q?.verses?.length || 0, title: q?.title || '', commentary: !!(q?.commentary?.meditation), words: wordsFresh(w, d), hymn: h?.hymnNo || q?.hymnNo || null };
+          return { date: d, passage: cal[d], verses: q?.verses?.length || 0, title: q?.title || '', commentary: !!(q?.commentary?.meditation), note: noteReady(q?.commentary, d), noteSkip: !!(q?.commentary?.note?.skip), words: wordsFresh(w, d), hymn: h?.hymnNo || q?.hymnNo || null };
         }));
         return json({ ok: true, ym, days }, 200, { 'Cache-Control': 'no-cache' });
       }
@@ -875,7 +902,7 @@ export default {
         }
         if (!data) return json({ ok: false, error: err || '해당 날짜 QT가 없습니다' }, 404);
         const needHymn = !data.hymnNo && date === kstDateKey();
-        const complete = !data.fromCalendar && !needsCommentary(data) && wordsFresh(data.words, date) && !needHymn;
+        const complete = !data.fromCalendar && !needsCommentary(data) && noteReady(data.commentary, date) && wordsFresh(data.words, date) && !needHymn;
         if (!data.fromCalendar && data.verses?.length && !complete) ctx.waitUntil(fillMissing(env, date, needHymn));
         return json({ ok: true, date, ...data }, 200, { 'Cache-Control': complete ? 'public, max-age=600' : 'no-cache' });
       }
@@ -1175,7 +1202,9 @@ export default {
       if (path === '/api/commentary' && req.method === 'POST') {
         if (!isAdmin(req, env)) return json({ ok: false, error: '권한 없음' }, 401);
         const date = validDate(url.searchParams.get('date')) ? url.searchParams.get('date') : kstDateKey();
-        return json({ ok: true, date, commentary: await makeCommentary(env, date, true) });
+        const commentary = await makeCommentary(env, date, true);
+        const note = await makeNote(env, date, true).catch(e => ({ error: e.message }));
+        return json({ ok: true, date, commentary: { ...commentary, note } });
       }
       // 관리자: AI 원어 해설 다시 쓰기
       if (path === '/api/words' && req.method === 'POST') {
@@ -1385,7 +1414,7 @@ export default {
         const d = kstDateKey(new Date(Date.now() + i * 864e5));
         if (!(await calendarPassage(env, d))) continue;
         const q = await getQT(env, d);
-        if (q && q.verses?.length && !needsCommentary(q) && (await wordsReady(env, d))) continue;
+        if (q && q.verses?.length && !needsCommentary(q) && noteReady(q.commentary, d) && (await wordsReady(env, d))) continue;
         try { const r = await prepareDay(env, d); log.ahead = `${d} 준비: ${r.passage}${r.done.length ? ' / ' + r.done.join(', ') : ''}`; }
         catch (e) { log.ahead = `${d} 준비 실패: ${e.message}`; }
         break;
@@ -1417,7 +1446,7 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <section><label>관리자 비밀번호</label><input id="tk" type="password" placeholder="ADMIN_TOKEN"><div id="tkm" class="msg"></div></section>
 
 <section><h2>① 한 달치 QT 미리 준비</h2>
-<p style="font-size:13px;color:#557;margin:0 0 6px">본문 범위는 두란노 QT 캘린더, 성경 본문은 아래 성경 파일, 소제목·해설·묵상·기도·원어는 AI가 만듭니다. 찬송은 그날 아침 두란노에서 번호만 읽고 가사는 찬송가 파일에서 가져옵니다.</p>
+<p style="font-size:13px;color:#557;margin:0 0 6px">본문 범위는 두란노 QT 캘린더, 성경 본문은 아래 성경 파일, 소제목·해설·묵상·📚참고하기(성경 시대 풍습)·기도·원어는 AI가 만듭니다. 찬송은 그날 아침 두란노에서 번호만 읽고 가사는 찬송가 파일에서 가져옵니다.</p>
 <label>개역개정 성경 파일 (개역개정판NKRV.txt) — 처음 한 번만</label><input id="bf" type="file" accept=".txt,text/plain">
 <button class="sub" id="bup">성경 올리기</button><div id="m11" class="msg"></div>
 <label>새찬송가 파일 (새찬송가.txt) — 처음 한 번만</label><input id="hf" type="file" accept=".txt,text/plain">
@@ -1550,11 +1579,11 @@ $('#hup').onclick=async function(){var f=$('#hf').files[0];if(!f)return $('#m13'
  $('#m13').textContent=r.ok?'완료: 새찬송가 '+r.count+'곡을 올렸습니다':'실패: '+r.error;};
 async function pShow(){try{var j=await (await fetch('/api/prepared?ym='+$('#pym').value,{cache:'no-store'})).json();if(!j.ok||!j.days.length){$('#plist').innerHTML='<p class="msg" style="color:#889">이 달 캘린더가 아직 없습니다 (⑥ 이번 달 캘린더 읽기)</p>';return;}
  var ok=function(b){return b?'✔':'<span style="color:#c33">–</span>';};
- $('#plist').innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:10px"><tr style="color:#557"><td>날짜</td><td>본문</td><td>성경</td><td>해설</td><td>원어</td><td>찬송</td></tr>'+j.days.map(function(d){return '<tr style="border-top:1px solid #eef"><td>'+d.date.slice(5)+'</td><td>'+d.passage+'</td><td>'+ok(d.verses)+'</td><td>'+ok(d.commentary)+'</td><td>'+ok(d.words)+'</td><td>'+(d.hymn?d.hymn+'장':'<span style="color:#aab">당일</span>')+'</td></tr>';}).join('')+'</table>';}catch(e){}}
+ $('#plist').innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:10px"><tr style="color:#557"><td>날짜</td><td>본문</td><td>성경</td><td>해설</td><td>참고</td><td>원어</td><td>찬송</td></tr>'+j.days.map(function(d){return '<tr style="border-top:1px solid #eef"><td>'+d.date.slice(5)+'</td><td>'+d.passage+'</td><td>'+ok(d.verses)+'</td><td>'+ok(d.commentary)+'</td><td>'+(d.noteSkip?'<span style="color:#aab" title="해당 풍습 없음">–</span>':ok(d.note))+'</td><td>'+ok(d.words)+'</td><td>'+(d.hymn?d.hymn+'장':'<span style="color:#aab">당일</span>')+'</td></tr>';}).join('')+'</table>';}catch(e){}}
 $('#pym').value=today.slice(0,7);$('#pym').onchange=pShow;pShow();
 $('#pm').onclick=async function(){var ym=$('#pym').value;if(!ym)return;
  var j=await (await fetch('/api/prepared?ym='+ym,{cache:'no-store'})).json();if(!j.ok||!j.days.length)return $('#m12').textContent='그 달 캘린더가 없습니다 — ⑥ 이번 달 캘린더 읽기를 먼저 하세요';
- var todo=j.days.filter(function(d){return !(d.verses&&d.commentary&&d.words);}),bad=[];
+ var todo=j.days.filter(function(d){return !(d.verses&&d.commentary&&d.words&&d.note);}),bad=[];
  for(var i=0;i<todo.length;i++){$('#m12').textContent='준비 중 '+(i+1)+' / '+todo.length+' — '+todo[i].date.slice(5)+' '+todo[i].passage+' (하루 30초~1분)';
   try{var r=await (await fetch('/api/prepare?date='+todo[i].date,{method:'POST',headers:H()})).json();if(!r.ok)bad.push(todo[i].date.slice(5)+' '+r.error);}catch(e){bad.push(todo[i].date.slice(5)+' 연결 끊김');}pShow();}
  $('#m12').textContent=(todo.length?'완료 ('+todo.length+'일 준비)':'이미 모두 준비되어 있습니다')+(bad.length?'\\n실패:\\n'+bad.join('\\n'):'');pShow();};
@@ -1900,7 +1929,7 @@ $('#dg').onclick=async()=>{const u='https://www.duranno.com/qt/view/calendar2.as
 $('#lr').onclick=async()=>{const j=await (await fetch('/api/last-run')).json();
  $('#m2').textContent=j.ok?'마지막 자동 실행: '+new Date(j.at).toLocaleString('ko-KR')+'\\n날짜: '+j.date+'\\n오늘: '+j.today+(j.hymn?'\\n찬송: '+j.hymn:'')+(j.ahead?'\\n미리 준비: '+j.ahead:'')+(j.commentary?'\\n해설: '+j.commentary:''):j.error;};
 $('#cmt').onclick=async()=>{$('#m2').textContent='AI가 해설을 쓰는 중… (20~40초)';const j=await (await fetch('/api/commentary?date='+$('#cd').value,{method:'POST',headers:H()})).json();
- $('#m2').textContent=j.ok?j.commentary.sections.map(s=>'['+s.title+' '+s.range+']\\n'+s.text+'\\n→ '+s.question).join('\\n\\n'):'실패: '+j.error;};
+ $('#m2').textContent=j.ok?j.commentary.sections.map(s=>'['+s.title+' '+s.range+']\\n'+s.text+'\\n→ '+s.question).join('\\n\\n')+(j.commentary.note&&j.commentary.note.text?'\\n\\n📚 참고하기 — '+j.commentary.note.title+'\\n'+j.commentary.note.text:'\\n\\n📚 참고하기: 해당 풍습 없음'):'실패: '+j.error;};
 $('#wd').onclick=async()=>{$('#m2').textContent='AI가 원어 해설을 쓰는 중… (30초~1분)';const j=await (await fetch('/api/words?date='+$('#cd').value,{method:'POST',headers:H()})).json();
  $('#m2').textContent=j.ok?(j.words.background?'📜 '+j.words.background+'\\n\\n':'')+j.words.words.map(w=>w.verse+'절 '+w.ko+' — '+w.orig+' ('+w.read+', '+w.strong+') '+w.mean+'\\n   '+w.desc).join('\\n\\n')+(j.words.summary?'\\n\\n📌 '+j.words.summary:''):'실패: '+j.error;pShow();};
 $('#lt').onclick=async()=>{const j=await (await fetch('/api/login-test',{method:'POST',headers:H()})).json();$('#m2').textContent=j.ok?j.message:'실패: '+j.error;};
