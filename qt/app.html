@@ -164,7 +164,7 @@ svg{display:block}
 .yr-mt{font-size:17px;line-height:1.5;color:#333}.yr-nm{font-size:19px;font-weight:700}
 .yr-sub{color:#444}.yr-hp{font-weight:800}.yr-hp a{color:#2b80c5;text-decoration:none}
 .yr-info{padding:2px 14px 8px;font-size:16px;line-height:1.6;color:#333}.yr-info p{margin:8px 0}
-.yr-maps{display:flex;gap:8px;flex-wrap:wrap}.yr-maps a{color:#fff;font-weight:800;font-size:14px;padding:8px 12px;border-radius:5px;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+/* 2026-10-10 스마트요람 지도 링크(구글·네이버·다음맵) 삭제 */
 .yr-btns{display:flex;gap:10px;justify-content:center;padding:12px;border-top:1px solid #e7ebf0}
 .yr-btns a{border:1px solid #ccd2d9;background:#f5f5f5;padding:9px 18px;color:#333;font-weight:700;text-decoration:none;border-radius:3px}
 .yr-fam{display:flex;gap:14px;padding:10px;border-top:1px solid #e7ebf0;cursor:pointer;font-size:16px;line-height:1.55;color:#333}
@@ -447,6 +447,13 @@ svg{display:block}
 .content-wrap{margin-top:-16px!important;padding-top:0!important;position:relative;z-index:2}
 .content-wrap>.shortcut-grid:first-of-type{margin-top:12px!important}
 
+/* ===== 2026-10-10 화면 나누기: 홈 / 오늘의 말씀(찬송·말씀·기도) / 나의 묵상 / QT 달력 / 공동체 / 알림 설정 — 고른 것만 보임 ===== */
+.vhide{display:none!important}
+.view-bar{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 16px 2px}
+.view-bar button{border:0;background:#e9f1fb;color:#1d6fd6;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:800;cursor:pointer}
+.view-bar strong{font-size:17px;color:#163b70}
+body[data-view]:not([data-view="home"]) .content-wrap{margin-top:0!important}
+body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
 /* ===== 맨 위로 가는 홈 버튼 (스크롤하면 오른쪽에 따라다님) ===== */
 .top-fab{position:fixed;z-index:50;right:max(14px,calc(50vw - 240px + 14px));bottom:calc(80px + env(safe-area-inset-bottom));width:42px;height:42px;border:0;border-radius:50%;background:#1d6fd6;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer;box-shadow:0 6px 16px rgba(21,72,150,.32);opacity:0;visibility:hidden;transform:translateY(14px);transition:opacity .25s,transform .25s,visibility .25s;-webkit-tap-highlight-color:transparent}
 .top-fab.show{opacity:1;visibility:visible;transform:none}
@@ -630,8 +637,33 @@ svg{display:block}
   <div class="stage" id="vidStage"><video id="vidEl" playsinline preload="metadata" controls controlslist="nodownload"></video><div class="vtap" id="vidTap"><div class="vbtn" id="vidBtn">▶</div></div></div>
   <div class="vmeta"><span id="vidInfo"></span><span>한 번 누르면 재생 · 다시 누르면 멈춤</span></div>
 </section>
+<!-- 갤러리 사진 크게 보기: 두 손가락 확대 · 한 손가락 끌기 · 옆으로 넘기기 · 두 번 두드려 확대/원래대로 -->
+<style>
+.gal-viewer{position:fixed;inset:0;z-index:400;background:#000;display:flex;flex-direction:column;touch-action:none;user-select:none;-webkit-user-select:none}
+.gal-viewer.hidden{display:none}
+.gal-viewer .gv-top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;z-index:2;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0));color:#fff;font-size:14px;font-weight:700}
+.gal-viewer .gv-close{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:800}
+.gal-viewer .gv-stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.gal-viewer .gv-stage img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;transform-origin:0 0;will-change:transform;-webkit-user-drag:none}
+.gal-viewer .gv-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:64px;border:0;background:rgba(0,0,0,.35);color:#fff;font-size:34px;line-height:1;border-radius:10px}
+.gal-viewer .gv-prev{left:6px}.gal-viewer .gv-next{right:6px}
+.gal-viewer .gv-nav[disabled]{opacity:.25}
+.gal-viewer .gv-hint{position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center;color:#ddd;font-size:12.5px;z-index:2;pointer-events:none;transition:opacity .4s}
+.gal-viewer .gv-hint.off{opacity:0}
+.gal-viewer .gv-dots{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:5px;z-index:2;pointer-events:none}
+.gal-viewer .gv-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4)}
+.gal-viewer .gv-dots i.on{background:#fff;width:16px;border-radius:3px}
+</style>
+<div id="galViewer" class="gal-viewer hidden" role="dialog" aria-modal="true" aria-label="주간사역 사진 크게 보기">
+  <div class="gv-top"><span id="gvCnt"></span><button id="gvClose" type="button" class="gv-close">✕ 닫기</button></div>
+  <div class="gv-stage" id="gvStage"><img id="gvImg" alt="주간사역 사진"></div>
+  <button id="gvPrev" type="button" class="gv-nav gv-prev" aria-label="이전 사진">‹</button><button id="gvNext" type="button" class="gv-nav gv-next" aria-label="다음 사진">›</button>
+  <div class="gv-dots" id="gvDots"></div>
+  <div class="gv-hint" id="gvHint">두 손가락으로 확대 · 옆으로 밀어 넘기기 · 두 번 두드려 확대</div>
+</div>
 <!-- ===== 주간사역 갤러리 (끝) ===== -->
 
+      <div id="viewBar" class="view-bar vhide"><button id="viewHome" type="button">‹ 홈</button><strong id="viewTitle"></strong></div>
       <section id="praise" class="page-section">
         <p class="eyebrow">PRAISE</p>
         <h2>오늘의 찬송</h2>
@@ -900,7 +932,7 @@ svg{display:block}
     <label>이름 *</label><input id="yeName" maxlength="20">
     <div class="ye-row"><div><label>직분</label><input id="yeDuty" list="yeDutyList" maxlength="20" placeholder="예: 집사"><datalist id="yeDutyList"></datalist></div>
       <div><label>성별</label><select id="yeG"><option value="">-</option><option>남</option><option>여</option></select></div></div>
-    <div class="ye-row"><div><label>가족 관계</label><input id="yeRel" list="yeRelList" maxlength="10" placeholder="본인·처·자녀…"><datalist id="yeRelList"></datalist></div>
+    <div class="ye-row"><div><label>가족 관계</label><input id="yeRel" list="yeRelList" maxlength="10" placeholder="본인·아내·자녀…"><datalist id="yeRelList"></datalist></div>
       <div><label>생년월일</label><input id="yeBirth" type="date"></div></div>
     <div class="ye-chk"><input id="yeLunar" type="checkbox"> 음력 생일</div>
     <label>셀</label><input id="yeCell" list="yeCellList" maxlength="40" placeholder="예: 1교구 3셀"><datalist id="yeCellList"></datalist>
@@ -2473,13 +2505,37 @@ window.addEventListener('focus', refreshIfNewDay);
 window.addEventListener('pageshow', refreshIfNewDay);   // 아이폰 뒤로가기 캐시 복원 대응
 setInterval(refreshIfNewDay, 60*1000);                 // 켜져 있는 동안 1분마다 확인
 
-const NAV_MAP={top:'top',calendar:'calendar',reflection:'reflection',community:'community',settings:'settings'};
-function scrollToId(id){
-  const navId=NAV_MAP[id];
-  if(navId) $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.scroll===navId));
-  if(id === 'top'){window.scrollTo({top:0,behavior:'smooth'});return;}
-  document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+// 화면 나누기: 어떤 구역을 고르면 그 구역만 보이고 나머지는 숨김 (홈 = 교회 사진·바로가기·갤러리·영상)
+const VIEWS={
+  home:{sections:[],nav:'top',title:''},
+  qt:{sections:['praise','qt','prayer'],nav:'',title:'오늘의 말씀'},
+  reflection:{sections:['reflection'],nav:'reflection',title:'나의 묵상'},
+  calendar:{sections:['calendar'],nav:'calendar',title:'QT 달력'},
+  community:{sections:['community'],nav:'community',title:'공동체 소식'},
+  settings:{sections:['settings'],nav:'settings',title:'QT 알림 설정'},
+};
+const VIEW_OF={top:'home',home:'home',qt:'qt',praise:'qt',prayer:'qt',reflection:'reflection',calendar:'calendar',community:'community',settings:'settings'};
+let curView='';
+function showView(name){
+  const v=VIEWS[name]||VIEWS.home; name=VIEWS[name]?name:'home';
+  const home=name==='home';
+  [$('#top'),...$$('.content-wrap>.shortcut-grid'),...$$('.content-wrap>.duo-row'),$('#jvcGal'),$('#jvcVid')].forEach(el=>{ if(!el) return;
+    if(el.id==='jvcVid'){ el.hidden=!home||typeof vidCur==='undefined'||!vidCur; return; }          // 영상 칸은 영상이 있을 때만
+    el.classList.toggle('vhide',!home); });
+  $$('.page-section').forEach(sec=>sec.classList.toggle('vhide',!v.sections.includes(sec.id)));
+  $('#viewBar').classList.toggle('vhide',home); $('#viewTitle').textContent=v.title;
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',!!v.nav&&x.dataset.scroll===v.nav));
+  document.body.dataset.view=name; curView=name;
 }
+function scrollToId(id){
+  const name=VIEW_OF[id]||'home';
+  const changed=name!==curView;
+  if(changed){ showView(name); window.scrollTo({top:0}); }
+  // 같은 화면 안에서 다시 누르면 맨 위로. '오늘의 기도'는 말씀 화면 안의 기도 칸으로 내려감
+  if(id==='prayer'||(!changed&&VIEWS[name].sections.includes(id)&&VIEWS[name].sections[0]!==id)) setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}),changed?80:0);
+  else if(!changed) window.scrollTo({top:0,behavior:'smooth'});
+}
+$('#viewHome').addEventListener('click',()=>scrollToId('top'));
 $$('[data-go]').forEach(btn => btn.addEventListener('click', () => scrollToId(btn.dataset.go)));
 $$('[data-scroll]').forEach(btn => btn.addEventListener('click', () => scrollToId(btn.dataset.scroll)));
 
@@ -2618,7 +2674,7 @@ window.openInstallGuide = () => { store.set('install-later','0'); store.set('ins
 
 // ===== 모달 공통 =====
 function openModal(el){ el.classList.remove('hidden'); document.body.style.overflow='hidden'; }
-function closeModal(el){ if(el.id==='sermonModal'){const sp=document.getElementById('sermonPlayer'); if(sp) sp.innerHTML='';} el.classList.add('hidden'); if(!document.querySelector('.directory-modal:not(.hidden),.birthday-modal:not(.hidden),.score-modal:not(.hidden)')) document.body.style.overflow=''; }
+function closeModal(el){ if(el.id==='sermonModal'){const sp=document.getElementById('sermonPlayer'); if(sp) sp.innerHTML='';} el.classList.add('hidden'); if(!document.querySelector('.directory-modal:not(.hidden),.birthday-modal:not(.hidden),.score-modal:not(.hidden),.gal-viewer:not(.hidden)')) document.body.style.overflow=''; }
 
 // 스마트요람: 공개 QT와 분리된 서버 로그인 진입창
 const directoryModal = $('#directoryLoginModal');
@@ -2690,7 +2746,7 @@ const YR_TILES = [
   { k: 'cell', sub: '함께 자라는 작은교회', t: '교구·셀', ic: '🏠', bg: '#0995a8', group: true },
   { k: 'youth', sub: '다음세대를 세우는 힘', t: '청년', ic: '🧑', bg: '#f2b71c', f: m => !['장로', '안수집사', '권사', '집사', '권찰'].includes(m.duty) && yrAge(m.birth) >= 20 && yrAge(m.birth) <= 39 },
   { k: 'school', sub: '믿음의 다음세대', t: '교회학교', ic: '⛪', bg: '#4d74c4', group: true },
-  { k: 'saint', sub: '한몸된 믿음의 가족', t: '성도', ic: '🙏', bg: '#3b4a63', f: m => !['장로', '안수집사', '권사', '집사', '권찰'].includes(m.duty) && (yrAge(m.birth) === '' || yrAge(m.birth) >= 40) && !(m.birth === '' && m.rel !== '본인' && m.rel !== '처') },
+  { k: 'saint', sub: '한몸된 믿음의 가족', t: '성도', ic: '🙏', bg: '#3b4a63', f: m => !['장로', '안수집사', '권사', '집사', '권찰'].includes(m.duty) && (yrAge(m.birth) === '' || yrAge(m.birth) >= 40) && !(m.birth === '' && m.rel !== '본인' && m.rel !== '처' && m.rel !== '아내') },
   { k: 'newcomer', sub: '함께하는 새로운 시작', t: '새가족', ic: '💞', bg: '#3e4b60', f: m => m.src === '새가족' },
   { k: 'all', sub: '(가나다순)', t: '교인찾기', ic: '🔍', bg: '#1f63b8', f: () => true },
   { k: 'lock', sub: '개인정보 보호를 위해 잠급니다.', t: '요람 잠그기', ic: '⏻', bg: '#384863' },
@@ -2712,9 +2768,11 @@ function yrHome() {
   }).join('')}</div><p class="yr-foot2">가족 ${YR.data.families.length}가정 · 교인 ${YR.members.length}명</p>`;
   $('#directoryList').scrollTop = 0;
 }
+// 가족 관계 표시: 명단에 '처'로 적혀 있어도 '아내'로 보여줌
+const yrRel = r => (r === '처' || r === '부인' ? '아내' : r);
 function yrRow(m) {
   const h = m.fam.m[0];
-  const sub = m.rel === '본인' ? (m.fam.m.length > 1 ? `가족 ${m.fam.m.length}명` : '') : `${esc((h.name + ' ' + h.duty).trim())}의 ${esc(m.rel)}`;
+  const sub = m.rel === '본인' ? (m.fam.m.length > 1 ? `가족 ${m.fam.m.length}명` : '') : `${esc((h.name + ' ' + h.duty).trim())}의 ${esc(yrRel(m.rel))}`;
   const age = yrAge(m.birth);
   return `<button class="yr-row" data-id="${esc(m.id)}">${yrPhoto(m, 'yr-thumb')}<span class="yr-rt"><b>${esc(m.name)}</b> ${esc(m.duty)}<small>${[m.g, age !== '' ? age + '세' : ''].filter(Boolean).join(' · ')}${sub ? ' · ' + sub : ''}</small></span><span class="yr-go">›</span></button>`;
 }
@@ -2761,7 +2819,7 @@ function yrDetail(id, fromSearch) {
   const age = yrAge(m.birth);
   const q = encodeURIComponent(String(m.addr || '').replace(/^\(?\d{3}-?\d{2,3}\)?\s+/, ''));
   const hp = m.hp || m.tel;
-  const headLine = m === h ? `${esc((m.name + ' ' + m.duty).trim())} 본인` : `${esc((h.name + ' ' + h.duty).trim())}의 ${esc(m.rel)}`;
+  const headLine = m === h ? `${esc((m.name + ' ' + m.duty).trim())} 본인` : `${esc((h.name + ' ' + h.duty).trim())}의 ${esc(yrRel(m.rel))}`;
   const adm = (typeof admToken !== 'undefined' && admToken);
   const admBtn = x => adm ? `<button class="yr-adm" data-photo="${esc(x.id)}">📷 사진 바꾸기</button> <button class="yr-adm" data-edit="${esc(x.id)}">✏️ 정보 수정</button>` : '';
   const admBar = adm ? `<div class="yr-admbar"><button class="yr-adm" data-addfam="${esc(m.id)}">➕ 이 가정에 가족 추가</button> <button class="yr-adm yr-admdel" data-del="${esc(m.id)}">🗑 명단에서 삭제 (전출)</button></div>` : '';
@@ -2775,7 +2833,7 @@ function yrDetail(id, fromSearch) {
         ${m.hp ? `<div class="yr-hp">HP) ${yrTel(m.hp)}</div>` : ''}${m.tel ? `<div class="yr-hp">집) ${yrTel(m.tel)}</div>` : ''}
         ${admBtn(m)}</div></div>
       <div class="yr-info">
-        ${m.addr ? `<p>${esc(m.addr)}</p><div class="yr-maps"><a style="background:#5b86b8" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">📍 구글맵</a><a style="background:#0a8f2c" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">📍 네이버맵</a><a style="background:#4f8ef0" href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">📍 다음맵</a></div>` : ''}
+        ${m.addr ? `<p>${esc(m.addr)}</p>` : ''}
         ${m.cell ? `<p><b>셀 :</b> ${yrCellPath(m.cell)}</p>` : ''}
         ${m.birth ? `<p><b>생일 :</b> ${m.lunar ? '음력 ' : ''}${+m.birth.slice(5, 7)}월 ${+m.birth.slice(8, 10)}일</p>` : ''}
         <p><b>가족 :</b> ${fam.map(x => esc(x.name)).join(' ')}</p>${admBar}
@@ -2784,7 +2842,7 @@ function yrDetail(id, fromSearch) {
     </div>
     ${fam.length > 1 ? `<div class="yr-card"><h3>가족사항</h3>${fam.map(x => {
       const a = yrAge(x.birth);
-      return `<div class="yr-fam${x === m ? ' me' : ''}" data-id="${esc(x.id)}">${yrPhoto(x, 'yr-mid')}<div><div class="yr-fn">${esc(x.name)} ${esc(x.duty)} (${esc(x.rel)})</div><div class="yr-sub">${[x.g, a !== '' ? '(' + a + '세)' : ''].filter(Boolean).join(' ')}</div>${x.hp ? `<div class="yr-hp">${yrTel(x.hp)}</div>` : ''}${admBtn(x)}</div></div>`;
+      return `<div class="yr-fam${x === m ? ' me' : ''}" data-id="${esc(x.id)}">${yrPhoto(x, 'yr-mid')}<div><div class="yr-fn">${esc(x.name)} ${esc(x.duty)} (${esc(yrRel(x.rel))})</div><div class="yr-sub">${[x.g, a !== '' ? '(' + a + '세)' : ''].filter(Boolean).join(' ')}</div>${x.hp ? `<div class="yr-hp">${yrTel(x.hp)}</div>` : ''}${admBtn(x)}</div></div>`;
     }).join('')}</div>` : ''}
   </div>`;
   $('#directoryList').scrollTop = 0;
@@ -3251,7 +3309,7 @@ $('#newsList').addEventListener('click',e=>{ if(e.target.id==='newsMore'){ newsO
 loadNews();
 // ===== 주간사역 갤러리 (서버 /api/gallery — 관리자 모드·관리자 페이지 ⑨에서 올림) =====
 //  서버에 아직 묶음이 없으면 앱 파일 안의 예전 사진(#galFallback)을 보여줌
-let galAll=[], galIdx=0, galN=0, galTimer=null;
+let galAll=[], galIdx=0, galN=0, galTimer=null, galUrls=[];
 function galList(){ if(galAll.length) return galAll; const t=$('#galFallback'); const im=t?[...t.content.querySelectorAll('img')].map(i=>i.getAttribute('src')):[]; return im.length?[{id:'_local',title:'',date:'',body:'',images:im,local:true}]:[]; }
 function galRender(){
   const stage=$('#galStage'),dots=$('#galDots'),alb=$('#galAlbums'),body=$('#galBody'),title=$('#galTitle'); if(!stage) return;
@@ -3259,7 +3317,7 @@ function galRender(){
   const list=galList();
   if(!list.length){ stage.className='stage empty'; stage.innerHTML='<p class="gal-empty">아직 올린 사진이 없습니다</p>'; dots.innerHTML=''; alb.hidden=true; body.hidden=true; title.textContent=''; return; }
   if(galIdx>=list.length) galIdx=0;
-  const g=list[galIdx]; const urls=(g.images||[]).map(u=>g.local?u:API()+u);
+  const g=list[galIdx]; const urls=(g.images||[]).map(u=>g.local?u:API()+u); galUrls=urls;
   const md=g.date?(+g.date.slice(5,7))+'/'+(+g.date.slice(8,10)):'';
   title.textContent=g.title?g.title+(md?' · '+md:''):md;
   stage.className='stage';
@@ -3278,7 +3336,62 @@ $('#galAlbums').addEventListener('click',e=>{ const b=e.target.closest('[data-ga
 (()=>{ const st=$('#galStage'); let x0=null;
   st.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; },{passive:true});
   st.addEventListener('touchend',e=>{ if(x0===null) return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40){ galShow(galN+(dx<0?1:-1)); galStart(); } x0=null; });
-  st.addEventListener('click',e=>{ const im=e.target.closest('[data-zoom]'); if(im&&typeof openImageZoom==='function') openImageZoom(im.dataset.zoom); }); })();
+  st.addEventListener('click',e=>{ if(e.target.closest('[data-zoom]')&&galUrls.length) galViewerOpen(galUrls,galN); }); })();
+// ----- 사진 크게 보기 화면 -----
+const gvEl=$('#galViewer'), gvImg=$('#gvImg'), gvStage=$('#gvStage');
+let gv={urls:[],i:0,s:1,tx:0,ty:0,open:false};
+function gvApply(anim){ gvImg.style.transition=anim?'transform .2s ease':'none'; gvImg.style.transform=`translate(${gv.tx}px,${gv.ty}px) scale(${gv.s})`; }
+function gvClamp(){ const r=gvStage.getBoundingClientRect(), w=gvImg.clientWidth*gv.s, h=gvImg.clientHeight*gv.s, ox=(r.width-gvImg.clientWidth)/2, oy=(r.height-gvImg.clientHeight)/2;
+  // 확대된 사진이 화면 밖으로 너무 나가지 않게
+  const minX=Math.min(ox, r.width-w-ox), maxX=Math.max(ox, r.width-w-ox), minY=Math.min(oy, r.height-h-oy), maxY=Math.max(oy, r.height-h-oy);
+  gv.tx=Math.min(maxX,Math.max(minX,gv.tx)); gv.ty=Math.min(maxY,Math.max(minY,gv.ty)); }
+function gvReset(anim){ gv.s=1; const r=gvStage.getBoundingClientRect(); gv.tx=(r.width-gvImg.clientWidth)/2; gv.ty=(r.height-gvImg.clientHeight)/2; gvApply(anim); }
+function gvShow(i,anim){ gv.i=(i+gv.urls.length)%gv.urls.length; gvImg.style.transition='none'; gvImg.style.opacity='0'; gvImg.src=gv.urls[gv.i];
+  const done=()=>{ gvImg.style.opacity='1'; gvReset(false); };
+  if(gvImg.complete&&gvImg.naturalWidth) done(); else { gvImg.onload=done; gvImg.onerror=done; }
+  $('#gvCnt').textContent=(gv.i+1)+' / '+gv.urls.length;
+  $('#gvDots').innerHTML=gv.urls.length>1?gv.urls.map((_,k)=>`<i${k===gv.i?' class="on"':''}></i>`).join(''):'';
+  $('#gvPrev').disabled=gv.urls.length<2; $('#gvNext').disabled=gv.urls.length<2;
+  [gv.i-1,gv.i+1].forEach(k=>{ const u=gv.urls[(k+gv.urls.length)%gv.urls.length]; if(u){ const im=new Image(); im.src=u; } });   // 옆 사진 미리 받기
+}
+function galViewerOpen(urls,i){ if(!urls||!urls.length) return; gv.urls=urls.slice(); gv.open=true; clearInterval(galTimer); openModal(gvEl); gvEl.setAttribute('aria-hidden','false');
+  $('#gvHint').classList.remove('off'); clearTimeout(gv._h); gv._h=setTimeout(()=>$('#gvHint').classList.add('off'),2600); gvShow(i||0,false); }
+function galViewerClose(){ gv.open=false; closeModal(gvEl); gvEl.setAttribute('aria-hidden','true'); gvImg.removeAttribute('src'); if(galUrls.length>1) galStart(); }
+$('#gvClose').addEventListener('click',galViewerClose);
+$('#gvPrev').addEventListener('click',()=>gvShow(gv.i-1,true)); $('#gvNext').addEventListener('click',()=>gvShow(gv.i+1,true));
+document.addEventListener('keydown',e=>{ if(!gv.open) return; if(e.key==='Escape') galViewerClose(); else if(e.key==='ArrowLeft') gvShow(gv.i-1); else if(e.key==='ArrowRight') gvShow(gv.i+1); });
+// 손가락: 두 손가락 확대, 한 손가락 끌기(확대 중) 또는 옆으로 넘기기(원래 크기), 두 번 두드려 확대/원래대로
+(()=>{ let t0=null, pinch=null, lastTap=0, swipe=0;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  const mid=t=>({x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2});
+  gvStage.addEventListener('touchstart',e=>{ if(!gv.open) return; const t=e.touches;
+    if(t.length===2){ const m=mid(t); pinch={d:dist(t),s:gv.s,tx:gv.tx,ty:gv.ty,mx:m.x,my:m.y}; t0=null; }
+    else if(t.length===1){ t0={x:t[0].clientX,y:t[0].clientY,tx:gv.tx,ty:gv.ty,at:Date.now()}; swipe=0; } },{passive:true});
+  gvStage.addEventListener('touchmove',e=>{ if(!gv.open) return; const t=e.touches; e.preventDefault();
+    if(t.length===2&&pinch){ const m=mid(t); const ns=Math.min(5,Math.max(1,pinch.s*dist(t)/pinch.d)); const r=gvStage.getBoundingClientRect();
+      // 손가락 가운데를 기준으로 확대
+      const px=pinch.mx-r.left, py=pinch.my-r.top; gv.tx=px-(px-pinch.tx)*(ns/pinch.s)+(m.x-pinch.mx); gv.ty=py-(py-pinch.ty)*(ns/pinch.s)+(m.y-pinch.my); gv.s=ns; gvClamp(); gvApply(false); }
+    else if(t.length===1&&t0){ const dx=t[0].clientX-t0.x, dy=t[0].clientY-t0.y;
+      if(gv.s>1.02){ gv.tx=t0.tx+dx; gv.ty=t0.ty+dy; gvClamp(); gvApply(false); }
+      else { swipe=dx; gv.tx=t0.tx+dx*0.6; gvApply(false); } } },{passive:false});
+  gvStage.addEventListener('touchend',e=>{ if(!gv.open) return;
+    if(pinch){ if(e.touches.length<2){ pinch=null; if(gv.s<1.05) gvReset(true); } return; }
+    if(!t0) return; const dt=Date.now()-t0.at, moved=Math.abs(swipe)>8;
+    if(gv.s<=1.02){ if(Math.abs(swipe)>50&&gv.urls.length>1){ gvShow(gv.i+(swipe<0?1:-1),false); } else gvReset(true); }
+    if(!moved&&dt<300){ const now=Date.now(); if(now-lastTap<320){ // 두 번 두드림
+        const r=gvStage.getBoundingClientRect(); const px=t0.x-r.left, py=t0.y-r.top;
+        if(gv.s>1.02) gvReset(true); else { const ns=2.5; gv.tx=px-(px-gv.tx)*ns; gv.ty=py-(py-gv.ty)*ns; gv.s=ns; gvClamp(); gvApply(true); }
+        lastTap=0; } else lastTap=now; }
+    t0=null; swipe=0; },{passive:true});
+  // PC: 마우스 휠로 확대, 끌어서 이동, 배경 두 번 클릭으로 확대/원래대로
+  gvStage.addEventListener('wheel',e=>{ if(!gv.open) return; e.preventDefault(); const r=gvStage.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; const ns=Math.min(5,Math.max(1,gv.s*(e.deltaY<0?1.15:1/1.15)));
+    gv.tx=px-(px-gv.tx)*(ns/gv.s); gv.ty=py-(py-gv.ty)*(ns/gv.s); gv.s=ns; if(ns<=1.02) gvReset(false); else { gvClamp(); gvApply(false); } },{passive:false});
+  let m0=null; gvStage.addEventListener('mousedown',e=>{ if(!gv.open||e.button!==0) return; m0={x:e.clientX,y:e.clientY,tx:gv.tx,ty:gv.ty}; e.preventDefault(); });
+  window.addEventListener('mousemove',e=>{ if(!m0||gv.s<=1.02) return; gv.tx=m0.tx+e.clientX-m0.x; gv.ty=m0.ty+e.clientY-m0.y; gvClamp(); gvApply(false); });
+  window.addEventListener('mouseup',()=>{ m0=null; });
+  gvStage.addEventListener('dblclick',e=>{ if(!gv.open) return; const r=gvStage.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top; if(gv.s>1.02) gvReset(true); else { const ns=2.5; gv.tx=px-(px-gv.tx)*ns; gv.ty=py-(py-gv.ty)*ns; gv.s=ns; gvClamp(); gvApply(true); } });
+  window.addEventListener('resize',()=>{ if(gv.open) gvReset(false); });
+})();
 async function loadGallery(){ galAll=readJSON('gallery:list',[]); galRender(); vidRender(readJSON('gallery:video',null));
   try{ const j=await (await fetch(API()+'/api/gallery',{cache:'no-cache'})).json(); if(j.ok&&Array.isArray(j.list)){ galAll=j.list; store.set('gallery:list',JSON.stringify(j.list)); galIdx=0; galRender(); }
     if(j.ok){ store.set('gallery:video',JSON.stringify(j.video||null)); vidRender(j.video||null); } }catch(e){} }
@@ -3286,8 +3399,8 @@ async function loadGallery(){ galAll=readJSON('gallery:list',[]); galRender(); v
 let vidCur=null;
 function vidRender(v){ const sec=$('#jvcVid'),el=$('#vidEl'); if(!sec||!el) return;
   if(!v||!v.src){ sec.hidden=true; if(vidCur){ el.pause(); el.removeAttribute('src'); el.load(); vidCur=null; } return; }
-  if(vidCur&&vidCur.at===v.at){ sec.hidden=false; return; }
-  vidCur=v; sec.hidden=false; el.pause(); el.src=API()+v.src; if(v.poster) el.poster=API()+v.poster; else el.removeAttribute('poster'); el.load();
+  if(vidCur&&vidCur.at===v.at){ sec.hidden=curView!=='home'; return; }
+  vidCur=v; sec.hidden=curView!=='home'; el.pause(); el.src=API()+v.src; if(v.poster) el.poster=API()+v.poster; else el.removeAttribute('poster'); el.load();
   $('#vidTitle').textContent=v.title||''; const mb=v.size?(v.size/1048576).toFixed(1)+'MB':''; const d=v.dur?Math.floor(v.dur/60)+'분 '+Math.round(v.dur%60)+'초':'';
   $('#vidInfo').textContent=[d,mb].filter(Boolean).join(' · '); $('#vidBtn').classList.remove('off'); $('#vidBtn').textContent='▶'; }
 (()=>{ const el=$('#vidEl'),btn=$('#vidBtn'); if(!el) return;
@@ -3299,6 +3412,8 @@ function vidRender(v){ const sec=$('#jvcVid'),el=$('#vidEl'); if(!sec||!el) retu
   el.addEventListener('loadedmetadata',()=>{ if(el.duration===Infinity){ const back=()=>{ el.currentTime=0; el.removeEventListener('timeupdate',back); }; el.addEventListener('timeupdate',back); el.currentTime=1e101; } });
 })();
 loadGallery();
+showView('home');   // 처음엔 홈 화면만
+// 휴대폰 뒤로 가기는 파일 맨 아래 2026-10-07 처리에서 함께 다룸 (다른 화면이면 홈으로, 열린 창은 닫기)
 // 관리자: 소식 올리기
 let newsKeep=[], newsNew=[];
 async function newsShrink(f){const img=await createImageBitmap(f);const s=Math.min(1,1600/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*s;c.height=img.height*s;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.85);}
@@ -3471,12 +3586,12 @@ renderToday();
     cur = { mode: mode, id: id || '' };
     var m = mode === 'edit' ? YR.byId[id] : null, base = mode === 'fam' ? YR.byId[id] : null, h = base ? base.fam.m[0] : null;
     opts('yeDutyList', ['성도','권찰','집사','안수집사','권사','장로'].concat(uniq('duty')).filter(function(v,i,a){ return a.indexOf(v) === i; }));
-    opts('yeRelList', ['본인','남편','처','아들','딸','자녀','부','모','손자','손녀','며느리','사위'].concat(uniq('rel')).filter(function(v,i,a){ return a.indexOf(v) === i; }));
+    opts('yeRelList', ['본인','남편','아내','아들','딸','자녀','부','모','손자','손녀','며느리','사위'].concat(uniq('rel')).filter(function(v,i,a){ return a.indexOf(v) === i; }));
     opts('yeCellList', uniq('cell'));
     q('yeTitle').textContent = mode === 'edit' ? '✏️ 교인 정보 수정' : mode === 'fam' ? '➕ 가족 추가' : '➕ 새 교인 등록';
     q('yeSub').textContent = mode === 'edit' ? (m.fam.m[0] === m ? '가정 대표' : (m.fam.m[0].name + ' 가정')) : mode === 'fam' ? (h.name + ' 가정에 새 가족을 넣습니다') : '새 가정으로 등록됩니다 (가정 대표 = 본인)';
     var v = m || { name:'', duty:'', g:'', rel: mode === 'new' ? '본인' : '', birth:'', lunar:false, cell: h ? h.cell || '' : '', hp:'', tel: h ? h.tel || '' : '', addr: h ? h.addr || '' : '', src: mode === 'new' ? '새가족' : '' };
-    q('yeName').value = v.name || ''; q('yeDuty').value = v.duty || ''; q('yeG').value = v.g || ''; q('yeRel').value = v.rel || '';
+    q('yeName').value = v.name || ''; q('yeDuty').value = v.duty || ''; q('yeG').value = v.g || ''; q('yeRel').value = yrRel(v.rel || '');
     q('yeBirth').value = /^\d{4}-\d{2}-\d{2}$/.test(v.birth || '') ? v.birth : ''; q('yeLunar').checked = !!v.lunar;
     q('yeCell').value = v.cell || ''; q('yeHp').value = v.hp || ''; q('yeTel').value = v.tel || ''; q('yeAddr').value = v.addr || '';
     q('yeNew').checked = v.src === '새가족';
@@ -3520,6 +3635,7 @@ renderToday();
 
 /* 2026-10-08 스마트요람 첫 화면(교회 그림 배너·파스텔 타일)과 생일 축하 창을 새 디자인으로 바꿈 */
 /* 2026-10-07 휴대폰 뒤로가기: 열린 창이 있으면 그 창만 닫고, 첫 화면에서는 "QT 앱을 닫으시겠습니까?" 물어봄 */
+/* 2026-10-10 추가: 사진 크게 보기 창도 닫고, 다른 화면(말씀·공동체 등)에 있으면 홈 화면으로 돌아감 */
 (function(){
   if (!window.history || !history.pushState) return;
   var leaving = false, armed = false, depth = 0;   // depth: 이 앱이 넣어 둔 뒤로가기 기록 수
@@ -3529,8 +3645,14 @@ renderToday();
     if (ws && ws.classList.contains('on')) { wsHide(); return true; }
     var sm = document.getElementById('sideMenu');
     if (sm && sm.classList.contains('open')) { setMenu(false); return true; }
+    var gvw = document.getElementById('galViewer');
+    if (gvw && !gvw.classList.contains('hidden')) { galViewerClose(); return true; }
     var list = Array.prototype.slice.call(document.querySelectorAll('.directory-modal:not(.hidden),.birthday-modal:not(.hidden),.score-modal:not(.hidden)')).reverse();
-    if (!list.length) return false;
+    if (!list.length) {
+      // 열린 창이 없고 홈이 아닌 화면이면 → 홈으로 (앱을 나가지 않음)
+      if (typeof curView !== 'undefined' && curView !== 'home') { scrollToId('top'); return true; }
+      return false;
+    }
     list.sort(function(a, b){ return (parseInt(getComputedStyle(b).zIndex) || 0) - (parseInt(getComputedStyle(a).zIndex) || 0); });
     var top = list[0];
     if (top.id === 'directoryViewModal') { var bk = document.getElementById('yrBack'); if (bk && !bk.hidden) { bk.click(); return true; } }
