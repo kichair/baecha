@@ -20,7 +20,7 @@
  *  - 비밀값     DURANNO_ID / DURANNO_PW : 두란노 로그인 아이디·비밀번호 (대시보드 Secret으로만 저장)
  *  - 변수       LOGIN_PAGE / LOGIN_URL / LOGIN_ID_FIELD / LOGIN_PW_FIELD : 두란노 로그인 양식 정보
  *  - (선택)     DIR_PASS   : 스마트요람 비밀번호 — 없으면 0191
- *  - (선택)     CELL_PASS  : 셀리더교제 비밀번호 — 없으면 0109
+ *  - (선택)     CELL_PASS  : 셀리더교재 비밀번호 — 없으면 0109
  *
  * 2026-10-06 관리자 페이지 칸 번호를 위에서부터 ①~⑦ 순서로 정리
  * 2026-10-06 변경: 원어 해설 강화 (⭐ 열쇠 단어 + 📖 직역 + [어원] + [시제](필요할 때만) + [핵심 절] 설명 + 요약 필수 (👉 적용 칸 없음), 성도용 쉬운 말)
@@ -37,7 +37,7 @@
  * 2026-10-10 선교기도·갤러리·주보: 파일 여러 개를 고르면 이름의 숫자 순(1, 2, 3 …)으로 올려 1번이 맨 위에 나옴
  * 2026-10-10 해설·원어 배경: 지명이 나오면 지금 지도의 이름을 괄호로 — 갈라디아(지금의 터키) (앱은 이미 쓴 해설에도 지명 사전으로 붙임)
  * 2026-10-10 원어 해설: 핵심 단어 5~7개(보통 6개)로 늘림 (WORDS_V=5, 2026-10-10부터 다시 씀)
- * 2026-10-10 셀리더교제 자료방 (비밀번호 0109): 관리자가 올린 파일(사진·PDF·문서)을 성도가 보고 내려받음
+ * 2026-10-10 셀리더교재 자료방 (비밀번호 0109): 관리자가 올린 파일(사진·PDF·문서)을 성도가 보고 내려받음
  *   - GET /api/cell (X-Cell-Pass) · POST/DELETE /api/cell (관리자) · PUT /api/cell-file?name=&type= (관리자, 파일 바이트 25MB 이하)
  *   - GET /cell-file/<키>?k=비밀번호(&dl=1 내려받기) — PDF는 올릴 때 쪽마다 그림으로 바꿔 함께 저장해 화면에 바로 펼쳐 보임
  *   - 새 자료를 올리면 지난 자료는 파일까지 자동 삭제 (CELL_MAX=1). 같은 글 수정은 그대로
@@ -567,7 +567,7 @@ async function passCheck(req, env, given, want, prefix) {
 }
 const dirCheck = (req, env, given) => passCheck(req, env, given, dirPass(env), 'dir');
 const cellCheck = (req, env, given) => passCheck(req, env, given, cellPass(env), 'cell');
-// ---------- 셀리더교제 자료방 ----------
+// ---------- 셀리더교재 자료방 ----------
 // 목록 KV 'cell:list' = [{ id, title, body, at, files: [{ key, name, type, size, pages: ['/cell-file/<키>', …] }] }]
 // 파일 KV 'cell:file:<키>' (바이트) + 'cell:fmeta:<키>' ({name,type,size})
 const CELL_MAX = 1;                                          // 자료 보관 개수 — 새 자료를 올리면 지난 자료는 파일까지 자동 삭제 (여러 개 남기려면 숫자를 키움)
@@ -716,7 +716,7 @@ export default {
         await env.QT_KV.delete(`dir:img:${id}`);
         return json({ ok: true, name: hit.name, families: data.families.length, people: data.families.reduce((n, f) => n + f.m.length, 0) });
       }
-      // ---------- 셀리더교제 자료방 ----------
+      // ---------- 셀리더교재 자료방 ----------
       // 목록 (앱): 헤더 X-Cell-Pass 또는 ?k= 에 비밀번호 (관리자 토큰도 됨)
       if (path === '/api/cell' && req.method === 'GET') {
         const c = isAdmin(req, env) ? { ok: true } : await cellCheck(req, env, req.headers.get('X-Cell-Pass') || url.searchParams.get('k'));
@@ -1501,8 +1501,8 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <button id="vup">압축해서 올리기</button><button class="sub del" id="vdel" style="width:100%;margin-top:8px;padding:12px;font-size:15px">지금 올라간 영상 삭제</button>
 <div id="m17" class="msg"></div></section>
 
-<section><h2>⑩ 셀리더교제 자료 올리기</h2>
-<p style="font-size:13px;color:#557;margin:0 0 6px">앱 첫 화면 <b>셀리더교제</b> 칸에 들어가면(비밀번호 0109) 여기서 올린 글과 파일이 보입니다. 사진·PDF는 화면에 바로 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
+<section><h2>⑩ 셀리더교재 자료 올리기</h2>
+<p style="font-size:13px;color:#557;margin:0 0 6px">앱 첫 화면 <b>셀리더교재</b> 칸에 들어가면(비밀번호 0109) 여기서 올린 글과 파일이 보입니다. 사진·PDF는 화면에 바로 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
 <label>제목</label><input id="ct" placeholder="예: 10월 셀리더 교재">
 <label>내용 (선택)</label><textarea id="cb" rows="3"></textarea>
 <label>파일 (사진·PDF·한글·엑셀 등 여러 개 — 끌어다 놓아도 됩니다)</label>
@@ -1796,7 +1796,7 @@ $('#vdel').onclick=async function(){if(!confirm('지금 올라간 주간사역 �
  var j=await (await fetch('/api/gallery-video',{method:'DELETE',headers:H()})).json();$('#m17').style.color=j.ok?'#3a5':'#c33';$('#m17').textContent=j.ok?'지웠습니다':'실패: '+j.error;$('#vpv').style.display='none';vShow();};
 vShow();
 
-// ⑩ 셀리더교제 자료 — 파일은 그대로 올리고(내려받기용), 사진·PDF는 화면에 펼쳐 보이도록 쪽 그림(JPEG)도 함께 올림
+// ⑩ 셀리더교재 자료 — 파일은 그대로 올리고(내려받기용), 사진·PDF는 화면에 펼쳐 보이도록 쪽 그림(JPEG)도 함께 올림
 var HWP_LIB=location.origin+'/lib/hwp.min.js';
 // ---- 한글(.hwp) 파일 → 쪽 그림 (hwp.js 로 그린 뒤 html2canvas 로 사진) — 관리자 페이지·앱 공용 ----
 function loadScript(src){ return new Promise(function(res,rej){ if(document.querySelector('script[src="'+src+'"]')) return res(); var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=function(){ rej(new Error('불러오기 실패: '+src)); }; document.head.appendChild(sc); }); }
@@ -1865,7 +1865,7 @@ $('#csv').onclick=async function(){var title=$('#ct').value.trim();var say=funct
  $('#csv').disabled=true;
  try{var files=cKeep.slice();for(var i=0;i<cFiles.length;i++){files.push(await cUploadOne(cFiles[i],say,'파일 '+(i+1)+'/'+cFiles.length));}
   var j=await (await fetch('/api/cell',{method:'POST',headers:Object.assign({},H(),{'Content-Type':'application/json'}),body:JSON.stringify({id:$('#cid').value,title:title,body:$('#cb').value,pin:$('#cpin').checked,files:files})})).json();
-  if(!j.ok)throw new Error(j.error||'실패');say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 앱 셀리더교제 칸에 바로 나옵니다');cClear();cLoad();}
+  if(!j.ok)throw new Error(j.error||'실패');say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 앱 셀리더교재 칸에 바로 나옵니다');cClear();cLoad();}
  catch(e){say('실패: '+e.message,true);}
  $('#csv').disabled=false;};
 async function cLoad(){try{var j=await (await fetch('/api/cell',{headers:H(),cache:'no-store'})).json();cData=j.ok?(j.list||[]):[];if(!j.ok){$('#clist').innerHTML='<p class="msg" style="color:#889">'+(j.error||'')+' (관리자 비밀번호 확인)</p>';return;}}catch(e){cData=[];}

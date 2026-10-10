@@ -573,9 +573,9 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
         <button class="shortcut smart-directory-shortcut" id="smartDirectoryButton" aria-label="스마트요람">
           <svg class="shortcut-icon" viewBox="0 0 24 24"><path d="M4 4.5h16v15H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
           <strong>스마트요람</strong><small>교회 가족 안내</small></button>
-        <button class="shortcut thanks" id="cellButton" aria-label="셀리더교제">
+        <button class="shortcut thanks" id="cellButton" aria-label="셀리더교재">
           <svg class="shortcut-icon" viewBox="0 0 24 24"><path d="M4 7.5h16v12H4z"/><path d="M4 7.5l2.5-3h11l2.5 3"/><path d="M9 12h6"/></svg>
-          <strong>셀리더교제</strong><small>셀리더 자료방</small></button>
+          <strong>셀리더교재</strong><small>셀리더 자료방</small></button>
       </section>
 
 
@@ -803,8 +803,8 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
             <button id="admGalNew" class="adm-btn sub" type="button">새로 쓰기 (입력칸 비우기)</button>
             <div id="admGalMsg" class="adm-msg"></div>
             <div id="admGalList"></div></div>
-          <div class="adm-card"><h3>📎 셀리더교제 자료 올리기</h3>
-            <p style="margin:0;font-size:13.5px;color:#68778c">첫 화면 <b>셀리더교제</b>(비밀번호 0109)에 보이는 자료입니다. 사진·PDF는 화면에 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
+          <div class="adm-card"><h3>📎 셀리더교재 자료 올리기</h3>
+            <p style="margin:0;font-size:13.5px;color:#68778c">첫 화면 <b>셀리더교재</b>(비밀번호 0109)에 보이는 자료입니다. 사진·PDF는 화면에 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
             <input id="admCellId" type="hidden">
             <label for="admCellTitle">제목</label><input id="admCellTitle" maxlength="80" placeholder="예: 10월 셀리더 교재">
             <label for="admCellBody">내용 (선택)</label><textarea id="admCellBody" rows="3"></textarea>
@@ -953,7 +953,7 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
     <div class="ye-chk"><input id="yeNew" type="checkbox"> 💞 새가족 (새가족 타일에 표시)</div>
     <button id="yeSave" class="ye-save" type="button">저장</button><div id="yeMsg" class="ye-msg"></div>
   </div></div>
-  <!-- 2026-10-10 셀리더교제 자료방: 비밀번호(0109, 서버 확인) → 관리자가 올린 글·파일. 사진·PDF는 바로 펼쳐 보이고 파일은 내려받기 -->
+  <!-- 2026-10-10 셀리더교재 자료방: 비밀번호(0109, 서버 확인) → 관리자가 올린 글·파일. 사진·PDF는 바로 펼쳐 보이고 파일은 내려받기 -->
   <style>
   .cell-box{max-height:88vh;overflow:auto}
   .cell-post{border:1px solid #e3e9f1;border-radius:14px;padding:14px;margin:10px 0;background:#fff}
@@ -971,9 +971,9 @@ body[data-view]:not([data-view="home"]) .page-section{margin-top:14px}
   </style>
   <div id="cellModal" class="directory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cellTitle">
     <div class="directory-login cell-box">
-      <button id="cellClose" class="directory-close" type="button" aria-label="셀리더교제 닫기">✕</button>
+      <button id="cellClose" class="directory-close" type="button" aria-label="셀리더교재 닫기">✕</button>
       <p class="eyebrow">CELL LEADERS</p>
-      <h2 id="cellTitle">셀리더교제</h2>
+      <h2 id="cellTitle">셀리더교재</h2>
       <div id="cellLogin">
         <p class="login-desc">셀리더를 위한 자료방입니다. 비밀번호를 입력해 주세요.</p>
         <form id="cellLoginForm" autocomplete="off">
@@ -3170,8 +3170,8 @@ const thanksModal=$('#thanksModal');
 function thanksTime(at){ const d=new Date(at); const diff=(Date.now()-d)/1000; if(diff<60) return '방금'; if(diff<3600) return Math.floor(diff/60)+'분 전'; if(diff<86400) return Math.floor(diff/3600)+'시간 전'; return `${d.getMonth()+1}월 ${d.getDate()}일`; }
 function thanksRender(list){ $('#thanksList').innerHTML = list.length ? list.map(t=>`<div class="thanks-item"><b>${esc(t.name)}</b><small>${thanksTime(t.at)}</small><p>${esc(t.text)}</p></div>`).join('') : '<p style="color:#94a3b8;text-align:center;padding:14px 0">첫 번째 감사를 나눠주세요 🙏</p>'; }
 async function loadThanks(){ try{ const j=await (await fetch(`${QT_API.replace(/\/$/,'')}/api/thanks`,{cache:'no-cache'})).json(); if(j.ok) thanksRender(j.list); }catch(e){ $('#thanksList').innerHTML='<p style="color:#94a3b8;text-align:center">인터넷 연결을 확인해 주세요.</p>'; } }
-if($('#thanksButton')) $('#thanksButton').addEventListener('click',()=>{ $('#thanksName').value=store.get('thanks:name')||''; $('#thanksStatus').textContent=''; openModal(thanksModal); loadThanks(); });   // 2026-10-10 첫 화면 칸은 셀리더교제로 바뀜
-// ===== 셀리더교제 자료방 =====
+if($('#thanksButton')) $('#thanksButton').addEventListener('click',()=>{ $('#thanksName').value=store.get('thanks:name')||''; $('#thanksStatus').textContent=''; openModal(thanksModal); loadThanks(); });   // 2026-10-10 첫 화면 칸은 셀리더교재로 바뀜
+// ===== 셀리더교재 자료방 =====
 const cellModal=$('#cellModal'); let CELL={pass:'',list:[]};
 try{ CELL.pass=sessionStorage.getItem('cell-pass')||''; }catch(e){}
 const cellK=()=>(typeof admToken!=='undefined'&&admToken)?'':CELL.pass;
@@ -3611,7 +3611,7 @@ $('#admGalList').addEventListener('click',async e=>{const box=$('#admGalList');c
   if(dl){const g=(box._list||[]).find(x=>x.id===dl.dataset.gd);if(!confirm((g?g.title:'이 갤러리')+'를 지울까요?\n(사진도 함께 지워지며 되돌릴 수 없습니다)'))return;
     const j=await admCall('/api/gallery?id='+encodeURIComponent(dl.dataset.gd),{method:'DELETE',headers:admH()}).catch(()=>({ok:false}));if(j.ok){admGalList();loadGallery();}else alert('실패: '+(j.error||''));}});
 
-// 관리자: 셀리더교제 자료 올리기 — 파일은 그대로(내려받기용) + 사진·PDF·한글(hwp)은 화면용 쪽 그림(JPEG)도 함께
+// 관리자: 셀리더교재 자료 올리기 — 파일은 그대로(내려받기용) + 사진·PDF·한글(hwp)은 화면용 쪽 그림(JPEG)도 함께
 var HWP_LIB=API()+'/lib/hwp.min.js';
 // ---- 한글(.hwp) 파일 → 쪽 그림 (hwp.js 로 그린 뒤 html2canvas 로 사진) — 관리자 페이지·앱 공용 ----
 function loadScript(src){ return new Promise(function(res,rej){ if(document.querySelector('script[src="'+src+'"]')) return res(); var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=function(){ rej(new Error('불러오기 실패: '+src)); }; document.head.appendChild(sc); }); }
@@ -3682,7 +3682,7 @@ $('#admCellSave').addEventListener('click',async()=>{ const btn=$('#admCellSave'
   btn.disabled=true;
   try{ const files=cellKeep.slice(); for(let i=0;i<cellFiles.length;i++) files.push(await admCellUploadOne(cellFiles[i],say,'파일 '+(i+1)+'/'+cellFiles.length));
     const j=await admCall('/api/cell',{method:'POST',headers:admH(true),body:JSON.stringify({id:$('#admCellId').value,title,body:$('#admCellBody').value,pin:$('#admCellPin').checked,files})});
-    if(!j.ok) throw new Error(j.error||'실패'); say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 첫 화면 셀리더교제 칸에 바로 나옵니다'); cellClear(); admCellList(); if(CELL) CELL.list=[];
+    if(!j.ok) throw new Error(j.error||'실패'); say('올렸습니다: '+j.item.title+' (파일 '+j.item.files.length+'개) — 첫 화면 셀리더교재 칸에 바로 나옵니다'); cellClear(); admCellList(); if(CELL) CELL.list=[];
   }catch(e){ say('실패: '+e.message,true); } btn.disabled=false; });
 async function admCellList(){ const box=$('#admCellList'); try{ const j=await admCall('/api/cell',{headers:admH()}); const l=j.list||[]; box._list=l;
   box.innerHTML=l.length?l.map(c=>`<div style="border-top:1px solid #e3e9f1;padding:9px 0;display:flex;gap:8px;align-items:center"><div style="flex:1;font-size:13.5px"><b>${c.pin?'📌 ':''}${esc(c.title)}</b> 📎${(c.files||[]).length}<br><small style="color:#94a3b8">${new Date(c.at).toLocaleDateString('ko-KR')} · ${(c.files||[]).map(f=>esc(f.name)).join(', ')}</small></div>${(c.files||[]).some(f=>!(f.pages&&f.pages.length)&&isHwp(f))?`<button data-clm="${esc(c.id)}" type="button" style="border:0;background:#fff3e2;color:#9a5a00;border-radius:9px;padding:6px 10px;font-weight:800">📄 쪽 만들기</button>`:''}<button data-cle="${esc(c.id)}" type="button" style="border:0;background:#e9f1fb;color:#1d6fd6;border-radius:9px;padding:6px 10px;font-weight:800">수정</button><button data-cld="${esc(c.id)}" type="button" style="border:0;background:#fdecea;color:#c0392b;border-radius:9px;padding:6px 10px;font-weight:800">삭제</button></div>`).join(''):'<p class="adm-msg">올린 자료가 없습니다</p>';
@@ -3693,7 +3693,7 @@ async function admCellMakePages(c){ const say=(t,err)=>admSay('#admCellMsg',t,er
       const pages=await hwpPages(blob,say); const urls=[]; for(let k=0;k<pages.length;k++){ const pb=await (await fetch(pages[k])).blob(); const pj=await admPutFile('/api/cell-file?name='+encodeURIComponent(f.name+' - '+(k+1)+'쪽.jpg')+'&type=image/jpeg',pb,'image/jpeg',say,f.name+' 화면용 '+(k+1)+'쪽'); urls.push(pj.file.url); }
       files[i]={...f,pages:urls}; }
     const j=await admCall('/api/cell',{method:'POST',headers:admH(true),body:JSON.stringify({id:c.id,title:c.title,body:c.body||'',pin:!!c.pin,files})});
-    if(!j.ok) throw new Error(j.error||'실패'); say('화면용 쪽을 만들어 붙였습니다 — 셀리더교제 칸에서 바로 보입니다'); admCellList(); if(CELL) CELL.list=[];
+    if(!j.ok) throw new Error(j.error||'실패'); say('화면용 쪽을 만들어 붙였습니다 — 셀리더교재 칸에서 바로 보입니다'); admCellList(); if(CELL) CELL.list=[];
   }catch(e){ say('실패: '+e.message,true); } }
 $('#admCellList').addEventListener('click',async e=>{ const box=$('#admCellList'); const ed=e.target.closest('[data-cle]'),dl=e.target.closest('[data-cld]'),mk=e.target.closest('[data-clm]');
   if(mk){ const c=(box._list||[]).find(x=>x.id===mk.dataset.clm); if(c) await admCellMakePages(c); return; }
