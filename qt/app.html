@@ -2244,6 +2244,36 @@ const store = {
 };
 const readJSON = (k, fallback={}) => { try { return JSON.parse(store.get(k) || 'null') ?? fallback; } catch(e) { return fallback; } };
 
+// 2026-10-10 성경 지명 → 지금 지도의 이름. 해설·배경·묵상 글에 지명이 처음 나올 때 한 번 "갈라디아(지금의 터키)"처럼 붙임
+//   (AI가 이미 괄호를 붙였거나, 책 이름(로마서·갈라디아서…)이면 건너뜀)
+const PLACE_NOW = [
+  ['바벨론','이라크'],['앗수르','이라크 북부'],['니느웨','이라크 모술'],['갈대아','이라크 남부'],['메소보다미아','이라크'],
+  ['애굽','이집트'],['고센','이집트 북동부'],['수리아','시리아'],['다메섹','시리아 다마스쿠스'],['블레셋','가자 지역'],
+  ['에돔','요르단 남부'],['모압','요르단'],['암몬','요르단 암만'],['길르앗','요르단 북부'],['두로','레바논'],['시돈','레바논'],['베니게','레바논'],['레바논','레바논'],
+  ['갈라디아','터키 중부'],['에베소','터키 서부'],['골로새','터키'],['서머나','터키 이즈미르'],['버가모','터키'],['두아디라','터키'],['사데','터키'],['빌라델비아','터키'],['라오디게아','터키'],
+  ['갑바도기아','터키'],['비두니아','터키'],['본도','터키 북부'],['루스드라','터키'],['더베','터키'],['이고니온','터키 콘야'],['드로아','터키'],['밀레도','터키'],['안디옥','터키 안타키아'],['밤빌리아','터키 남부'],['하란','터키 남동부'],
+  ['마게도냐','그리스 북부'],['빌립보','그리스'],['데살로니가','그리스'],['베뢰아','그리스'],['고린도','그리스'],['아덴','그리스 아테네'],['그레데','그리스 크레타섬'],['밧모','그리스 파트모스섬'],
+  ['구브로','키프로스'],['멜리데','몰타'],['서바나','스페인'],['바사','이란'],['엘람','이란'],['메대','이란'],['구스','수단·에티오피아'],['다시스','스페인'],['오빌','아라비아 남부'],
+  ['가나안','이스라엘·팔레스타인'],['사마리아','팔레스타인 서안'],['여리고','팔레스타인 서안'],['베들레헴','팔레스타인 서안'],['헤브론','팔레스타인 서안'],['브엘세바','이스라엘 남부'],['므깃도','이스라엘 북부'],['가버나움','이스라엘 갈릴리 호수 북쪽'],
+];
+function placeNow(text){
+  let t = String(text || ''); if (!t) return t;
+  const isKo = c => !!c && /[가-힣]/.test(c);
+  for (const [name, now] of PLACE_NOW){
+    let from = 0;
+    while (true){
+      const i = t.indexOf(name, from); if (i < 0) break;
+      const prev = t[i - 1], next = t[i + name.length];
+      // 다른 낱말의 일부(예: '사아덴'), 책 이름(로마서·갈라디아서·고린도전서), 이미 괄호가 있는 경우는 건너뜀
+      if (isKo(prev) || next === '서' || next === '전' || next === '후' || next === '(' || next === '（') { from = i + name.length; continue; }
+      // 로마·다소·실로·헬라·스바·바벨처럼 다른 낱말과 겹치는 이름은 사전에서 뺐음
+      t = t.slice(0, i + name.length) + '(지금의 ' + now + ')' + t.slice(i + name.length);
+      break;   // 처음 한 번만
+    }
+  }
+  return t;
+}
+
 // 서버에서 받은 QT (휴대폰에 보관해 두었다가 인터넷이 안 될 때도 사용)
 function serverQT(key){ return readJSON(`qtsrv:${key}`, null); }
 async function loadServerQT(key){
@@ -2297,8 +2327,8 @@ function renderToday(fetchServer=true){
   const cm = qt.commentary && qt.commentary.sections && qt.commentary.sections.length ? qt.commentary : null;
   $('#commentary').hidden = !cm;
   $('#commentary').innerHTML = cm ? `<div class="cm-head"><b>📖 본문 해설</b><small>AI가 작성한 참고용 해설입니다</small></div>` +
-    cm.sections.map(s => `<div class="cm-sec"><p class="cm-title">${esc(s.title)}<span>${esc(s.range)}</span></p><p class="cm-text">${esc(s.text)}</p>${s.question ? `<p class="cm-q">${esc(s.question)}</p>` : ''}</div>`).join('') +
-    (cm.meditation ? `<div class="md-box"><p class="md-head">✨ 한절 묵상</p><p class="md-text"><b>${esc(cm.meditation.ref)}</b><span class="md-bar">|</span>${esc(cm.meditation.text)}</p></div>` : '') : '';
+    cm.sections.map(s => `<div class="cm-sec"><p class="cm-title">${esc(s.title)}<span>${esc(s.range)}</span></p><p class="cm-text">${esc(placeNow(s.text))}</p>${s.question ? `<p class="cm-q">${esc(s.question)}</p>` : ''}</div>`).join('') +
+    (cm.meditation ? `<div class="md-box"><p class="md-head">✨ 한절 묵상</p><p class="md-text"><b>${esc(cm.meditation.ref)}</b><span class="md-bar">|</span>${esc(placeNow(cm.meditation.text))}</p></div>` : '') : '';
 
   const record = readJSON(`qt:${renderedKey}`);
   $('#reflectionText').value = record.reflection || '';
@@ -2377,7 +2407,7 @@ function wsRender(ws, hasVerses){
   box.innerHTML =
     (hasVerses ? `<p class="ws-hint"><b>오늘의 말씀</b> <span>(단어를 클릭하면 원어를 보실 수 있습니다.)</span></p>` : '') +
     `<button class="ws-toggle" id="wsToggle" type="button">${wsOpen ? '원어 흐름 접기 ▴' : '원어로 보는 본문의 흐름 ▾'}</button>` +
-    `<div class="ws-flow" ${wsOpen ? '' : 'hidden'}><p class="ws-flow-head">원어로 보는 본문의 흐름</p><p class="ws-flow-sub">${esc(ws.ref||'')} · ${wsLangName(ws)} 핵심 단어 ${ws.words.length}개</p>` + (ws.background ? `<div class="ws-bg"><p class="ws-bg-head">📜 시대적 배경</p><p class="ws-bg-text">${esc(ws.background)}</p></div>` : '') + `${flow}` +
+    `<div class="ws-flow" ${wsOpen ? '' : 'hidden'}><p class="ws-flow-head">원어로 보는 본문의 흐름</p><p class="ws-flow-sub">${esc(ws.ref||'')} · ${wsLangName(ws)} 핵심 단어 ${ws.words.length}개</p>` + (ws.background ? `<div class="ws-bg"><p class="ws-bg-head">📜 시대적 배경</p><p class="ws-bg-text">${esc(placeNow(ws.background))}</p></div>` : '') + `${flow}` +
     (ws.summary ? `<div class="ws-sum">${wsSum(ws.summary)}</div>` : '') +
     `<p class="ws-note">원어 번호는 스트롱 사전 기준 · 참고용 해설입니다</p></div>`;
 }

@@ -34,6 +34,8 @@
  *   - 재생: GET /gallery-video (Range 지원 — 아이폰도 재생) · GET /gallery-poster. 새 영상을 올리면 지난 영상은 자동 삭제(덮어씀)
  *   - 앱 관리자 모드에서도 같은 주소(POST /api/gallery, 관리자 비밀번호)로 올리고 고칠 수 있음
  * 2026-10-10 선교기도·갤러리·주보: 파일 여러 개를 고르면 이름의 숫자 순(1, 2, 3 …)으로 올려 1번이 맨 위에 나옴
+ * 2026-10-10 해설·원어 배경: 지명이 나오면 지금 지도의 이름을 괄호로 — 갈라디아(지금의 터키) (앱은 이미 쓴 해설에도 지명 사전으로 붙임)
+ * 2026-10-10 원어 해설: 핵심 단어 5~7개(보통 6개)로 늘림 (WORDS_V=5, 2026-10-10부터 다시 씀)
  * 2026-10-10 함께 기도해요: 관리자가 기도제목 고치기 (POST /api/prayers/edit) — 앱 관리자 모드에서 이름·내용·비공개 수정
  */
 
@@ -280,9 +282,9 @@ const saveQT = (env, date, data) => env.QT_KV.put(`qt:${date}`, JSON.stringify(d
 
 // ---------- 원어 해설 버전 ----------
 //  WORDS_FROM(오늘) 이후 날짜는 새 형식(v2)이 아니면 다시 씀. 그 전 날짜는 예전 것 그대로.
-const WORDS_V = 4;   // 3: 직역·어원·시제(필요할 때만)·핵심 절 설명 — 성도용 쉬운 말
-const WORDS_FROM = '2026-10-06';
-const wordsFresh = (w, date) => !!w && (date < WORDS_FROM || (Number(w.v) || 1) >= WORDS_V);
+const WORDS_V = 5;   // 5: 핵심 단어 5~7개(보통 6개) + 배경의 지명에 지금 이름 괄호  (4: 직역·어원·시제·핵심 절, 성도용 쉬운 말)
+const WORDS_FROM = '2026-10-10';
+const wordsFresh = (w, date) => !!w && (date < WORDS_FROM || (Number(w.v) || 1) >= WORDS_V);   // WORDS_FROM 전 날짜는 예전 것 그대로
 const wordsReady = async (env, date) => wordsFresh(await getJSON(env, `words:${date}`), date);
 
 // ---------- 성경(개역개정)·새찬송가 데이터 ----------
@@ -376,6 +378,8 @@ async function aiJSON(env, messages, check, maxTokens = 3000) {
 }
 const SYS = '당신은 한국 개신교 교회의 성경 교사입니다. 성도들이 매일 QT(경건의 시간)를 할 때 읽을 내용을 씁니다. 반드시 자연스러운 한국어 존댓말(~합니다, ~입니다)로만 쓰고, 영어·한자를 섞지 마세요. 본문에 없는 사실을 지어내지 말고, 역사적 배경은 널리 알려진 내용만 짧게 쓰세요. 결과는 JSON만 출력합니다.';
 const rangeRe = /^\d{1,3}:\d{1,3}~(?:\d{1,3}:)?\d{1,3}$/;
+// 지명 규칙: 성경 지명이 나오면 처음 한 번은 지금 지도에서 부르는 이름을 괄호로 붙임
+const PLACE_RULE = '성경의 나라·도시·지역 이름이 나오면 처음 나올 때 한 번은 지금 지도에서 부르는 이름을 바로 뒤 괄호에 붙이세요. 예: 갈라디아(지금의 터키), 바벨론(지금의 이라크), 애굽(지금의 이집트), 마게도냐(지금의 그리스 북부), 다메섹(지금의 시리아 다마스쿠스). 예루살렘·갈릴리처럼 지금도 같은 이름이면 붙이지 않습니다.';
 
 // 본문 해설 (+ 두란노 단락이 없으면 AI가 단락·소제목·기도까지)
 async function makeCommentary(env, date, force = false) {
@@ -391,7 +395,7 @@ async function makeCommentary(env, date, force = false) {
     : `본문을 내용의 흐름에 따라 2~4개 단락으로 나누고, 단락마다 짧은 제목(12자 안팎)과 범위(예: "${chap}:${qt.verses[0][0]}~5")를 붙여 주세요. 장이 바뀌면 "21:18~22:1"처럼 씁니다.`;
   const messages = [
     { role: 'system', content: SYS },
-    { role: 'user', content: `오늘 QT 본문: ${qt.passage}\n\n[본문 말씀]\n${bible}\n\n${plan}\n\n다음을 써 주세요.\n- title: 오늘 본문 전체의 소제목 (15자 이내)\n- sections: 단락마다 title(단락 제목), range(범위), text(본문 해설 4~5문장. 먼저 본문 내용과 배경을 풀어 설명하고, 마지막 1~2문장은 오늘 성도의 삶에 주는 교훈), question(묵상 질문 2개를 한 문장씩 이어서 — 첫째는 본문 내용 질문, 둘째는 나의 삶 적용 질문)\n- meditation.verses: 마음에 새길 핵심 1~2절의 절 번호 (예: "2" 또는 "2~3")\n- meditation.text: 그 구절을 붙잡고 하는 묵상 3~4문장. 따뜻하고 깊이 있게, 오늘 하루의 삶으로 이어지게.\n- prayer: 오늘 말씀으로 드리는 기도 3~4문장 ("~하옵소서", 마지막은 "예수님의 이름으로 기도합니다. 아멘.")\n\n출력 형식(JSON만):\n{"title":"...","sections":[{"title":"...","range":"${chap}:1~5","text":"...","question":"..."}],"meditation":{"verses":"2","text":"..."},"prayer":"..."}` },
+    { role: 'user', content: `오늘 QT 본문: ${qt.passage}\n\n[본문 말씀]\n${bible}\n\n${plan}\n\n다음을 써 주세요.\n- title: 오늘 본문 전체의 소제목 (15자 이내)\n- sections: 단락마다 title(단락 제목), range(범위), text(본문 해설 4~5문장. 먼저 본문 내용과 배경을 풀어 설명하고, 마지막 1~2문장은 오늘 성도의 삶에 주는 교훈), question(묵상 질문 2개를 한 문장씩 이어서 — 첫째는 본문 내용 질문, 둘째는 나의 삶 적용 질문)\n- meditation.verses: 마음에 새길 핵심 1~2절의 절 번호 (예: "2" 또는 "2~3")\n- meditation.text: 그 구절을 붙잡고 하는 묵상 3~4문장. 따뜻하고 깊이 있게, 오늘 하루의 삶으로 이어지게.\n- prayer: 오늘 말씀으로 드리는 기도 3~4문장 ("~하옵소서", 마지막은 "예수님의 이름으로 기도합니다. 아멘.")\n\n${PLACE_RULE}\n\n출력 형식(JSON만):\n{"title":"...","sections":[{"title":"...","range":"${chap}:1~5","text":"...","question":"..."}],"meditation":{"verses":"2","text":"..."},"prayer":"..."}` },
   ];
   const res = await aiJSON(env, messages, j => {
     const list = Array.isArray(j.sections) ? j.sections : [];
@@ -433,15 +437,15 @@ async function makeWords(env, date) {
         next: '그 목자가 이끄는 곳은' });
   const messages = [
     { role: 'system', content: SYS + ' 성경 원어(히브리어·헬라어)와 스트롱 번호를 정확히 아는 교사로서, 매일 QT를 하는 평범한 성도가 편하게 읽고 은혜받을 수 있게 원어를 풀어 줍니다. 신학교 강의처럼 쓰지 말고, 문법 용어(부정과거·분사·완료 등)는 쓰지 말고 "지금도 계속", "이미 이루어진"처럼 쉬운 말로 바꿔 쓰세요. 확실하지 않은 원어·어원은 쓰지 마세요.' },
-    { role: 'user', content: `오늘 QT 본문: ${qt.passage} (개역개정)\n\n${bible}\n\n이 본문의 흐름을 이어 주는 핵심 단어 4~5개를 본문 순서대로 골라 ${langName} 원어로 쉽게 풀어 주세요.\n- verse: 그 단어가 나오는 절 번호\n- ko: 위 본문에 글자 그대로 들어 있는 한글 단어 (2~4글자, 조사 빼고)\n- orig: ${langName} 원어 (${lang === 'he' ? '모음 부호 포함' : '악센트 포함'})\n- read: 원어의 한글 발음\n- mean: 뜻 (짧게, 여러 뜻은 · 로 구분)\n- strong: 스트롱 번호 (${lang === 'he' ? 'H' : 'G'}로 시작)\n- desc: 3~4문장. 성도가 묵상하며 편하게 읽을 수 있게, 아래 표시를 지켜 주세요.\n   · 본문 전체의 열쇠가 되는 단어 딱 하나만 맨 앞에 "⭐ 오늘 본문의 열쇠 단어입니다."\n   · 📖 직역: 이 단어를 글자 그대로 옮긴 뜻 (짧게, 몇 단어로)\n   · [어원] 어떤 말에서 나왔는지, 원래 어떤 그림(모습)을 담은 말인지 1문장\n   · [시제] 동사의 시제나 형태가 말씀의 의미를 살려 줄 때만 1문장 (예: 현재형이라 주님의 말씀은 지금도 변함이 없습니다). 특별한 의미가 없으면 [시제]는 빼세요 — 억지로 넣지 말 것\n   · [핵심 절] 이 단어가 들어 있는 절이 무슨 말씀인지 쉽게 1~2문장\n- next: 다음 단어로 이어지는 흐름을 잇는 짧은 말 (마지막 단어는 빈 칸)\n그리고 (모두 필수)\n- background: 본문의 시대적 배경과 인물의 상황 3~4문장 (쉽게)\n- summary: "핵심 단어: 단어1 → 단어2 → 단어3 …" 다음에 한 칸 띄우고 "흐름 정리:"로 시작해, 고른 단어들을 이어 본문 전체의 흐름을 2문장으로 요약\n\n단어 하나는 예를 들어 이렇게 씁니다 (형식과 분위기만 참고하고, 내용은 반드시 오늘 본문으로 쓰세요):\n${example}\n\n출력 형식(JSON만):\n{"background":"...","words":[{"verse":"","ko":"","orig":"","read":"","mean":"","strong":"","desc":"","next":""}],"summary":"핵심 단어: … 흐름 정리: …"}` },
+    { role: 'user', content: `오늘 QT 본문: ${qt.passage} (개역개정)\n\n${bible}\n\n이 본문의 흐름을 이어 주는 핵심 단어 5~7개(보통 6개)를 본문 순서대로 골라 ${langName} 원어로 쉽게 풀어 주세요. 4개 이하로 줄이지 마세요.\n- verse: 그 단어가 나오는 절 번호\n- ko: 위 본문에 글자 그대로 들어 있는 한글 단어 (2~4글자, 조사 빼고)\n- orig: ${langName} 원어 (${lang === 'he' ? '모음 부호 포함' : '악센트 포함'})\n- read: 원어의 한글 발음\n- mean: 뜻 (짧게, 여러 뜻은 · 로 구분)\n- strong: 스트롱 번호 (${lang === 'he' ? 'H' : 'G'}로 시작)\n- desc: 3~4문장. 성도가 묵상하며 편하게 읽을 수 있게, 아래 표시를 지켜 주세요.\n   · 본문 전체의 열쇠가 되는 단어 딱 하나만 맨 앞에 "⭐ 오늘 본문의 열쇠 단어입니다."\n   · 📖 직역: 이 단어를 글자 그대로 옮긴 뜻 (짧게, 몇 단어로)\n   · [어원] 어떤 말에서 나왔는지, 원래 어떤 그림(모습)을 담은 말인지 1문장\n   · [시제] 동사의 시제나 형태가 말씀의 의미를 살려 줄 때만 1문장 (예: 현재형이라 주님의 말씀은 지금도 변함이 없습니다). 특별한 의미가 없으면 [시제]는 빼세요 — 억지로 넣지 말 것\n   · [핵심 절] 이 단어가 들어 있는 절이 무슨 말씀인지 쉽게 1~2문장\n- next: 다음 단어로 이어지는 흐름을 잇는 짧은 말 (마지막 단어는 빈 칸)\n그리고 (모두 필수)\n- background: 본문의 시대적 배경과 인물의 상황 3~4문장 (쉽게). ${PLACE_RULE}\n- summary: "핵심 단어: 단어1 → 단어2 → 단어3 …" 다음에 한 칸 띄우고 "흐름 정리:"로 시작해, 고른 단어들을 이어 본문 전체의 흐름을 2문장으로 요약\n\n단어 하나는 예를 들어 이렇게 씁니다 (형식과 분위기만 참고하고, 내용은 반드시 오늘 본문으로 쓰세요):\n${example}\n\n출력 형식(JSON만):\n{"background":"...","words":[{"verse":"","ko":"","orig":"","read":"","mean":"","strong":"","desc":"","next":""}],"summary":"핵심 단어: … 흐름 정리: …"}` },
   ];
   const all = qt.verses.map(v => v[1]).join(' ');
   const res = await aiJSON(env, messages, j => {
     const words = (Array.isArray(j.words) ? j.words : []).map(w => ({
       verse: String(w.verse || '').replace(/[^\d]/g, ''), ko: String(w.ko || '').trim(), orig: String(w.orig || '').trim(), read: String(w.read || '').trim(),
       mean: String(w.mean || '').trim(), strong: String(w.strong || '').trim().toUpperCase(), desc: String(w.desc || '').replace(/\s*👉[\s\S]*$/, '').trim(), next: String(w.next || '').trim(),
-    })).filter(w => w.ko && all.includes(w.ko) && w.orig && w.desc.length >= 80 && /[֐-׿Ͱ-Ͽἀ-῿]/.test(w.orig)).slice(0, 5);
-    if (words.length < 3) throw new Error('핵심 단어가 부족하거나 해석이 너무 짧음');
+    })).filter(w => w.ko && all.includes(w.ko) && w.orig && w.desc.length >= 80 && /[֐-׿Ͱ-Ͽἀ-῿]/.test(w.orig)).slice(0, 7);
+    if (words.length < 4) throw new Error('핵심 단어가 부족하거나 해석이 너무 짧음 (' + words.length + '개)');
     // 열쇠 단어(⭐)는 하나만 — 없으면 첫 단어에, 여러 개면 첫 번째만 남김
     let star = false;
     words.forEach(w => {
@@ -458,7 +462,7 @@ async function makeWords(env, date) {
     if (!/^핵심 단어/.test(summary)) summary = '핵심 단어: ' + words.map(w => w.ko).join(' → ') + ' ' + summary;
     if (String(j.background || '').trim().length < 40) throw new Error('배경 설명이 빠짐');
     return { j, words, summary };
-  }, 5000);
+  }, 6500);
   const data = { v: WORDS_V, ref: qt.passage.replace('–', '-'), lang, background: String(res.j.background || '').trim(), words: res.words, summary: res.summary, ai: true, model: res.model, at: new Date().toISOString() };
   await env.QT_KV.put(`words:${date}`, JSON.stringify(data), TTL);
   return data;
