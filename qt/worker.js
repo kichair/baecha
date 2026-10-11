@@ -20,7 +20,7 @@
  *  - 비밀값     DURANNO_ID / DURANNO_PW : 두란노 로그인 아이디·비밀번호 (대시보드 Secret으로만 저장)
  *  - 변수       LOGIN_PAGE / LOGIN_URL / LOGIN_ID_FIELD / LOGIN_PW_FIELD : 두란노 로그인 양식 정보
  *  - (선택)     DIR_PASS   : 스마트요람 비밀번호 — 없으면 0191
- *  - (선택)     CELL_PASS  : 셀리더교재 비밀번호 — 없으면 0109
+ *  - (선택)     CELL_PASS  : 셀리더교재 비밀번호 — 없으면 1122 (2026-10-11 0109 → 1122)
  *
  * 2026-10-06 관리자 페이지 칸 번호를 위에서부터 ①~⑦ 순서로 정리
  * 2026-10-06 변경: 원어 해설 강화 (⭐ 열쇠 단어 + 📖 직역 + [어원] + [시제](필요할 때만) + [핵심 절] 설명 + 요약 필수 (👉 적용 칸 없음), 성도용 쉬운 말)
@@ -44,7 +44,7 @@
  * 2026-10-10 선교기도·갤러리·주보: 파일 여러 개를 고르면 이름의 숫자 순(1, 2, 3 …)으로 올려 1번이 맨 위에 나옴
  * 2026-10-10 해설·원어 배경: 지명이 나오면 지금 지도의 이름을 괄호로 — 갈라디아(터키) (앱은 이미 쓴 해설에도 지명 사전으로 붙임)
  * 2026-10-10 원어 해설: 핵심 단어 5~7개(보통 6개)로 늘림 (WORDS_V=5, 2026-10-10부터 다시 씀)
- * 2026-10-10 셀리더교재 자료방 (비밀번호 0109): 관리자가 올린 파일(사진·PDF·문서)을 성도가 보고 내려받음
+ * 2026-10-10 셀리더교재 자료방 (비밀번호 1122): 관리자가 올린 파일(사진·PDF·문서)을 성도가 보고 내려받음
  *   - GET /api/cell (X-Cell-Pass) · POST/DELETE /api/cell (관리자) · PUT /api/cell-file?name=&type= (관리자, 파일 바이트 25MB 이하)
  *   - GET /cell-file/<키>?k=비밀번호(&dl=1 내려받기) — PDF는 올릴 때 쪽마다 그림으로 바꿔 함께 저장해 화면에 바로 펼쳐 보임
  *   - 새 자료를 올리면 지난 자료는 파일까지 자동 삭제 (CELL_MAX=1). 같은 글 수정은 그대로
@@ -594,7 +594,7 @@ const dataUrlBytes = data => Uint8Array.from(atob(String(data).split(',')[1] || 
 // ---------- 스마트요람 (비밀번호로 보호) ----------
 // 명단: KV 'dir:data' (가족 단위 JSON) / 사진: KV 'dir:img:<ID>'
 const dirPass = env => String(env.DIR_PASS || '0191');
-const cellPass = env => String(env.CELL_PASS || '0109');
+const cellPass = env => String(env.CELL_PASS || '1122');
 // 비밀번호 확인 — 틀리면 IP별로 횟수를 세고, 10분에 10번 넘게 틀리면 잠시 막음
 async function passCheck(req, env, given, want, prefix) {
   const ip = req.headers.get('CF-Connecting-IP') || '';
@@ -1611,7 +1611,7 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <div id="m17" class="msg"></div></section>
 
 <section><h2>⑩ 셀리더교재 자료 올리기</h2>
-<p style="font-size:13px;color:#557;margin:0 0 6px">앱 첫 화면 <b>셀리더교재</b> 칸에 들어가면(비밀번호 0109) 여기서 올린 글과 파일이 보입니다. 사진·PDF는 화면에 바로 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
+<p style="font-size:13px;color:#557;margin:0 0 6px">앱 첫 화면 <b>셀리더교재</b> 칸에 들어가면(비밀번호 1122) 여기서 올린 글과 파일이 보입니다. 사진·PDF는 화면에 바로 펼쳐지고, 모든 파일은 내려받을 수 있습니다. <b>새 자료를 올리면 지난 자료는 자동으로 지워집니다.</b> 파일 하나 25MB 이하.</p>
 <label>제목</label><input id="ct" placeholder="예: 10월 셀리더 교재">
 <label>내용 (선택)</label><textarea id="cb" rows="3"></textarea>
 <label>파일 (사진·PDF·한글·엑셀 등 여러 개 — 끌어다 놓아도 됩니다)</label>
