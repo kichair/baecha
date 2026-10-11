@@ -28,6 +28,11 @@
  * 2026-10-07 관리자 ④ 스마트요람: 달별 생일자 명단 보기 + 전출하신 분 명단에서 삭제 (DELETE /api/dir/person?id=)
  * 2026-10-07 관리자 ⑧ 선교기도: 이미지만 매달 올리기 (사진·PDF, 지난 이미지 바꾸기) — 선교지 이름 필요 없음
  * 2026-10-07 스마트요람 교인 추가·수정 (POST /api/dir/person) — 앱 관리자 모드에서 새가족 등록, 셀 이동 등
+ * 2026-10-11 스마트요람 생일 양력·음력 구별: 셀교적부(PDF) 표시대로 음력 표시를 명단에 한 번에 넣음 (배포 뒤 처음 명단을 읽을 때 자동, DIR_LUNAR_IDS)
+ *   - 교적부에 표시가 없는 분은 2000년 이전 출생=음력, 2000년 이후 출생=양력 (목사님 지시)
+ *   - /api/birthdays 에 id 추가, POST /api/dir/lunar 에 여러 명(ids) 한 번에 바꾸기 — 앱 관리자 모드 생일 창에서 날짜 칸을 누르면 양력⇄음력
+ *   - 관리자 ④ 달별 생일자 명단: 음력 생일은 올해 양력 날짜로 바꿔 함께 나오고(앱과 같음), 줄마다 양력⇄음력 단추
+ * 2026-10-11 교역자 3가정(박창흥 목사·오승숙 사모·박은빈 / 이승준 전도사·박은솔 사모 / 이수찬 전도사·김다미 사모)을 명단에 자동 추가 (DIR_CLERGY)
  * 2026-10-10 관리자 ⑨ 주간사역 갤러리: 사진 묶음 올리기·수정·삭제 (GET /api/gallery, POST·DELETE /api/gallery, 사진 /gallery-img/<키>)
  *   - 새 묶음을 올리면 지난 묶음은 사진까지 자동 삭제 (GALLERY_MAX=1). 같은 묶음 수정은 그대로
  * 2026-10-10 주간사역 영상 (갤러리 아래 재생 칸): 관리자 페이지 ⑨에서 영상 파일을 고르면 브라우저가 720p로 압축해 올림 (KV, 25MB 이하)
@@ -607,7 +612,40 @@ const CELL_MAX = 1;                                          // 자료 보관 �
 const cellList = async env => JSON.parse((await env.QT_KV.get('cell:list')) || '[]');
 async function cellDropFile(env, url) { const k = (String(url || '').match(/cell-file\/([\w-]+)/) || [])[1]; if (k) { await env.QT_KV.delete(`cell:file:${k}`); await env.QT_KV.delete(`cell:fmeta:${k}`); } }
 async function cellDropPost(env, post) { for (const f of post?.files || []) { await cellDropFile(env, f.url || `/cell-file/${f.key}`); for (const u of f.pages || []) await cellDropFile(env, u); } }
-async function dirData(env) { return JSON.parse((await env.QT_KV.get('dir:data')) || 'null'); }
+// 2026-10-11 명단 한 번 손보기 (배포 뒤 처음 명단을 읽을 때 자동으로 한 번만 — data.fixV 로 기억)
+//  ① 음력 생일 표시: 셀교적부(PDF)에 '음'으로 적힌 분 + 표시가 없는 분 가운데 2000년 이전 출생 (id와 이름이 둘 다 맞을 때만)
+//  ② 교역자 3가정 추가 (이미 있으면 건너뜀; 박은빈 청년이 혼자 있던 가정에 부모님을 넣어 한 가정으로)
+const DIR_FIX_V = 1;
+const DIR_LUNAR_IDS = [["27","강태욱"],["172","정계숙"],["3773","고희정"],["3666","김공현"],["3667","최기순"],["2105","김근석"],["385","김기문"],["386","이선옥"],["3605","김미령"],["308","김병곤"],["3577","김상성"],["3806","김시욱"],["3807","김이영"],["3761","김신요"],["3762","강성미"],["2080","김정환"],["2081","박경순"],["2286","김종대"],["2147","김미경A"],["14","조은희"],["3560","김현배"],["3763","민병준"],["3643","원지연"],["3584","박상민"],["3585","변미이"],["2381","박성춘"],["2315","임계자"],["3715","박윤경"],["3662","박이정"],["3705","장정민"],["3679","박종환"],["3678","최보희"],["2327","박현석"],["2328","신매숙"],["2289","우영아"],["2466","서경희"],["3625","석수형"],["200","석정애"],["3544","성병수"],["3545","박경이"],["3759","이정란"],["3801","송정훈"],["2488","신정희"],["3654","이경수"],["3652","이건수"],["3547","유금섭"],["3517","진삼순"],["3720","이미화"],["3721","오수정"],["2410","이재식"],["2411","임선아"],["3669","이정복"],["372","장덕진"],["373","추정숙"],["78","장인환"],["79","최진아"],["2067","장준경"],["2068","조영순"],["2125","조아라"],["111","진은범"],["112","정재진"],["3674","차보연"],["2354","최정석"],["2355","강민정"],["3591","김희진"],["106","황호연"],["2465","강정임"],["2044","공금옥"],["129","김경순"],["2019","김계화"],["3746","김금임"],["2415","김미경B"],["3730","김미자"],["3781","김선비"],["275","김선숙"],["3748","김세화"],["3718","김용경A"],["3690","김주희"],["2239","김향임"],["2365","김효성"],["3732","노봉월"],["3650","노혜자"],["3621","문상우"],["3809","문제군"],["3722","박순교"],["286","박종만"],["3683","송재호"],["3644","심연자"],["3687","알렉산더"],["3739","양귀염"],["2478","양은미"],["2249","오세윤"],["3770","오연주"],["3782","오유진"],["3731","옥순남"],["361","유경순"],["3661","유기명"],["58","이성균"],["3783","이영식"],["3780","이옥자"],["3719","이진실"],["287","임경희A"],["2003","임계숙"],["3804","임기현"],["2414","임동수"],["3775","임정자"],["3735","임지현"],["3792","장백규"],["3633","전다현"],["2335","전재운"],["174","정금숙"],["3734","정현목"],["3708","진찬만1"],["3808","채인숙"],["3582","최서영"],["2037","최영아"],["118","한상철"],["3589","함복순"],["3617","허미숙"],["3757","황혜경"]];
+const DIR_CLERGY = [
+  { with: '박은빈', m: [
+    { id: 'c-pch', name: '박창흥', g: '남', birth: '1966-08-26', lunar: true, duty: '목사', rel: '본인', hp: '010-4257-0191', tel: '', addr: '22704 인천광역시 서구 검암로 53 (검암동, 풍림아이원2차) 102동 604호', cell: '', src: '교역자', photo: false },
+    { id: 'c-oss', name: '오승숙', g: '여', birth: '1969-10-03', lunar: true, duty: '사모', rel: '아내', hp: '010-9505-0191', tel: '', addr: '22704 인천광역시 서구 검암로 53 (검암동, 풍림아이원2차) 102동 604호', cell: '', src: '교역자', photo: false } ] },
+  { m: [
+    { id: 'c-lsj', name: '이승준', g: '남', birth: '1995-09-22', lunar: false, duty: '전도사', rel: '본인', hp: '010-6378-9164', tel: '', addr: '', cell: '', src: '교역자', photo: false },
+    { id: 'c-pes', name: '박은솔', g: '여', birth: '1997-05-04', lunar: false, duty: '사모', rel: '아내', hp: '010-9314-5430', tel: '', addr: '', cell: '', src: '교역자', photo: false } ] },
+  { m: [
+    { id: 'c-lsc', name: '이수찬', g: '남', birth: '1990-01-01', lunar: false, duty: '전도사', rel: '본인', hp: '010-8191-5300', tel: '', addr: '서울특별시 서대문구 독립문로3길 11 (영천동)', cell: '', src: '교역자', photo: false },
+    { id: 'c-kdm', name: '김다미', g: '여', birth: '1997-07-19', lunar: false, duty: '사모', rel: '아내', hp: '010-3744-7693', tel: '', addr: '서울특별시 서대문구 독립문로3길 11 (영천동)', cell: '', src: '교역자', photo: false } ] },
+];
+function dirFix(data) {
+  const fams = data.families = data.families || [];
+  const want = new Map(DIR_LUNAR_IDS.map(([id, n]) => [String(id), n]));
+  for (const f of fams) for (const m of f.m) if (want.has(String(m.id)) && want.get(String(m.id)) === m.name) m.lunar = true;
+  const has = n => fams.some(f => f.m.some(m => m.name === n));
+  for (const c of DIR_CLERGY) {
+    if (c.m.some(m => has(m.name))) continue;                       // 한 분이라도 이미 명단에 있으면 그 가정은 건너뜀
+    const fam = c.with ? fams.find(f => f.m.some(m => m.name === c.with)) : null;
+    if (fam) { fam.m.forEach(m => { if (m.rel === '본인') m.rel = '아들'; }); fam.m.unshift(...c.m.map(m => ({ ...m }))); }
+    else fams.push({ m: c.m.map(m => ({ ...m })) });
+  }
+  data.fixV = DIR_FIX_V; data.updatedAt = new Date().toISOString();
+}
+async function dirData(env) {
+  const data = JSON.parse((await env.QT_KV.get('dir:data')) || 'null');
+  if (data && (data.fixV || 0) < DIR_FIX_V) { dirFix(data); await env.QT_KV.put('dir:data', JSON.stringify(data)); }
+  return data;
+}
 async function dirSetPhoto(env, id, has) {
   const data = await dirData(env);
   if (!data) return null;
@@ -676,7 +714,7 @@ export default {
         const data = await dirData(env);
         if (!data) return json({ ok: false, error: '스마트요람 명단이 아직 등록되지 않았습니다' }, 404);
         const list = [];
-        for (const f of data.families || []) for (const m of f.m) if (/^\d{4}-\d{2}-\d{2}$/.test(m.birth || '')) list.push({ name: m.name, duty: m.duty || '', md: m.birth.slice(5), lunar: !!m.lunar });
+        for (const f of data.families || []) for (const m of f.m) if (/^\d{4}-\d{2}-\d{2}$/.test(m.birth || '')) list.push({ id: m.id, name: m.name, duty: m.duty || '', md: m.birth.slice(5), lunar: !!m.lunar });
         return json({ ok: true, list }, 200, { 'Cache-Control': 'public, max-age=600' });
       }
       // 관리자: 음력/양력 생일 바꾸기
@@ -685,11 +723,13 @@ export default {
         const b = await req.json().catch(() => ({}));
         const data = await dirData(env);
         if (!data) return json({ ok: false, error: '명단 없음' }, 404);
-        let hit = null;
-        for (const f of data.families || []) for (const m of f.m) if (m.id === String(b.id)) { m.lunar = !!b.lunar; hit = m; }
+        const ids = new Set((Array.isArray(b.ids) ? b.ids : [b.id]).map(String));   // { id } 또는 { ids: [...] }
+        let hit = null, n = 0;
+        for (const f of data.families || []) for (const m of f.m) if (ids.has(String(m.id))) { m.lunar = !!b.lunar; hit = m; n++; }
         if (!hit) return json({ ok: false, error: '없는 사람입니다' }, 404);
+        data.updatedAt = new Date().toISOString();
         await env.QT_KV.put('dir:data', JSON.stringify(data));
-        return json({ ok: true, name: hit.name, lunar: hit.lunar });
+        return json({ ok: true, name: hit.name, lunar: hit.lunar, count: n });
       }
       // 관리자: 교인 추가·수정 (앱 관리자 모드의 ✏️ 정보 수정 / ➕ 가족 추가 / ➕ 새 교인 등록)
       //   body: { id?(수정할 분), famWith?(이 분의 가정에 추가), cellAll?(가족 모두 같은 셀로), fields: {name,duty,g,rel,birth,lunar,hp,tel,addr,cell,src} }
@@ -1483,7 +1523,7 @@ button.del{width:auto;margin:0;padding:7px 10px;font-size:13px;background:#fdece
 <button class="del" id="ydel" style="width:100%;margin-top:12px;padding:12px;font-size:15px">선택한 분 명단에서 삭제 (전출)</button><div id="m15" class="msg"></div>
 <label style="margin-top:22px">🎂 달별 생일자 명단</label>
 <select id="bm"><option value="01">1월</option><option value="02">2월</option><option value="03">3월</option><option value="04">4월</option><option value="05">5월</option><option value="06">6월</option><option value="07">7월</option><option value="08">8월</option><option value="09">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option></select>
-<p style="font-size:12px;color:#889;margin:6px 0 0">음력 생일은 명단에 적힌 음력 날짜 기준으로 나옵니다. 전출하신 분은 [삭제]를 누르면 명단·사진에서 빠집니다.</p>
+<p style="font-size:12px;color:#889;margin:6px 0 0">음력 생일은 올해 양력 날짜로 바꿔서 그 달에 나옵니다 (앱의 '이번 달 생일'과 같음). [음력으로]/[양력으로]를 누르면 바로 바뀝니다. 전출하신 분은 [삭제]를 누르면 명단·사진에서 빠집니다.</p>
 <div id="blist"></div><div id="m14" class="msg"></div></section>
 
 
@@ -1656,20 +1696,34 @@ $('#ydel').onclick=function(){var id=$('#yid').value;if(!id)return $('#m15').tex
 // 달별 생일자 명단
 async function bShow(){var mo=$('#bm').value;if(!$('#tk').value.trim()){$('#blist').innerHTML='<p class="msg" style="color:#889">관리자 비밀번호를 넣으면 명단이 나옵니다</p>';return;}
  var all;try{all=await yrGet();}catch(e){$('#blist').innerHTML='<p class="msg" style="color:#c33">'+esc(e.message)+' (관리자 비밀번호 확인)</p>';return;}
- var list=all.filter(function(m){return /^\\d{4}-\\d{2}-\\d{2}$/.test(m.birth)&&m.birth.slice(5,7)===mo;}).sort(function(a,b){return a.birth.slice(8).localeCompare(b.birth.slice(8))||a.name.localeCompare(b.name);});
+ // 음력 생일은 올해 양력 날짜로 (한국 음력 달력) — 앱의 '이번 달 생일' 칸과 같은 계산
+ var yr=new Date(Date.now()+9*36e5).getUTCFullYear(),days=new Date(yr,+mo,0).getDate(),lun={},LF=null;
+ try{LF=new Intl.DateTimeFormat('ko-KR-u-ca-dangi',{month:'numeric',day:'numeric'});if(LF.resolvedOptions().calendar!=='dangi')LF=null;}catch(_){LF=null;}
+ function lmd(d){var p=LF.formatToParts(d),ms=(p.find(function(x){return x.type==='month';})||{}).value||'';return {leap:/윤/.test(ms),m:parseInt(ms.replace(/\\D/g,''),10),d:parseInt((p.find(function(x){return x.type==='day';})||{}).value,10)};}
+ if(LF)for(var d=1;d<=days;d++){var L=lmd(new Date(yr,+mo-1,d,12));if(L.leap)continue;lun[L.m+'/'+L.d]={d:d,last:lmd(new Date(yr,+mo-1,d+1,12)).d===1};}
+ var list=[];all.forEach(function(m){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(m.birth))return;var bm=+m.birth.slice(5,7),bd=+m.birth.slice(8,10);
+  if(!m.lunar){if(m.birth.slice(5,7)===mo)list.push(Object.assign({},m,{day:(bm===2&&bd===29&&days===28)?28:bd}));}
+  else if(LF){var h=lun[bm+'/'+bd]||(bd===30&&lun[bm+'/29']&&lun[bm+'/29'].last?lun[bm+'/29']:null);if(h)list.push(Object.assign({},m,{day:h.d}));}
+  else if(m.birth.slice(5,7)===mo)list.push(Object.assign({},m,{day:bd,noconv:true}));});
+ list.sort(function(a,b){return a.day-b.day||a.name.localeCompare(b.name);});
  bList=list;
- $('#blist').innerHTML='<div class="row" style="justify-content:space-between;margin:12px 0 4px"><b style="font-size:16px">'+(+mo)+'월 생일 '+list.length+'명</b>'+(list.length?'<button class="sub" id="bcopy" style="width:auto;margin:0;padding:8px 12px;font-size:14px">📋 명단 복사 (PPT용)</button>':'')+'</div>'+(list.length?'<table style="width:100%;font-size:14px;border-collapse:collapse">'+list.map(function(m){
-  return '<tr><td style="width:52px;color:#557">'+(+m.birth.slice(8))+'일'+(m.lunar?'<br><small style="color:#b65">음력</small>':'')+'</td><td><b>'+esc(m.name)+'</b> '+esc(m.duty||'')+'<br><span style="color:#1d4f91;font-weight:700">'+bFmt(m)+'</span><br><small style="color:#889">'+esc(m.head)+' 가정</small></td><td style="text-align:right"><button class="del" data-bd="'+m.id+'" data-n="'+esc(m.name)+'">삭제</button></td></tr>';}).join('')+'</table>':'<p class="msg" style="color:#889">이 달 생일인 분이 없습니다</p>');}
+ $('#blist').innerHTML='<div class="row" style="justify-content:space-between;margin:12px 0 4px"><b style="font-size:16px">'+(+mo)+'월 생일 '+list.length+'명 <small style="color:#889;font-weight:400">(양력 '+list.filter(function(m){return !m.lunar;}).length+' · 음력 '+list.filter(function(m){return m.lunar;}).length+')</small></b>'+(list.length?'<button class="sub" id="bcopy" style="width:auto;margin:0;padding:8px 12px;font-size:14px">📋 명단 복사 (PPT용)</button>':'')+'</div>'+(LF?'':'<p class="msg" style="color:#c33">이 브라우저는 음력 달력을 지원하지 않아 음력 생일을 바꾸지 못했습니다 (크롬·엣지에서 열어 주세요)</p>')+(list.length?'<table style="width:100%;font-size:14px;border-collapse:collapse">'+list.map(function(m){
+  return '<tr><td style="width:56px;color:#557"><b>'+m.day+'일</b>'+(m.lunar?'<br><small style="color:#b65">음력 '+(+m.birth.slice(5,7))+'.'+(+m.birth.slice(8))+'</small>':'<br><small style="color:#899">양력</small>')+'</td><td><b>'+esc(m.name)+'</b> '+esc(m.duty||'')+'<br><span style="color:#1d4f91;font-weight:700">'+bFmt(m)+'</span><br><small style="color:#889">'+esc(m.head)+' 가정</small></td><td style="text-align:right;white-space:nowrap"><button class="sub" style="width:auto;margin:0 0 4px;padding:6px 8px;font-size:12px" data-lt="'+m.id+'" data-l="'+(m.lunar?1:0)+'" data-n="'+esc(m.name)+'">'+(m.lunar?'양력으로':'음력으로')+'</button><br><button class="del" data-bd="'+m.id+'" data-n="'+esc(m.name)+'">삭제</button></td></tr>';}).join('')+'</table>':'<p class="msg" style="color:#889">이 달 생일인 분이 없습니다</p>');}
 // 생년월일 표시: 1975.11.01 (음력) · 51세
 var bList=[];
 function bAge(b){var t=new Date(Date.now()+9*36e5),y=t.getUTCFullYear()-(+b.slice(0,4));if((t.getUTCMonth()+1)*100+t.getUTCDate()<(+b.slice(5,7))*100+(+b.slice(8,10)))y--;return y;}
 function bFmt(m){return m.birth.replace(/-/g,'.')+(m.lunar?' (음력)':'')+' · '+bAge(m.birth)+'세';}
 document.addEventListener('click',async function(e){if(!e.target.closest('#bcopy'))return;
- var txt=bList.map(function(m){return (+m.birth.slice(5,7))+'월 '+(+m.birth.slice(8))+'일\\t'+m.name+' '+(m.duty||'')+'\\t'+m.birth.replace(/-/g,'.')+(m.lunar?' (음력)':'');}).join('\\n');
+ var txt=bList.map(function(m){return (+$('#bm').value)+'월 '+m.day+'일\\t'+m.name+' '+(m.duty||'')+'\\t'+m.birth.replace(/-/g,'.')+(m.lunar?' (음력 '+(+m.birth.slice(5,7))+'월 '+(+m.birth.slice(8))+'일)':' (양력)');}).join('\\n');
  try{await navigator.clipboard.writeText(txt);}catch(_){var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
  $('#m14').style.color='#3a5';$('#m14').textContent=bList.length+'명 명단을 복사했습니다 — PPT나 엑셀에 붙여넣기(Ctrl+V) 하세요';});
 $('#bm').value=today.slice(5,7);$('#bm').onchange=function(){$('#m14').textContent='';bShow();};
-$('#blist').onclick=function(e){var b=e.target.closest('[data-bd]');if(!b)return;yDel(b.dataset.bd,b.dataset.n,$('#m14'));};
+$('#blist').onclick=async function(e){var t=e.target.closest('[data-lt]');
+ if(t){var to=t.dataset.l!=='1';if(!confirm(t.dataset.n+' 님 생일을 '+(to?'음력':'양력')+'으로 바꿀까요?'))return;
+  try{var j=await (await fetch('/api/dir/lunar',{method:'POST',headers:Object.assign({},H(),{'Content-Type':'application/json'}),body:JSON.stringify({id:t.dataset.lt,lunar:to})})).json();
+   $('#m14').style.color=j.ok?'#3a5':'#c33';$('#m14').textContent=j.ok?j.name+' — '+(j.lunar?'음력':'양력')+' 생일로 저장했습니다':'실패: '+j.error;if(j.ok){yrData=null;bShow();}}
+  catch(_){$('#m14').style.color='#c33';$('#m14').textContent='실패: 연결 오류';}return;}
+ var b=e.target.closest('[data-bd]');if(!b)return;yDel(b.dataset.bd,b.dataset.n,$('#m14'));};
 var yBlob=null;
 $('#yp').onchange=async function(){var f=$('#yp').files[0];if(!f)return;var img=await createImageBitmap(f);var c=document.createElement('canvas');c.width=240;c.height=296;
  var r=Math.max(240/img.width,296/img.height),w=img.width*r,h=img.height*r;var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,240,296);x.drawImage(img,(240-w)/2,(296-h)/2,w,h);
