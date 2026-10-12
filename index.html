@@ -1300,7 +1300,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261002a';
+const APPVER='20261012a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3624,7 +3624,7 @@ function ycFee(reg,t){
     (부산 라보 실적 230,000원이 다마스 140,000원으로 잡히던 문제) */
  if(R&&R[t])return {v:R[t][0],n:R[t][1],how:'실적'};
  const bt=ycTon(t),up=ycUp(t);
- if(R&&R[bt])return {v:Math.round(R[bt][0]*up),n:R[bt][1],how:'실적'};
+ if(R&&R[bt])return {v:Math.round(R[bt][0]*up),n:R[bt][1],how:'같은 톤수 환산'};
  if(R){
   /* 그 지역의 다른 톤수 실적으로 환산.
      2026-09-02: 차를 통째로 부르는 것과 합바차(2.5m·3m…)는 값 매기는 방식이 달라
@@ -3669,7 +3669,12 @@ function ycSet(k,v){if(k==='t')YCT=v;else if(k==='r')YCR=v;else YCQ=Math.max(1,+
    일자 · 거래처명 · 배송지역(차종) · 적요(장부/광일) · 운임비 · 총계(부가세포함) · 누계
    결재가 주 단위라 한 주씩 묶고, 주 끝에 '결재완료 (합계)' 줄을 자동으로 넣는다.
    누계는 주가 바뀌면 0부터 다시 쌓인다 — 시트와 같다. */
-const YC_CO=['나눔물류','대현물류'];
+const YC_CO=['나눔물류','대현물류','명진로지텍'];  /* 2026-10-12 명진로지텍 추가 */
+const YC_COLOR={'대현물류':'#2f6fd6','나눔물류':'#1e8a4b','명진로지텍':'#c2621b'};
+const YC_EMO={'대현물류':'🟦','나눔물류':'🟩','명진로지텍':'🟧'};
+function ycShort(c){return String(c||'').slice(0,2)}
+/* 다른 업체로 옮기는 버튼 — 업체가 셋이라 상대마다 하나씩 */
+function ycbMoveBtns(co,k,short){return YC_CO.filter(function(c){return c!==co}).map(function(c){return '<button class="btn g mvb" onclick="ycbMove(\''+co+'\','+k+',\''+c+'\')" title="'+c+'로 옮기기">⇄'+(short?' '+ycShort(c):'')+'</button>'}).join(' ')}
 function ycbCo(){return (YC_CO.indexOf(YCV)>=0?YCV:YC_CO[1])}
 /* 저장 모양을 {업체:[줄]} 로 바꾼다 (예전 {날짜:{업체:[줄]}} 도 살려서 옮김) */
 function ycbFix(){
@@ -3813,9 +3818,9 @@ function ycbDel(co,k){const a=ycbRows(co).slice();a.splice(k,1);ycbPut(co,a)}
 /* 다른 업체로 옮기기 (2026-09-21) — 나눔물류 ↔ 대현물류.
    줄을 그대로 뽑아 상대 업체 끝에 붙인다. 위 줄과 묶은(link) 표시는 상대 쪽에선 뜻이 없으니 푼다.
    두 업체 시각을 다 올려야 다른 PC 에 양쪽이 같이 넘어간다. */
-function ycbMove(co,k){
+function ycbMove(co,k,to){
  ycbFix();const a=YCB[co]||[];const x=a[k];if(!x)return;
- const to=YC_CO.filter(function(c){return c!==co})[0];if(!to)return;
+ if(!to||YC_CO.indexOf(to)<0||to===co)to=YC_CO.filter(function(c){return c!==co})[0];if(!to)return;
  ycbBackup();
  a.splice(k,1);delete x.link;(YCB[to]=YCB[to]||[]).push(x);
  ASGV['yb:'+co]=Date.now();ASGV['yb:'+to]=Date.now();
@@ -4014,7 +4019,7 @@ function ycbPast(){
     +'<td style="text-align:right">'+((x.link||x.co==='착불')?'—':won(v))+'</td>'
     +'<td style="text-align:right">'+won(acc)+'</td>'
     +'<td style="white-space:nowrap">'
-     +'<button class="btn g mvb" onclick="ycbMove(\''+co+'\','+r.k+')" title="'+(co==='나눔물류'?'대현물류':'나눔물류')+'로 옮기기">⇄ '+(co==='나눔물류'?'대현':'나눔')+'</button> '
+     +ycbMoveBtns(co,r.k,true)+' '
      +'<button class="btn g" onclick="if(confirm(\''+String(x.n||'').replace(/['\\]/g,'')+' 줄을 뺍니다. 되돌리기로 살릴 수 있습니다.\'))ycbDel(\''+co+'\','+r.k+')" title="빼기">✕</button></td></tr>';
   });
   /* 주가 달을 걸치면(8/31~9/6) 여기 금액은 그 주 전체가 아니라 '이 달분'만이다 — 헷갈리지 않게 적어 둔다 */
@@ -4201,7 +4206,7 @@ function tabYcbSign(){
   +W.map(function(m){return '<option value="'+m+'"'+(mon===m?' selected':'')+'>'+md(m)+' ~ '+ycbSun(m)+' 주 (결재일 '+ycbPay(m)+')</option>'}).join('')
   +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 지난주</span></div>'
   +'<div class="ycrow"><label style="white-space:nowrap">② 업체</label><select onchange="ycbSetSc(this.value)">'
-  +['둘 다'].concat(YC_CO).map(function(c){return '<option value="'+c+'"'+(YCSC===c?' selected':'')+'>'+c+'</option>'}).join('')
+  +['둘 다'].concat(YC_CO).map(function(c){return '<option value="'+c+'"'+(YCSC===c?' selected':'')+'>'+(c==='둘 다'?'전체':c)+'</option>'}).join('')
   +'</select>'
   +'<button class="btn" style="margin-left:10px" onclick="ycbSignPrint()">🖨️ 인쇄 (A4 가로)</button></div></div>';
  const body=ycbSignBody(true);
@@ -4213,7 +4218,7 @@ function ycbBlock(co){
  /* 결재완료(pd)로 넘긴 줄은 여기서 감춘다. 지우는 게 아니라 감추는 것 —
     아래 '지난 내역'에서 월 단위로 그대로 다시 볼 수 있다. (2026-09-10) */
  const live=rows.filter(function(x){return !x.pd}).length, done=rows.length-live;
- let h='<div class="hd2" style="margin-top:18px">'+(co==='대현물류'?'🟦':'🟩')+' '+co
+ let h='<div class="hd2" style="margin-top:18px">'+(YC_EMO[co]||'🟩')+' '+co
   +' <span style="font-weight:600;color:#8b9aab;font-size:11.5px">매주 결재 · '+live+'건'
   +(done?' <span style="color:#1e8a4b">· 결재완료 '+done+'건은 감춤</span>':'')+'</span></div>';
  if(!live)return h+'<div class="dcard" style="color:#8b9aab">결재 안 끝난 내역이 없습니다.'
@@ -4224,7 +4229,7 @@ function ycbBlock(co){
   let acc=0,sum=0,last='';
   /* 어느 업체 주인지 줄마다 적는다 — 스크롤하면 위 업체 제목이 안 보인다 (2026-09-30) */
   h+='<div style="margin:10px 0 4px;font-weight:800;color:#5b6b7c;font-size:12.5px">'
-   +'<span style="display:inline-block;padding:2px 9px;border-radius:7px;margin-right:8px;color:#fff;background:'+(co==='대현물류'?'#2f6fd6':'#1e8a4b')+'">'+co+'</span>'
+   +'<span style="display:inline-block;padding:2px 9px;border-radius:7px;margin-right:8px;color:#fff;background:'+(YC_COLOR[co]||'#1e8a4b')+'">'+co+'</span>'
    +md(m)+' ~ '+ycbSun(m)+' 주'
    +' <button class="btn g" style="margin-left:8px" onclick="ycbCopyWeek(\''+co+'\',\''+m+'\')">📋 이 주 복사</button>'
    +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 이 주 인쇄</button>'
@@ -4263,7 +4268,7 @@ function ycbBlock(co){
     +'<td style="white-space:nowrap">'
      +'<button class="btn g kkb" onclick="ycbKakao(\''+co+'\','+k+')" title="카톡으로 보낼 내용만 복사합니다 (금액 제외)">💬</button> '
      +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차로 묶기 — 운임은 한 번만 잡습니다">🔗</button> ':'')
-     +'<button class="btn g mvb" onclick="ycbMove(\''+co+'\','+k+')" title="'+(co==='나눔물류'?'대현물류':'나눔물류')+'로 옮기기">⇄</button> '
+     +ycbMoveBtns(co,k,true)+' '
      +'<button class="btn g" onclick="ycbDel(\''+co+'\','+k+')" title="빼기">✕</button></td></tr>';
   });
   h+='<tr style="background:#fff8d6;font-weight:800"><td colspan="6">'
@@ -4283,7 +4288,7 @@ function tabYcb(){
  if(YCSUB==='sign')return '<div class="ycwrap">'+sub+tabYcbSign()+'</div>';
  const cand=ycbCand(YCBALL);window._YCB=cand;
  let h='<div class="ycwrap">'+sub;
- h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">대현물류 · 나눔물류 · 매주 결재 · 부가세 별도 단가</span></div>';
+ h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">대현물류 · 나눔물류 · 명진로지텍 · 매주 결재 · 부가세 별도 단가</span></div>';
  h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건만 골라 보여 줍니다. 거래일이 달라도 적요에 <b>3일 출고</b> 처럼 적혀 있으면 그날 목록으로 끌어옵니다(★ 표시). 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.<br>'
   +'<span style="color:#a8791d">노란 운임 칸 = 장부에 그 지역·그 차 실적이 없어 <b>추정한 값</b>입니다. 실제 부른 금액으로 고쳐 주세요. 적요를 <b>착불</b>로 바꾸면 운임은 <b>0원</b>이 됩니다 — 차만 불러 주고 돈은 받는 곳에서 내는 건입니다.</span></div>';
  h+='<div class="dcard">'
@@ -4299,7 +4304,7 @@ function tabYcb(){
    +'<label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCBALL?' checked':'')
    +' onchange="YCBALL=this.checked;render()"> 전체</label></div>'
   +'<div class="ycrow"><label>③ 담을 업체</label><select onchange="ycbSetCo(this.value)">'
-   +['대현물류','나눔물류'].map(function(c){return '<option value="'+c+'"'+(ycbCo()===c?' selected':'')+'>'+c+'</option>'}).join('')
+   +['대현물류','나눔물류','명진로지텍'].map(function(c){return '<option value="'+c+'"'+(ycbCo()===c?' selected':'')+'>'+c+'</option>'}).join('')
    +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">고른 곳으로 들어갑니다</span></div>'
   +'<div class="ycrow"><label>④ 지난내역</label><select onchange="ycbSetPm(this.value)">'
    +'<option value="">— 안 봄 —</option>'
@@ -4313,6 +4318,7 @@ function tabYcb(){
   +'<button class="btn g" onclick="ycbUndo()" title="이 PC에 남은 직전 상태로 되돌립니다">↩︎ 되돌리기</button></div></div>';
  h+=ycbBlock('대현물류');
  h+=ycbBlock('나눔물류');
+ h+=ycbBlock('명진로지텍');
  h+=ycbPast();
  return h+'</div>';
 }
