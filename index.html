@@ -329,6 +329,28 @@ button,select,input{font-family:inherit}
 .ritem.dn>b{background:#7fbf95}
 .ritem.dn .rtx>u{color:#7d8b98;text-decoration:line-through}
 .ritem.dn .rtx>.radd{color:#a8bdb0}
+
+/* 2026-10-13 동선별 카드 다시 — 번호·이름·주소·수량을 크게, 버튼은 아래 한 줄 (사용자: "무조건 가독성") */
+.rgrid{grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:8px}
+.ritem{display:grid;grid-template-columns:34px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:10px;row-gap:5px;
+ align-items:start;padding:10px 12px;min-height:0;background:#fff;border:1.5px solid #cfd9e4;border-radius:10px}
+.ritem>b{grid-row:1/span 2;width:34px;height:34px;border-radius:8px;font-size:15px;align-self:start}
+.ritem>.rtx{grid-column:2;grid-row:1/span 2;gap:4px}
+.rtx>u{font-size:15px;font-weight:800;color:#172433;line-height:1.3;letter-spacing:-.2px}
+.rtx>.radd{font-size:12.5px;font-weight:600;color:#4f6072;white-space:normal;overflow:visible;text-overflow:clip;
+ line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.ritem>i{grid-column:3;grid-row:1;justify-self:end;font-size:17px;font-weight:900;color:#0b4a2b;background:#e6f4eb;
+ border:1px solid #bfe3c9;border-radius:8px;padding:3px 9px;line-height:1.2;white-space:nowrap}
+.ritem>i small{font-size:11px;font-weight:700;margin-left:1px;color:#2f6a48}
+.ritem>.racts{grid-column:3;grid-row:2;justify-self:end;display:flex;align-items:center;gap:4px;flex-wrap:nowrap}
+.racts .chipbtn{width:32px;height:30px;font-size:14px;border-radius:8px}
+.racts .gwhy{font-size:10px;margin-left:0}
+.ritem.dn{background:#eef7f1;border-color:#bfe3c9}
+.ritem.dn>i{opacity:.55}
+.rghd{font-size:14px;padding:8px 12px;border-radius:9px}
+.rghd .rcnt{font-size:13px}
+.rghd .rgbtn{font-size:14px}
+@media (max-width:700px){.rgrid{grid-template-columns:1fr}}
 @media(max-width:760px){.rgrid{grid-template-columns:1fr;gap:5px}
  .ritem{min-height:48px;padding:5px 7px;gap:5px}
  .rtx>u{font-size:13px}
@@ -562,6 +584,20 @@ table.sgtb{width:100%;border-collapse:collapse;table-layout:fixed}
 .ycsc{overflow-x:auto}
 .yctb td.ycn{white-space:nowrap}
 .yctb td{white-space:nowrap}
+
+/* 2026-10-13 용차내역서 주별 표 — 격자선 (사용자: "용차내역서처럼 줄을 그을까?") */
+.yctb.wk{border:1.5px solid #b7c4d3;font-size:13px}
+.yctb.wk th{background:#e9eff6;color:#24364a;font-size:12.5px;text-align:center;padding:7px 8px;border:1px solid #b7c4d3;border-bottom:2px solid #8fa3ba}
+.yctb.wk td{border:1px solid #cdd7e2;padding:6px 8px;vertical-align:middle}
+.yctb.wk tr:nth-child(even) td{background:#f8fafc}
+.yctb.wk td:first-child{font-weight:900;color:#0f5f37;text-align:center;font-size:13.5px;background:#eef6f0}
+.yctb.wk input,.yctb.wk select{font-size:13px}
+.yctb.wk input{padding:4px 6px}
+.yctb.wk td.lnk{background:#f3f7fb}
+.yctb.wk tr[style*="fff8d6"] td{border-top:2px solid #e2c766;background:#fff8d6!important}
+.yctb.wk td.mmc{min-width:260px}
+.yctb.wk tr[style*="fff8d6"] td:first-child{text-align:left;font-size:13px;color:#33475c}
+.rghd .rgtr{background:rgba(255,255,255,.92);color:#0f5f37;font-size:11.5px;padding:2px 7px}
 .ychow{display:block;font-style:normal;font-size:10.5px;color:#a3aebc;font-weight:400}
 /* ===== 회차 뱃지 · GPS 순서 학습 ===== */
 .slottag{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:11px;margin-left:6px;vertical-align:middle}
@@ -1300,7 +1336,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261012a';
+const APPVER='20261013a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3055,10 +3091,12 @@ function tabRoute(today){
          return '<div class="rtx" onclick="event.stopPropagation();srchGo('+o.i+')" title="'+(o.n+(ad?' — '+ad:'')).replace(/"/g,'&quot;')+'">'
           +'<u>'+addTag(o)+tmTag(o)+erTag(o)+erpTag(o)+jdTag(o)+sjTag(o)+o.n+'</u>'
           +(ad?'<span class="radd'+(A.memo?' rgo':'')+'">'+(A.memo?'\u25B6 ':'')+ad+'</span>':'')+'</div>'})()
-       +'<i>'+o.qty+'개</i>'
+       +'<i>'+o.qty+'<small>개</small></i>'
+       +'<span class="racts">'
        +'<button class="chipbtn drv" title="기사 바꾸기" onclick="event.stopPropagation();openBub(\'drv\','+o.i+')">'+(DRVOV[o.key]?'\uD83D\uDC64':'\uD83D\uDE9A')+'</button>'+drvTag(o)
        +'<button class="chipbtn rt" title="동선 바꾸기" onclick="event.stopPropagation();openBub(\'rt\','+o.i+')">\uD83D\uDEE3\uFE0F</button>'
        +'<button class="chipbtn tr" title="몇 차로 나갈지" onclick="event.stopPropagation();openBub(\'tr\','+o.i+')">'+(TRIP[o.key]?TRIP[o.key]+'차':'\u23F1')+'</button>'
+       +'</span>'
        +'</div>').join(''))}).join('')+'</div>'})():'')
   +'</div>';
  });
@@ -4004,7 +4042,7 @@ function ycbPast(){
    +(fin?' <span style="color:#1e8a4b">✅ 결재완료</span> <button class="btn g" onclick="ycbUnpay(\''+co+'\',\''+m+'\')" title="다시 위 목록에 나오게 합니다">↩︎ 결재취소</button>'
        :' <span style="color:#a8791d">결재 전</span>')
    +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 인쇄</button></div>';
-  h+='<table class="yctb"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
+  h+='<table class="yctb wk"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
    +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th><th></th></tr>';
   g.forEach(function(r){const x=r.x;
    const pay=(x.link||x.co==='착불')?0:(+x.fee||0);
@@ -4234,7 +4272,7 @@ function ycbBlock(co){
    +' <button class="btn g" style="margin-left:8px" onclick="ycbCopyWeek(\''+co+'\',\''+m+'\')">📋 이 주 복사</button>'
    +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 이 업체만 종이로">🖨️ 이 주 인쇄</button>'
    +' <button class="btn g" onclick="ycbKakaoWeek(\''+co+'\',\''+m+'\')" title="금액 빼고 카톡으로 보낼 내용만 복사">💬 카톡 복사</button></div>';
-  h+='<div class="dcard ycsc"><table class="yctb"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
+  h+='<div class="dcard ycsc"><table class="yctb wk"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>차종</th><th>적요</th><th>구분</th>'
    +'<th style="text-align:right">운임비</th><th style="text-align:right">총계<br>(부가세포함)</th><th style="text-align:right">누계</th><th></th></tr>';
   g.forEach(function(r){const x=r.x,k=r.k;
    /* 착불 = 받는 곳에서 내는 돈. 금액은 참고로 적어 두되 우리 결재 합계에는 넣지 않는다.
@@ -4243,7 +4281,7 @@ function ycbBlock(co){
    const v=Math.round(pay*1.1);acc+=v;sum+=pay;
    const dd=(x.d===last)?'':md(x.d);last=x.d;
    h+='<tr><td style="white-space:nowrap">'+dd+'</td>'
-    +'<td><input value="'+String(x.n).replace(/"/g,'&quot;')+'" onchange="ycbSet(\''+co+'\','+k+',\'n\',this.value)" style="width:130px"></td>'
+    +'<td><input value="'+String(x.n).replace(/"/g,'&quot;')+'" onchange="ycbSet(\''+co+'\','+k+',\'n\',this.value)" style="width:165px"></td>'
     +'<td><input value="'+String(x.reg||'').replace(/"/g,'&quot;')+'" onchange="ycbSet(\''+co+'\','+k+',\'reg\',this.value)" style="width:74px" placeholder="지역"></td>'
     +(x.link?'<td class="lnk">↳ 위 줄과 <b>같은 차</b></td>'
      :'<td><select onchange="ycbSet(\''+co+'\','+k+',\'tk\',this.value)">'
