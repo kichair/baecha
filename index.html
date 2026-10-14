@@ -561,6 +561,49 @@ table.sgtb{width:100%;border-collapse:collapse;table-layout:fixed}
  .sgsheet{width:auto;padding:0;margin:0;box-shadow:none;page-break-after:always}
  .sgsheet:last-child{page-break-after:auto}
 }
+
+/* 지출결의서 (2026-10-14) — 엑셀 양식 그대로, A4 세로 */
+.jcsheet{background:#fff;color:#000;width:186mm;margin:0 auto 14px;padding:10mm 9mm;box-sizing:border-box;box-shadow:0 2px 10px rgba(0,0,0,.18);
+ font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:12.5pt}
+.jcsheet table{width:100%;border-collapse:collapse;table-layout:fixed}
+.jcsheet td,.jcsheet th{display:table-cell!important}
+.jcsheet tr{display:table-row!important}
+.jctop td,.jctop th{border:1px solid #000;text-align:center;vertical-align:middle;padding:3px}
+.jctop th{font-weight:500;font-size:12pt;height:12mm}
+.jctop .jcttl{border-bottom:none}
+.jctop .jcttl h1{margin:0;font-size:28pt;font-weight:900;letter-spacing:3px}
+.jctop .jckj{font-size:12.5pt}
+.jctop .jcwho{font-size:13.5pt;vertical-align:top;padding-top:6px;height:24mm}
+.jctop .jcdate{border-top:none;font-size:12.5pt;height:12mm}
+.jcamt{margin-top:0}
+.jcamt td{border-bottom:1px solid #000;border-top:1px solid #000;padding:8mm 3mm 1.5mm;font-size:14pt}
+.jcamt td:first-child{border-left:1px solid #000}.jcamt td:last-child{border-right:1px solid #000}
+.jcamt .jcil{text-decoration:underline;text-underline-offset:3px;padding-left:4mm}
+.jcamt .jcw{text-align:center}.jcamt .jcv{text-align:right;padding-right:6mm;vertical-align:top;padding-top:2mm}
+.jcbody{border-left:1px solid #000;border-right:1px solid #000}
+.jcbody td,.jcbody th{padding:4mm 3mm;font-size:12.5pt;vertical-align:middle;border:none!important;background:transparent}
+.jcbody .jcnae td{height:18mm;padding-left:8mm;font-size:14pt}
+.jcbody .jcnae u{text-underline-offset:3px}
+.jcbody .jchd th{font-weight:700;text-align:center;height:15mm;color:#000}
+.jcbody .jchd th:first-child{font-weight:500}
+.jcbody tr.g td{background:#d9d9d9!important}
+.jcbody .jcnm{text-align:left;padding-left:4mm;line-height:1.35}
+.jcbody td.r{text-align:right;font-variant-numeric:tabular-nums}
+.jcbody td.b{font-weight:800}
+.jcbody td.c{text-align:center}
+.jcbody .jcsum td{height:15mm}
+.jcbody .jcblank td{height:12mm}
+.jcbody{border-bottom:1px solid #000}
+.jcac{display:inline-block;min-width:40mm;border-bottom:1px dashed #9aa;cursor:text;outline:none}
+.jcac:focus{background:#fff8d6}
+.jcfoot td,.jcfoot th{border:1px solid #000;height:15mm;padding:0 4mm;font-weight:500;font-size:13.5pt;background:#fff;color:#000}
+.jcfoot th{letter-spacing:2px;text-align:center}
+.jcfoot td.r{text-align:right;padding-right:10mm}
+.jcfoot .jcco2{text-align:center;height:17mm}
+@media print{
+ .jcsheet{width:auto;padding:0;margin:0;box-shadow:none}
+ .jcac{border-bottom:none}
+}
 /* 적재길이 자 (2026-09-03) */
 .ycruler{position:relative;height:76px;margin:12px 0 4px;background:#eef2f8;border:1px solid #d8e1ee;border-radius:9px}
 .ycrbar{position:absolute;left:0;top:0;height:32px;min-width:2px;background:linear-gradient(90deg,#1b7f4f,#2fb573);border-radius:8px 0 0 0;border-right:3px solid #0f5f37}
@@ -1338,7 +1381,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261013b';
+const APPVER='20261014a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4106,7 +4149,7 @@ function ycbSignWeek(){
  for(let i=0;i<W.length;i++)if(W[i]<cur)return W[i];
  return W[0];
 }
-function ycbSetSub(v){YCSUB=(v==='sign'?'sign':'list');render()}
+function ycbSetSub(v){YCSUB=(v==='sign'||v==='jc')?v:'list';render()}
 function ycbSetSw(v){YCSW=v||'';localStorage.setItem(KEY+'_ycsw',YCSW);render()}
 function ycbSetSc(v){YCSC=v||'둘 다';localStorage.setItem(KEY+'_ycsc',YCSC);render()}
 /* 지역 이름 맞춰 보기 — '평택' '평택시' '경기 평택' 을 같은 곳으로 본다 */
@@ -4244,6 +4287,96 @@ function ycbSignPrint(){
  window.addEventListener('afterprint',off);
  setTimeout(function(){window.print();setTimeout(off,400)},80);
 }
+
+/* ===== 배차 지출결의서 (2026-10-14) =====
+   사무실에서 쓰던 엑셀 「지출결의서」 양식 그대로. 고른 주의 업체별 결재 합계(공급가액·세액·합계)를
+   채워서 A4 세로 한 장으로 뽑는다. 금액은 결재 올리기 표와 같은 방식 — 묶은 줄(↳)·착불은 뺀다.
+   계좌는 업체별로 화면에서 눌러 고칠 수 있고 YCB._acct 에 저장돼 다른 PC 에도 넘어간다. */
+let YCJD='';
+const YC_ACCT_DEF={'나눔물류':'국민 163201-04-439199','대현물류':'국민 163201-04-439199','명진로지텍':''};
+function ycbAcct(co){const A=(YCB&&YCB._acct)||{};return (A[co]!==undefined)?A[co]:(YC_ACCT_DEF[co]||'')}
+function ycbSetAcct(co,v){v=String(v||'').replace(/\s+/g,' ').trim();
+ if(!YCB._acct||typeof YCB._acct!=='object'||Array.isArray(YCB._acct))YCB._acct={};
+ if(ycbAcct(co)===v)return;YCB._acct[co]=v;ASGV['yb:_acct']=Date.now();save()}
+function ycbJcSetDate(v){YCJD=v||'';render()}
+function ycbJcSum(co,mon){let sup=0,n=0;
+ (ycbRows(co)||[]).forEach(function(x){if(ycbMon(x.d||ycbDate())!==mon)return;n++;
+  if(x.link||x.co==='착불')return;sup+=(+x.fee||0)});
+ const tot=Math.round(sup*1.1);return {sup:sup,tax:tot-sup,tot:tot,n:n}}
+function ycbJcHtml(mon,edit){
+ const rng=md(mon)+'~'+ycbSun(mon);
+ const d=YCJD||ycbToday(), dd=d.split('-');
+ const rows=[];YC_CO.forEach(function(c){const S=ycbJcSum(c,mon);
+  if(c==='명진로지텍'&&!S.sup)return;    /* 명진은 그 주에 나간 게 있을 때만 */
+  rows.push({co:c,S:S})});
+ let all=0;rows.forEach(function(r){all+=r.S.tot});
+ const w=function(v){return v?won(v):'-'};
+ let h='<div class="jcsheet">';
+ h+='<table class="jctop"><colgroup><col style="width:33%"><col style="width:7%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>'
+  +'<tr><td class="jcttl" rowspan="2"><h1>지출결의서</h1></td><td class="jckj" rowspan="3">결<br><br>재</td>'
+  +'<th>작성</th><th></th><th>사장님</th><th>승인</th></tr>'
+  +'<tr><td class="jcwho" rowspan="2">강현아</td><td rowspan="2"></td><td rowspan="2"></td><td rowspan="2"></td></tr>'
+  +'<tr><td class="jcdate">'+(+dd[0])+'년 '+(+dd[1])+'월 '+(+dd[2])+'일</td></tr></table>';
+ h+='<table class="jcamt"><colgroup><col style="width:40%"><col style="width:20%"><col style="width:40%"></colgroup>'
+  +'<tr><td class="jcil">일금</td><td class="jcw">₩</td><td class="jcv">'+won(all)+'</td></tr></table>';
+ h+='<table class="jcbody"><colgroup><col style="width:40%"><col style="width:20%"><col style="width:18%"><col style="width:22%"></colgroup>'
+  +'<tr class="jcnae"><td><u>내 &nbsp; 역</u></td><td></td><td></td><td></td></tr>'
+  +'<tr class="jchd"><th>물류비</th><th>공급가액</th><th>세액</th><th>합계</th></tr>';
+ rows.forEach(function(r,i){const S=r.S;
+  const lab=r.co+'('+rng+')'+(r.co==='대현물류'?'-광일':'');
+  const ac=ycbAcct(r.co);
+  const acc=edit
+   ?'<span class="jcac" contenteditable="true" spellcheck="false" onblur="ycbSetAcct(\''+r.co+'\',this.innerText)" title="눌러서 계좌를 고치세요">'+esc(ac||'계좌 적기')+'</span>'
+   :esc(ac);
+  h+='<tr class="jcco'+(i%2?'':' g')+'"><td class="jcnm">'+esc(lab)+'</td><td class="r">'+w(S.sup)+'</td><td class="r">'+w(S.tax)+'</td><td class="r b">'+w(S.tot)+'</td></tr>'
+   +'<tr class="jcacr'+(i%2?'':' g')+'"><td class="jcnm">'+acc+'</td><td></td><td></td><td></td></tr>';
+ });
+ h+='<tr class="jcsum"><td></td><td></td><td class="c">합계</td><td class="r b">'+won(all)+'</td></tr>'
+  +'<tr class="jcblank"><td></td><td></td><td></td><td></td></tr></table>';
+ h+='<table class="jcfoot"><colgroup><col style="width:33%"><col style="width:67%"></colgroup>'
+  +'<tr><th>거 래 처</th><td></td></tr>'
+  +'<tr><th>영 수 자</th><td class="r">(인)</td></tr>'
+  +'<tr><th>처 리 일 자</th><td></td></tr>'
+  +'<tr><th>계 정 과 목</th><td></td></tr>'
+  +'<tr><td class="jcco2" colspan="2">㈜ 광일체어</td></tr></table>';
+ return h+'</div>';
+}
+function ycbJcPrint(){
+ const mon=ycbSignWeek();if(!mon)return toast('내역이 없습니다');
+ let el=document.getElementById('ycbprt');
+ if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
+ el.innerHTML='<div class="sgprev">'+ycbJcHtml(mon,false)+'</div>';
+ /* 한 장(273mm)을 넘으면 넘는 만큼만 줄인다 — 업체가 셋이면 조금 길어진다 */
+ (function(){const sh=el.querySelector('.jcsheet');if(!sh)return;
+  el.style.cssText='display:block;position:absolute;left:-9999px;top:0;width:186mm';
+  sh.style.cssText='width:186mm;padding:0;margin:0;box-shadow:none';
+  const AV=271*96/25.4, hh=sh.getBoundingClientRect().height;
+  el.style.cssText='';sh.style.cssText='';
+  if(hh>AV)sh.style.zoom=(AV/hh).toFixed(3)})();
+ const st=document.createElement('style');
+ st.textContent='@media print{@page{size:A4 portrait;margin:12mm 12mm}}';
+ document.head.appendChild(st);
+ document.body.classList.add('ycbprint');
+ const off=function(){document.body.classList.remove('ycbprint');
+  if(st.parentNode)st.parentNode.removeChild(st);
+  window.removeEventListener('afterprint',off)};
+ window.addEventListener('afterprint',off);
+ setTimeout(function(){window.print();setTimeout(off,400)},80);
+}
+function tabYcbJc(){
+ const W=ycbWeeks(), mon=ycbSignWeek();
+ let h='<div class="hd2">🧾 지출결의서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">주 단위 · A4 세로 · 사무실 양식 그대로</span></div>';
+ h+='<div class="ycnote">고른 주의 <b>업체별 결재 합계</b>(공급가액·세액·합계)를 지출결의서에 채워 줍니다. 금액은 「결재 올리기」 표와 같습니다 — 묶은 줄(↳)·착불은 빠집니다.<br>'
+  +'<b>계좌</b>는 종이 미리보기에서 <b>눌러서 고치면</b> 저장되고 다른 PC 에도 보입니다. 날짜는 아래에서 바꿀 수 있습니다 (기본 = 오늘).</div>';
+ if(!W.length)return h+'<div class="dcard" style="color:#8b9aab">내역이 없습니다.</div>';
+ h+='<div class="dcard">'
+  +'<div class="ycrow"><label style="white-space:nowrap">① 주</label><select onchange="ycbSetSw(this.value)">'
+  +W.map(function(m){return '<option value="'+m+'"'+(mon===m?' selected':'')+'>'+md(m)+' ~ '+ycbSun(m)+' 주 (결재일 '+ycbPay(m)+')</option>'}).join('')
+  +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 지난주</span></div>'
+  +'<div class="ycrow"><label style="white-space:nowrap">② 날짜</label><input type="date" value="'+(YCJD||ycbToday())+'" onchange="ycbJcSetDate(this.value)">'
+  +'<button class="btn" style="margin-left:10px" onclick="ycbJcPrint()">🖨️ 인쇄 (A4 세로)</button></div></div>';
+ return h+'<div class="sgprev">'+ycbJcHtml(mon,true)+'</div>';
+}
 function tabYcbSign(){
  const W=ycbWeeks(), mon=ycbSignWeek();
  let h='<div class="hd2">🖨️ 결재 올리기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">주 단위 · A4 가로 · 최근 운임비와 차이까지</span></div>';
@@ -4332,9 +4465,11 @@ function tabYcb(){
  ycbFix();
  /* 두 칸으로 나눈다 — 내역 담기(원래 화면)와 결재 올릴 종이 뽑기 (2026-09-17) */
  const sub='<div class="sgtabs">'
-  +'<button class="'+(YCSUB==='sign'?'':'on')+'" onclick="ycbSetSub(\'list\')">🚚 용차 내역서</button>'
-  +'<button class="'+(YCSUB==='sign'?'on':'')+'" onclick="ycbSetSub(\'sign\')">🖨️ 결재 올리기</button></div>';
+  +'<button class="'+(YCSUB==='list'?'on':'')+'" onclick="ycbSetSub(\'list\')">🚚 용차 내역서</button>'
+  +'<button class="'+(YCSUB==='sign'?'on':'')+'" onclick="ycbSetSub(\'sign\')">🖨️ 결재 올리기</button>'
+  +'<button class="'+(YCSUB==='jc'?'on':'')+'" onclick="ycbSetSub(\'jc\')">🧾 지출결의서</button></div>';
  if(YCSUB==='sign')return '<div class="ycwrap">'+sub+tabYcbSign()+'</div>';
+ if(YCSUB==='jc')return '<div class="ycwrap">'+sub+tabYcbJc()+'</div>';
  const cand=ycbCand(YCBALL);window._YCB=cand;
  let h='<div class="ycwrap">'+sub;
  h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">대현물류 · 나눔물류 · 명진로지텍 · 매주 결재 · 부가세 별도 단가</span></div>';
