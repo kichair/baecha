@@ -562,48 +562,53 @@ table.sgtb{width:100%;border-collapse:collapse;table-layout:fixed}
  .sgsheet:last-child{page-break-after:auto}
 }
 
-/* 지출결의서 (2026-10-14) — 엑셀 양식 그대로. 2026-10-15 사용자: "A4 반 장 크기로" → 세로 약 128mm 안에 들어가게 촘촘히 */
-.jcsheet{background:#fff;color:#000;width:186mm;margin:0 auto 14px;padding:6mm 6mm;box-sizing:border-box;box-shadow:0 2px 10px rgba(0,0,0,.18);
- font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:10.5pt;line-height:1.25}
+/* 지출결의서 (2026-10-14) — 엑셀 양식 그대로.
+   2026-10-15 사용자: "A4 가로의 반 크기" → A4 를 가로로 놓고 왼쪽 절반(148.5×210mm)에 찍는다. 종이 폭 128mm · 높이 188mm 안 */
+.jcpage{width:277mm;height:190mm;margin:0 auto 14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18);position:relative;
+ padding:0;box-sizing:border-box;display:flex}
+.jcpage .jchalf{width:138.5mm;height:100%;box-sizing:border-box;padding:0}
+.jcpage .jchalf+.jchalf{border-left:1px dashed #9aa8b8;display:flex;align-items:center;justify-content:center;color:#b3bfcc;font-size:12px}
+.jcsheet{background:#fff;color:#000;width:128mm;margin:0;padding:0;box-sizing:border-box;
+ font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:10pt;line-height:1.25}
 .jcsheet table{width:100%;border-collapse:collapse;table-layout:fixed}
 .jcsheet td,.jcsheet th{display:table-cell!important}
 .jcsheet tr{display:table-row!important}
-.jctop td,.jctop th{border:1px solid #000;text-align:center;vertical-align:middle;padding:1px 3px}
-.jctop th{font-weight:500;font-size:10pt;height:6.5mm}
+.jctop td,.jctop th{border:1px solid #000;text-align:center;vertical-align:middle;padding:1px 2px}
+.jctop th{font-weight:500;font-size:9.5pt;height:8mm}
 .jctop .jcttl{border-bottom:none}
-.jctop .jcttl h1{margin:0;font-size:20pt;font-weight:900;letter-spacing:3px;line-height:1.1}
-.jctop .jckj{font-size:10.5pt;line-height:1.1}
-.jctop .jcwho{font-size:11pt;vertical-align:top;padding-top:3px;height:13mm}
-.jctop .jcdate{border-top:none;font-size:10pt;height:6.5mm}
-.jcamt td{border-bottom:1px solid #000;border-top:1px solid #000;padding:3mm 3mm 1mm;font-size:12pt}
+.jctop .jcttl h1{margin:0;font-size:17pt;font-weight:900;letter-spacing:1px;line-height:1.1;white-space:nowrap}
+.jctop .jckj{font-size:10pt;line-height:1.1}
+.jctop .jcwho{font-size:10.5pt;vertical-align:top;padding-top:3px;height:18mm}
+.jctop .jcdate{border-top:none;font-size:9.5pt;height:8mm;white-space:nowrap}
+.jcamt td{border-bottom:1px solid #000;border-top:1px solid #000;padding:5mm 2mm 1.5mm;font-size:11.5pt}
 .jcamt td:first-child{border-left:1px solid #000}.jcamt td:last-child{border-right:1px solid #000}
-.jcamt .jcil{text-decoration:underline;text-underline-offset:3px;padding-left:4mm}
-.jcamt .jcw{text-align:center}.jcamt .jcv{text-align:right;padding-right:6mm;vertical-align:top;padding-top:1.5mm}
+.jcamt .jcil{text-decoration:underline;text-underline-offset:3px;padding-left:3mm}
+.jcamt .jcw{text-align:center}.jcamt .jcv{text-align:right;padding-right:4mm;vertical-align:top;padding-top:2mm}
 .jcbody{border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000}
-.jcbody td,.jcbody th{padding:1.2mm 3mm;font-size:10.5pt;vertical-align:middle;border:none!important;background:transparent}
-.jcbody .jcnae td{height:8mm;padding-left:8mm;font-size:11.5pt}
+.jcbody td,.jcbody th{padding:1.5mm 2mm;font-size:10pt;vertical-align:middle;border:none!important;background:transparent}
+.jcbody .jcnae td{height:11mm;padding-left:6mm;font-size:11pt}
 .jcbody .jcnae u{text-underline-offset:3px}
-.jcbody .jchd th{font-weight:700;text-align:center;height:7mm;color:#000}
+.jcbody .jchd th{font-weight:700;text-align:center;height:9mm;color:#000}
 .jcbody .jchd th:first-child{font-weight:500}
 .jcbody tr.g td{background:#d9d9d9!important}
-.jcbody .jcco td,.jcbody .jcacr td{height:6mm}
-.jcbody .jcnm{text-align:left;padding-left:4mm;line-height:1.25}
+.jcbody .jcco td,.jcbody .jcacr td{height:8mm}
+.jcbody .jcnm{text-align:left;padding-left:3mm;line-height:1.25;font-size:9.5pt}
 .jcbody td.r{text-align:right;font-variant-numeric:tabular-nums}
 .jcbody td.b{font-weight:800}
 .jcbody td.c{text-align:center}
-.jcbody .jcsum td{height:7.5mm}
-.jcbody .jcblank td{height:2mm;padding:0}
-.jcac{display:inline-block;min-width:40mm;border-bottom:1px dashed #9aa;cursor:text;outline:none}
+.jcbody .jcsum td{height:10mm}
+.jcbody .jcblank td{height:6mm;padding:0}
+.jcac{display:inline-block;min-width:34mm;border-bottom:1px dashed #9aa;cursor:text;outline:none}
 .jcac:focus{background:#fff8d6}
-.jcfoot td,.jcfoot th{border:1px solid #000;height:6.5mm;padding:0 4mm;font-weight:500;font-size:10.5pt;background:#fff;color:#000}
+.jcfoot td,.jcfoot th{border:1px solid #000;height:9.5mm;padding:0 3mm;font-weight:500;font-size:10.5pt;background:#fff;color:#000}
 .jcfoot th{letter-spacing:2px;text-align:center}
-.jcfoot td.r{text-align:right;padding-right:10mm}
-.jcfoot .jcco2{text-align:center;height:7.5mm}
-.jccut{width:186mm;margin:0 auto 14px;border-top:1px dashed #9aa8b8;text-align:center;font-size:11px;color:#8b9aab;padding-top:3px}
+.jcfoot td.r{text-align:right;padding-right:8mm}
+.jcfoot .jcco2{text-align:center;height:11mm}
 @media print{
- .jcsheet{width:auto;padding:0;margin:0;box-shadow:none}
+ .jcpage{width:auto;height:auto;margin:0;box-shadow:none;display:block}
+ .jcpage .jchalf{width:auto;height:auto}
+ .jcpage .jchalf+.jchalf{display:none}
  .jcac{border-bottom:none}
- .jccut{display:none}
 }
 /* 적재길이 자 (2026-09-03) */
 .ycruler{position:relative;height:76px;margin:12px 0 4px;background:#eef2f8;border:1px solid #d8e1ee;border-radius:9px}
@@ -1382,7 +1387,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261015a';
+const APPVER='20261015b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4347,15 +4352,15 @@ function ycbJcPrint(){
  let el=document.getElementById('ycbprt');
  if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
  el.innerHTML='<div class="sgprev">'+ycbJcHtml(mon,false)+'</div>';
- /* A4 반 장(약 132mm)을 넘으면 넘는 만큼만 줄인다 — 업체가 셋이면 조금 길어진다 */
+ /* A4 가로 왼쪽 반(높이 188mm)을 넘으면 넘는 만큼만 줄인다 — 업체가 셋이면 조금 길어진다 */
  (function(){const sh=el.querySelector('.jcsheet');if(!sh)return;
-  el.style.cssText='display:block;position:absolute;left:-9999px;top:0;width:186mm';
-  sh.style.cssText='width:186mm;padding:0;margin:0;box-shadow:none';
-  const AV=132*96/25.4, hh=sh.getBoundingClientRect().height;   /* A4 반 장 (148mm − 위 여백) */
+  el.style.cssText='display:block;position:absolute;left:-9999px;top:0;width:128mm';
+  sh.style.cssText='width:128mm;padding:0;margin:0;box-shadow:none';
+  const AV=188*96/25.4, hh=sh.getBoundingClientRect().height;
   el.style.cssText='';sh.style.cssText='';
   if(hh>AV)sh.style.zoom=(AV/hh).toFixed(3)})();
  const st=document.createElement('style');
- st.textContent='@media print{@page{size:A4 portrait;margin:12mm 12mm}}';
+ st.textContent='@media print{@page{size:A4 landscape;margin:10mm 10mm 10mm 10mm}}';
  document.head.appendChild(st);
  document.body.classList.add('ycbprint');
  const off=function(){document.body.classList.remove('ycbprint');
@@ -4366,7 +4371,7 @@ function ycbJcPrint(){
 }
 function tabYcbJc(){
  const W=ycbWeeks(), mon=ycbSignWeek();
- let h='<div class="hd2">🧾 지출결의서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">주 단위 · A4 반 장 · 사무실 양식 그대로</span></div>';
+ let h='<div class="hd2">🧾 지출결의서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">주 단위 · A4 가로 반 장 · 사무실 양식 그대로</span></div>';
  h+='<div class="ycnote">고른 주의 <b>업체별 결재 합계</b>(공급가액·세액·합계)를 지출결의서에 채워 줍니다. 금액은 「결재 올리기」 표와 같습니다 — 묶은 줄(↳)·착불은 빠집니다.<br>'
   +'<b>계좌</b>는 종이 미리보기에서 <b>눌러서 고치면</b> 저장되고 다른 PC 에도 보입니다. 날짜는 아래에서 바꿀 수 있습니다 (기본 = 오늘).</div>';
  if(!W.length)return h+'<div class="dcard" style="color:#8b9aab">내역이 없습니다.</div>';
@@ -4375,8 +4380,9 @@ function tabYcbJc(){
   +W.map(function(m){return '<option value="'+m+'"'+(mon===m?' selected':'')+'>'+md(m)+' ~ '+ycbSun(m)+' 주 (결재일 '+ycbPay(m)+')</option>'}).join('')
   +'</select><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 지난주</span></div>'
   +'<div class="ycrow"><label style="white-space:nowrap">② 날짜</label><input type="date" value="'+(YCJD||ycbToday())+'" onchange="ycbJcSetDate(this.value)">'
-  +'<button class="btn" style="margin-left:10px" onclick="ycbJcPrint()">🖨️ 인쇄 (A4 반 장)</button></div></div>';
- return h+'<div class="sgprev">'+ycbJcHtml(mon,true)+'<div class="jccut">✂ 여기까지 A4 반 장</div></div>';
+  +'<button class="btn" style="margin-left:10px" onclick="ycbJcPrint()">🖨️ 인쇄 (A4 가로 · 왼쪽 반)</button></div></div>';
+ /* 미리보기는 A4 가로 종이 모양으로 — 왼쪽 반에 찍히고 오른쪽 반은 비는 것을 그대로 보여 준다 */
+ return h+'<div class="sgprev"><div class="jcpage"><div class="jchalf" style="padding:10mm 0 0 10mm">'+ycbJcHtml(mon,true)+'</div><div class="jchalf">✂ 오른쪽 반은 비어 있음</div></div></div>';
 }
 function tabYcbSign(){
  const W=ycbWeeks(), mon=ycbSignWeek();
