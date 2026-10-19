@@ -1390,7 +1390,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261015c';
+const APPVER='20261019a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3837,10 +3837,26 @@ function ycbCand(all){
   if(o.d===D)return true;
   if(Math.abs(new Date(o.d+'T00:00:00')-new Date(D+'T00:00:00'))>40*864e5)return false;
   return shipDate(o)===D;});
- /* 용차·상차 표기가 있거나, 적요에 적힌 출고일 때문에 다른 날에서 넘어온 건 */
- const hit=L.filter(function(o){return YCB_RE.test(String(o.memo||''))||shipDate(o)===D});
+ /* 용차·상차 표기가 있거나, 적요에 적힌 출고일 때문에 다른 날에서 넘어온 건
+    + 2026-10-19: 우리 동선이 없는 원거리(강릉·부산·여수…)로 가는 미배차 건 — 적요에 '용차'가 없어도 우리 차가 못 간다
+      (10/20 퍼시스강릉대리점·(조달)대한노인회강릉시지회 — 적요에 용차 표기가 없어 안 떴다) */
+ const hit=L.filter(function(o){return YCB_RE.test(String(o.memo||''))||shipDate(o)===D||ycbFar(o)});
  const use=(all||!hit.length)?L:hit;
- return use.slice().sort(function(a,b){return (b.load||0)-(a.load||0)});
+ /* 2026-10-19: 이미 내역서에 담은 건은 목록에서 뺀다 — 같은 건이 또 보여 겹쳐 담기던 문제.
+    같은 거래처·같은 수량이 두 줄로 잡힌 것(적요만 다른 명세서 줄)도 하나만 남긴다. */
+ const done={};YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(x){if(x&&x.d===D&&x.n)done[x.n]=1})});
+ const seen={};let hid=0;
+ const out=use.filter(function(o){
+  if(done[o.n]){hid++;return false}
+  const k=o.n+'\u0001'+o.qty;if(seen[k]){hid++;return false}seen[k]=1;return true});
+ ycbCand.hid=hid;
+ return out.sort(function(a,b){return (b.load||0)-(a.load||0)});
+}
+const YCB_FAR=/(강릉|속초|동해시|삼척|태백|정선|영월|평창|양양|대구|부산|울산|광주광역시|전라|전남|전북|경상|경남|경북|제주|여수|순천|광양|목포|포항|창원|김해|거제|진주|통영|경주|구미|안동)/;
+function ycbFar(o){
+ const r=ASSIGN[o.i];if(r&&r!=='_')return false;          /* 우리 동선에 잡힌 건 아님 */
+ const t=((destOf(o)||{}).t||'')+' '+(ADDR[o.n]||'')+' '+String(o.memo||'');
+ return YCB_FAR.test(t);
 }
 /* 적요에 '3m' '다마스' '2.5톤' 처럼 부를 차가 적혀 있으면 그걸 그대로 쓴다.
    (대현물류 시트가 '부산(2.5m)' '중구(3.5탑)' 식으로 적혀 있어 적요 표기와 같다) */
@@ -4483,17 +4499,17 @@ function tabYcb(){
  const cand=ycbCand(YCBALL);window._YCB=cand;
  let h='<div class="ycwrap">'+sub;
  h+='<div class="hd2">🚚 용차 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">대현물류 · 나눔물류 · 명진로지텍 · 매주 결재 · 부가세 별도 단가</span></div>';
- h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건만 골라 보여 줍니다. 거래일이 달라도 적요에 <b>3일 출고</b> 처럼 적혀 있으면 그날 목록으로 끌어옵니다(★ 표시). 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.<br>'
+ h+='<div class="ycnote">적요에 <b>용차·상차</b>라고 적힌 건과, 우리 동선이 없는 <b>원거리(강릉·부산·여수 등) 미배차 건</b>을 골라 보여 줍니다. <b>이미 담은 건은 목록에서 빠집니다.</b> 거래일이 달라도 적요에 <b>3일 출고</b> 처럼 적혀 있으면 그날 목록으로 끌어옵니다(★ 표시). 담으면 지역·차종·운임이 자동으로 채워지고, 한 주씩 묶여 <b>결재완료 합계</b>가 붙습니다.<br>'
   +'<span style="color:#a8791d">노란 운임 칸 = 장부에 그 지역·그 차 실적이 없어 <b>추정한 값</b>입니다. 실제 부른 금액으로 고쳐 주세요. 적요를 <b>착불</b>로 바꾸면 운임은 <b>0원</b>이 됩니다 — 차만 불러 주고 돈은 받는 곳에서 내는 건입니다.</span></div>';
  h+='<div class="dcard">'
   +'<div class="ycrow"><label>① 날짜</label><input type="date" value="'+ycbDate()+'" onchange="ycbSetDate(this.value)">'
    +'<span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 내일</span></div>'
   +'<div class="ycrow"><label>② 담을 건</label><select onchange="ycbAdd(this.value);this.value=\'\'">'
-   +'<option value="">— '+(YCBALL?'그날 전체':'적요에 용차·상차')+' '+cand.length+'건 —</option>'
+   +'<option value="">— '+(YCBALL?'그날 전체':'용차·상차·원거리')+' '+cand.length+'건'+(ycbCand.hid?' · 이미 담은 '+ycbCand.hid+'건 뺌':'')+' —</option>'
    +cand.map(function(o,k){const st=shipTag(o);
      return '<option value="'+k+'">'+(st?'★ ':'')+o.n.slice(0,20)+' · '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대'
      +(st?' ['+st+']':'')
-     +(String(o.memo||'').match(YCB_RE)?' ['+String(o.memo).match(YCB_RE)[0]+']':'')+'</option>'}).join('')
+     +(String(o.memo||'').match(YCB_RE)?' ['+String(o.memo).match(YCB_RE)[0]+']':(ycbFar(o)?' [원거리]':''))+'</option>'}).join('')
    +'</select>'
    +'<label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCBALL?' checked':'')
    +' onchange="YCBALL=this.checked;render()"> 전체</label></div>'
