@@ -20,6 +20,36 @@ button,select,input{font-family:inherit}
 .tabs button em{font-size:19px;font-style:normal;line-height:1}
 .tabs button.on{color:#2F7FE8}
 .bdg{position:absolute;top:4px;left:52%;background:#e04b45;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:9px}
+/* 2026-10-21 탭이 10개라 폰에서는 옆으로 밀어서 본다 */
+.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{min-width:58px;flex-shrink:0}
+/* 2026-10-21 사내연락처 · 운반비연락처 */
+.ctbox{background:#fff;border:1px solid #e3e8ee;border-radius:12px;padding:11px 13px;margin-bottom:10px}
+.ctbox h4{font-size:13px;font-weight:800;color:#3c4a5a;margin:0 0 8px}
+.ctform{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;align-items:center}
+.ctin{padding:8px 9px;border:1px solid #cfd8e3;border-radius:7px;font-size:13.5px;width:100%;box-sizing:border-box;font-family:inherit}
+.ctq{padding:10px 12px;border:1px solid #cfd8e3;border-radius:10px;font-size:14px;width:100%;box-sizing:border-box;margin-bottom:8px}
+.cttb{width:100%;border-collapse:collapse;background:#fff;font-size:13.5px;border-radius:10px;overflow:hidden}
+.cttb th{background:#f3f6f9;color:#5b6b7c;font-size:12px;font-weight:800;text-align:left;padding:8px 10px;border:1px solid #e3e8ee;white-space:nowrap}
+.cttb td{padding:9px 10px;border:1px solid #e3e8ee;vertical-align:middle}
+.cttb td.nm{font-weight:800;font-size:14.5px;white-space:nowrap}
+.cttb td.ac{white-space:nowrap;text-align:right;width:1%}
+.cttel{color:#1d5fc4;font-weight:800;text-decoration:none;white-space:nowrap}
+.ctnone{color:#c3ceda}
+.ctbtn{border:1px solid #d6dee8;background:#fff;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;color:#4a5b6e;cursor:pointer;margin-left:3px;font-family:inherit}
+.ctbtn.del{color:#c0392b}.ctbtn.pri{background:#2F7FE8;border-color:#2F7FE8;color:#fff}
+.ctrole{display:inline-block;background:#eef2f7;color:#5f7086;border-radius:7px;padding:2px 8px;font-size:12px;font-weight:700}
+.hlgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.hlcard{background:#fff;border:1px solid #e3e8ee;border-radius:12px;overflow:hidden}
+.hlcard .hh{padding:11px 14px;color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;background:#5f7086}
+.hlcard .hh small{font-weight:700;font-size:12px;opacity:.92;margin-left:auto}
+.hlcard dl{display:grid;grid-template-columns:82px 1fr;margin:0;padding:6px 14px 2px}
+.hlcard dt{color:#8b9aab;font-size:12px;font-weight:700;padding:7px 0;border-bottom:1px dashed #edf1f5}
+.hlcard dd{margin:0;font-size:13.5px;padding:7px 0;border-bottom:1px dashed #edf1f5;word-break:break-all}
+.hlcard .hlsum{background:#f3f8ff;border-radius:8px;padding:7px 10px;margin:8px 14px 0;font-size:12.5px;font-weight:700;color:#2a4a6e}
+.hlcard .ft{display:flex;justify-content:flex-end;gap:4px;padding:9px 14px 12px}
+.hlcard .ef{padding:10px 14px;display:grid;grid-template-columns:82px 1fr;gap:6px 8px;align-items:center;font-size:12px;color:#5b6b7c;font-weight:700}
+@media(max-width:560px){.cttb .hm{display:none}.hlgrid{grid-template-columns:1fr}}
 .hero{background:#fff;border-radius:16px;padding:15px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 10px rgba(22,50,79,.07);margin-bottom:10px}
 .ring{position:relative;width:88px;height:88px;flex:none}
 .ring svg{transform:rotate(-90deg)}
@@ -845,6 +875,8 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb1" onclick="go(1)"><em>🚚</em>기사별 배송</button>
  <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
  <button id="tb5" onclick="go(5)"><em>📢</em>공지·메모<span class="bdg" id="bd5" style="display:none"></span></button>
+ <button id="tb8" onclick="go(8)"><em>📞</em>사내연락처</button>
+ <button id="tb9" onclick="go(9)"><em>🚛</em>운반비연락처</button>
 </div>
 
 <div id="noticewrap" style="display:none">
@@ -1098,6 +1130,8 @@ function ycMode(m){YCMD=+m||0;render()}
 function ycBox(k,v){const n=Math.max(0,+v||0);if(k==='w')YCBW=n;else if(k==='d')YCBD=n;else if(k==='h')YCBH=n;else if(k==='t')YCBT=n;else YCBQ=n;drawYcOne()}
 /* 용차 내역서 — {날짜:{업체:[줄]}} · 업체 이름 */
 let YCB=LSU('_ycb',{});
+/* 사내연락처·운반비연락처 {in:[사람], hl:[운반업체]} (2026-10-21) */
+let CTS=LSU('_cts',{});
 let YCV=localStorage.getItem(KEY+'_ycv')||'대현물류';
 let YCD=localStorage.getItem(KEY+'_ycd')||'';
 let YCBALL=false;
@@ -1385,12 +1419,12 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
- SU('_ycb',YCB);
+ SU('_ycb',YCB);SU('_cts',CTS);
  localStorage.setItem(KEY+'_sel',SEL);localStorage.setItem(KEY+'_tab',TAB);localStorage.setItem(KEY+'_me',ME);syncPush()}
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261019a';
+const APPVER='20261021a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1411,10 +1445,10 @@ setTimeout(chkVer,4000);setInterval(chkVer,600000);
 const SB_URL=localStorage.getItem('SB_URL')||'https://eirnudzaysvvqfjzhwni.supabase.co';
 const SB_KEY=localStorage.getItem('SB_KEY')||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
 let SB=null,SB_ON=false,pushT=null,applying=false;
-const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx'];
+const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_itx']=ITX;
+ o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_itx']=ITX;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -1442,6 +1476,12 @@ function applySnap(o){applying=true;try{
    const mine=+(ASGV['yb:'+c]||0), yours=+(IV['yb:'+c]||0);
    if(YCB[c]===undefined||yours>mine){YCB[c]=IY[c];if(yours)ASGV['yb:'+c]=yours}
   });}
+ /* 연락처도 칸(사내·운반)별로 나중에 고친 쪽만 남긴다 (2026-10-21) */
+ if(o['_cts']&&typeof o['_cts']==='object'){const IC=o['_cts'],IV4=o['_asgv']||{};
+  if(!CTS||typeof CTS!=='object')CTS={};
+  ['in','hl'].forEach(function(k){if(!Array.isArray(IC[k]))return;
+   const mine=+(ASGV['ct:'+k]||0),yours=+(IV4['ct:'+k]||0);
+   if(!Array.isArray(CTS[k])||yours>mine){CTS[k]=IC[k];if(yours)ASGV['ct:'+k]=yours}});}
  /* 따로 뺀 품목도 통째로 덮어쓰지 않는다 — 나중에 손댄 쪽만 남긴다 */
  if(o['_itx']){const IX=o['_itx'],IV3=o['_asgv']||{};
   if(!ITX||typeof ITX!=='object')ITX={};
@@ -2285,7 +2325,7 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2,3,4,5,6,7].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
+ [0,1,2,3,4,5,6,7,8,9].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  drawWx();drawRw();drawDiff();drawUpd();
  /* 알림줄은 맨 위에 띄우지 않고 [공지·메모] 탭 안에만 둔다 */
  const NB=['rainbar','rwbar','dfbar'].filter(function(id){var e=document.getElementById(id);return e&&e.style.display!=='none'});
@@ -2296,7 +2336,7 @@ function render(){
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():tabStat(today);
  bind();if(TAB===6)drawYcOne();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
@@ -4487,6 +4527,113 @@ function ycbBlock(co){
  });
  return h;
 }
+/* ===== 사내연락처 · 운반비연락처 (2026-10-21) =====
+   전 직원이 같이 쓴다 — 고치면 바로 다른 PC·폰에도 반영(실시간 공유).
+   기본 명단은 영업관리 프로그램의 사내연락처·거래처 정보에서 가져왔다. 화면에서 고치면 그 값이 우선. */
+const CT_IN0=[['김덕겸','010-2913-1805','배송기사'],['배진성','010-3660-7256','배송기사'],['김태용','010-2552-5242','배송기사'],
+ ['고광희','010-5800-6609','배송기사'],['강효길','010-8938-5716','배송기사'],['장세훈','010-4762-1642','배송기사'],
+ ['김석호','010-6326-4378','배송기사'],['정석윤','010-3722-5390','배송기사'],['윤재웅','010-3223-8931','배송기사'],
+ ['안정수','010-7711-9978','배송기사'],['신윤철','010-7209-5463','']];
+const CT_HL0=[
+ {n:'나눔물류',co:'나눔물류',r:'김종구',t:'1588-8753',p:'010-6368-0260',f:'032-529-8752',m:'nn15888753@hanmail.net',a:'인천 부평구 청천동 392-8',memo:''},
+ {n:'대현종합물류',co:'대현물류',r:'엄태현',t:'031-483-3333',p:'',f:'031-433-0084',m:'daehyoun333@naver.com',a:'경기도 시흥시 서촌상가2길 38 (정왕동) 205호',memo:''},
+ {n:'명진로지텍',co:'명진로지텍',r:'김방원',t:'02-573-5302~4',p:'010-5256-6366',f:'070-4009-1771',m:'5735988@naver.com',a:'경기도 의왕시 왕곡로 3 (고천동) 202호',memo:''}];
+let CTE='';   /* 지금 고치는 줄 — 'in:3' / 'hl:1' */
+function ctFix(){if(!CTS||typeof CTS!=='object'||Array.isArray(CTS))CTS={};
+ if(!Array.isArray(CTS.in))CTS.in=CT_IN0.map(function(x){return {n:x[0],p:x[1],j:x[2],e:'',memo:''}});
+ if(!Array.isArray(CTS.hl))CTS.hl=CT_HL0.map(function(x){return Object.assign({},x)});}
+function ctPut(k){ASGV['ct:'+k]=Date.now();CTE='';save();render()}
+function ctTel(p){p=String(p||'').trim();if(!p)return '<span class="ctnone">-</span>';
+ const d=p.replace(/~.*$/,'').replace(/[^0-9]/g,'');return d?'<a class="cttel" href="tel:'+d+'">'+esc(p)+'</a>':esc(p)}
+function ctV(id){const e=document.getElementById(id);return e?String(e.value||'').trim():''}
+/* ---- 사내연락처 ---- */
+function ctInSorted(){ctFix();
+ return CTS.in.map(function(c,k){return {c:c,k:k}}).sort(function(a,b){
+  const ja=a.c.j||'힣',jb=b.c.j||'힣';return ja.localeCompare(jb,'ko')||String(a.c.n||'').localeCompare(String(b.c.n||''),'ko')})}
+function tabCt(){ctFix();
+ const L=ctInSorted();
+ let h='<div class="ycwrap">';
+ h+='<div class="hd2">📞 사내연락처 <span class="n">'+CTS.in.length+'명</span><span style="font-weight:600;color:#8b9aab;font-size:11.5px">번호를 누르면 바로 전화 · 고치면 전 직원 공유</span></div>';
+ h+='<div class="ctbox"><h4>➕ 연락처 추가</h4><div class="ctform">'
+  +'<input class="ctin" id="cta_n" placeholder="이름 (필수)">'
+  +'<input class="ctin" id="cta_j" placeholder="부서·직책 (예: 배송기사)">'
+  +'<input class="ctin" id="cta_p" placeholder="휴대폰 010-0000-0000" inputmode="tel">'
+  +'<input class="ctin" id="cta_e" placeholder="내선번호">'
+  +'<input class="ctin" id="cta_m" placeholder="메모" onkeydown="if(event.key===\'Enter\')ctInAdd()">'
+  +'<button class="ctbtn pri" style="padding:9px 14px;margin:0" onclick="ctInAdd()">등록</button></div></div>';
+ h+='<input class="ctq" placeholder="🔍 이름·부서·번호로 찾기" oninput="ctFilter(this.value)">';
+ h+='<table class="cttb" id="cttb"><tr><th>이름</th><th class="hm">부서·직책</th><th>휴대폰</th><th>내선</th><th class="hm">메모</th><th></th></tr>';
+ if(!L.length)h+='<tr><td colspan="6" class="ctnone">등록된 연락처가 없습니다.</td></tr>';
+ L.forEach(function(x){const c=x.c,k=x.k;
+  const s=[c.n,c.j,c.p,c.e,c.memo].join(' ').toLowerCase();
+  if(CTE==='in:'+k){
+   h+='<tr data-s="'+esc(s)+'"><td><input class="ctin" id="cte_n" value="'+esc(c.n)+'"></td>'
+    +'<td class="hm"><input class="ctin" id="cte_j" value="'+esc(c.j||'')+'"></td>'
+    +'<td><input class="ctin" id="cte_p" value="'+esc(c.p||'')+'" inputmode="tel"></td>'
+    +'<td><input class="ctin" id="cte_e" value="'+esc(c.e||'')+'" style="width:80px"></td>'
+    +'<td class="hm"><input class="ctin" id="cte_m" value="'+esc(c.memo||'')+'"></td>'
+    +'<td class="ac"><button class="ctbtn pri" onclick="ctInSave('+k+')">저장</button><button class="ctbtn" onclick="CTE=\'\';render()">취소</button></td></tr>';
+   return}
+  h+='<tr data-s="'+esc(s)+'"><td class="nm">'+esc(c.n)+'</td>'
+   +'<td class="hm">'+(c.j?'<span class="ctrole">'+esc(c.j)+'</span>':'<span class="ctnone">-</span>')+'</td>'
+   +'<td>'+ctTel(c.p)+'</td>'
+   +'<td>'+(c.e?esc(c.e):'<span class="ctnone">-</span>')+'</td>'
+   +'<td class="hm" style="font-size:12.5px;color:#5b6b7c">'+esc(c.memo||'')+'</td>'
+   +'<td class="ac"><button class="ctbtn" onclick="CTE=\'in:'+k+'\';render()">수정</button><button class="ctbtn del" onclick="ctInDel('+k+')">삭제</button></td></tr>'});
+ h+='</table></div>';
+ return h}
+function ctFilter(v){const q=String(v||'').trim().toLowerCase();
+ document.querySelectorAll('#cttb tr[data-s]').forEach(function(r){r.style.display=(!q||r.getAttribute('data-s').indexOf(q)>=0)?'':'none'})}
+function ctInAdd(){ctFix();const n=ctV('cta_n');if(!n){alert('이름을 넣어 주세요');return}
+ if(CTS.in.some(function(c){return c.n===n})&&!confirm(n+' 이(가) 이미 있습니다. 한 줄 더 넣을까요?'))return;
+ CTS.in.push({n:n,j:ctV('cta_j'),p:ctV('cta_p'),e:ctV('cta_e'),memo:ctV('cta_m')});ctPut('in')}
+function ctInSave(k){ctFix();const c=CTS.in[k];if(!c)return;const n=ctV('cte_n');if(!n){alert('이름을 넣어 주세요');return}
+ CTS.in[k]={n:n,j:ctV('cte_j'),p:ctV('cte_p'),e:ctV('cte_e'),memo:ctV('cte_m')};ctPut('in')}
+function ctInDel(k){ctFix();const c=CTS.in[k];if(!c)return;if(!confirm(c.n+' 연락처를 지울까요?'))return;CTS.in.splice(k,1);ctPut('in')}
+/* ---- 운반비연락처 (용차 부르는 운반업체) ---- */
+const HL_F=[['r','대표·담당'],['t','대표전화'],['p','휴대폰'],['f','팩스'],['m','이메일'],['a','주소'],['memo','메모']];
+function hlMonth(co){const _d=new Date(),mon=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0');let n=0,v=0;
+ (ycbRows(co)||[]).forEach(function(y){if(String(y.d||'').slice(0,7)!==mon||y.link||y.co==='착불')return;n++;v+=(+y.fee||0)});
+ return {mon:mon,n:n,v:v}}
+function tabHl(){ctFix();
+ let h='<div class="ycwrap">';
+ h+='<div class="hd2">🚛 운반비연락처 <span class="n">'+CTS.hl.length+'곳</span><span style="font-weight:600;color:#8b9aab;font-size:11.5px">용차 부르는 운반업체 · 번호를 누르면 바로 전화 · 고치면 전 직원 공유</span></div>';
+ h+='<div class="hlgrid">';
+ CTS.hl.forEach(function(c,k){
+  const col=(c.co&&YC_COLOR[c.co])||'#5f7086',emo=(c.co&&YC_EMO[c.co])||'🚛';
+  h+='<div class="hlcard"><div class="hh" style="background:'+col+'">'+emo+' '+esc(c.n||'(이름 없음)')+(c.r?'<small>'+esc(c.r)+'</small>':'')+'</div>';
+  if(CTE==='hl:'+k){
+   h+='<div class="ef"><span>업체명</span><input class="ctin" id="hle_n" value="'+esc(c.n||'')+'">'
+    +'<span>용차내역서</span><select class="ctin" id="hle_co"><option value="">연결 안 함</option>'
+    +YC_CO.map(function(x){return '<option'+(x===c.co?' selected':'')+'>'+x+'</option>'}).join('')+'</select>';
+   HL_F.forEach(function(f){h+='<span>'+f[1]+'</span><input class="ctin" id="hle_'+f[0]+'" value="'+esc(c[f[0]]||'')+'">'});
+   h+='</div><div class="ft"><button class="ctbtn pri" onclick="hlSave('+k+')">저장</button><button class="ctbtn" onclick="hlCancel('+k+')">취소</button></div></div>';
+   return}
+  h+='<dl>';
+  h+='<dt>대표전화</dt><dd>'+ctTel(c.t)+'</dd>';
+  h+='<dt>휴대폰</dt><dd>'+ctTel(c.p)+'</dd>';
+  h+='<dt>팩스</dt><dd>'+(c.f?esc(c.f):'<span class="ctnone">-</span>')+'</dd>';
+  h+='<dt>이메일</dt><dd>'+(c.m?'<a class="cttel" style="font-weight:700" href="mailto:'+esc(c.m)+'">'+esc(c.m)+'</a>':'<span class="ctnone">-</span>')+'</dd>';
+  h+='<dt>주소</dt><dd>'+(c.a?esc(c.a):'<span class="ctnone">-</span>')+'</dd>';
+  if(c.co)h+='<dt>결재 계좌</dt><dd>'+(ycbAcct(c.co)?esc(ycbAcct(c.co)):'<span class="ctnone">-</span>')
+   +' <button class="ctbtn" style="padding:2px 7px" onclick="hlAcct('+k+')">고치기</button></dd>';
+  if(c.memo)h+='<dt>메모</dt><dd>'+esc(c.memo)+'</dd>';
+  h+='</dl>';
+  if(c.co){const s=hlMonth(c.co);
+   h+='<div class="hlsum">'+(+s.mon.slice(5))+'월 용차 '+s.n+'건 · '+won(s.v)+'원 <span style="font-weight:600;color:#6b7c90">(부가세 별도 · 용차내역서 기준)</span></div>'}
+  h+='<div class="ft"><button class="ctbtn" onclick="CTE=\'hl:'+k+'\';render()">수정</button><button class="ctbtn del" onclick="hlDel('+k+')">삭제</button></div></div>'});
+ h+='</div>';
+ h+='<div style="margin-top:12px"><button class="ctbtn pri" style="padding:9px 16px;margin:0" onclick="hlAdd()">➕ 운반업체 추가</button></div>';
+ h+='</div>';
+ return h}
+function hlAdd(){ctFix();CTS.hl.push({n:'',co:'',r:'',t:'',p:'',f:'',m:'',a:'',memo:'',_new:1});CTE='hl:'+(CTS.hl.length-1);render()}
+function hlCancel(k){if(CTS.hl[k]&&CTS.hl[k]._new)CTS.hl.splice(k,1);CTE='';render()}
+function hlSave(k){ctFix();if(!CTS.hl[k])return;const n=ctV('hle_n');if(!n){alert('업체명을 넣어 주세요');return}
+ const r={n:n,co:ctV('hle_co')};HL_F.forEach(function(f){r[f[0]]=ctV('hle_'+f[0])});
+ CTS.hl[k]=r;ctPut('hl')}
+function hlDel(k){ctFix();const c=CTS.hl[k];if(!c)return;if(!confirm((c.n||'이 업체')+' 연락처를 지울까요?'))return;CTS.hl.splice(k,1);ctPut('hl')}
+function hlAcct(k){const c=CTS.hl[k];if(!c||!c.co)return;const v=prompt(c.n+' 결재 계좌 (지출결의서에도 같이 바뀝니다)',ycbAcct(c.co));
+ if(v===null)return;ycbSetAcct(c.co,v);render()}
 function tabYcb(){
  ycbFix();
  /* 두 칸으로 나눈다 — 내역 담기(원래 화면)와 결재 올릴 종이 뽑기 (2026-09-17) */
