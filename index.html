@@ -194,6 +194,11 @@ button,select,input{font-family:inherit}
 .wx .wr{font-size:11px;font-weight:800;color:#5f7086}
 .wx.r2 .wr{color:#c98a1a}.wx.r3 .wr{color:#e04b45}
 @media(max-width:520px){.wxbar{grid-template-columns:repeat(2,1fr)}}
+.wxhd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 2px 7px;font-size:13px;color:#3c4a5a}
+.wxhd .wxwet{background:#dbeafe;color:#1d4ed8;border-radius:9px;padding:3px 9px;font-size:12px;font-weight:800}
+.wxhd .wxok{color:#8b9aab;font-size:12px;font-weight:600}
+.rwx{display:inline;font-style:normal;font-size:11.5px;font-weight:800;border-radius:8px;padding:2px 7px;margin-top:0;background:#fff4e0;color:#b26a00}
+.rwx.r3{background:#fde8e7;color:#c0392b}
 .gmap{height:320px;border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid #ebeef1;background:#f2f4f6}
 .dgrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px;align-items:stretch}
 .dghead{flex:0 0 128px;background:#0f5f37;color:#fff;border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:4px;justify-content:center}
@@ -891,10 +896,10 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb3" onclick="go(3)"><em>🛣️</em>동선별</button>
  <button id="tb6" onclick="go(6)"><em>💰</em>용차</button>
  <button id="tb7" onclick="go(7)"><em>🚚</em>용차내역서</button>
- <button id="tb0" onclick="go(0)"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
- <button id="tb4" onclick="go(4)"><em>🧑‍✈️</em>기사별</button>
- <button id="tb1" onclick="go(1)"><em>🚚</em>기사별 배송</button>
- <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
+ <button id="tb0" onclick="go(0)" style="display:none"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
+ <button id="tb4" onclick="go(4)" style="display:none"><em>🧑‍✈️</em>기사별</button>
+ <button id="tb1" onclick="go(1)" style="display:none"><em>🚚</em>기사별 배송</button>
+ <button id="tb2" onclick="go(2)" style="display:none"><em>🏁</em>현황</button>
  <button id="tb10" onclick="go(10)"><em>📊</em>월별현황</button>
  <button id="tb5" onclick="go(5)"><em>📢</em>공지·메모<span class="bdg" id="bd5" style="display:none"></span></button>
  <button id="tb8" onclick="go(8)"><em>📞</em>사내연락처</button>
@@ -1421,19 +1426,33 @@ function wxIcon(c){if(c===0)return'☀️';if(c<=3)return'⛅';if(c<=48)return'�
 function wxRainClass(p){return p>=60?'r3':p>=30?'r2':'r1'}
 async function loadWx(){
  try{
-  const rs=await Promise.all(WX_SPOTS.map(sp=>fetch('https://api.open-meteo.com/v1/forecast?latitude='+sp[1]+'&longitude='+sp[2]+'&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Asia%2FSeoul&forecast_days=1').then(r=>r.json())));
-  WX=rs.map((d,i)=>({nm:WX_SPOTS[i][0],t:Math.round(d.current.temperature_2m),
-   hi:Math.round(d.daily.temperature_2m_max[0]),lo:Math.round(d.daily.temperature_2m_min[0]),
-   rain:d.daily.precipitation_probability_max[0]||0,code:d.daily.weather_code[0]}));
+  /* 2026-10-21 동선별에서 고른 날짜의 날씨를 보려고 7일치를 받는다 */
+  const rs=await Promise.all(WX_SPOTS.map(sp=>fetch('https://api.open-meteo.com/v1/forecast?latitude='+sp[1]+'&longitude='+sp[2]+'&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,weather_code&timezone=Asia%2FSeoul&forecast_days=7').then(r=>r.json())));
+  WX=rs.map(function(d,i){const D=d.daily||{},T=D.time||[],days={};
+   T.forEach(function(t,k){days[t]={hi:Math.round(D.temperature_2m_max[k]),lo:Math.round(D.temperature_2m_min[k]),
+    rain:Math.round((D.precipitation_probability_max||[])[k]||0),mm:Math.round(((D.precipitation_sum||[])[k]||0)*10)/10,code:(D.weather_code||[])[k]}});
+   const f=days[T[0]]||{};
+   return {nm:WX_SPOTS[i][0],t:Math.round((d.current||{}).temperature_2m),days:days,hi:f.hi,lo:f.lo,rain:f.rain||0,code:f.code}});
   render();
  }catch(e){WX='err';render()}
 }
-function wxHTML(){
+function wxHTML(d){
  if(WX==='err')return '';
  if(!WX)return '<div class="wxbar"><div class="wxload">☁️ 날씨 불러오는 중…</div></div>';
- return '<div class="wxbar">'+WX.map(w=>'<div class="wx '+wxRainClass(w.rain)+'"><div class="wt">'+wxIcon(w.code)+'</div>'
-  +'<div class="wn">'+w.nm+'</div><div class="wd"><b>'+w.hi+'°</b><span>/'+w.lo+'°</span></div>'
-  +'<div class="wr">☔ '+w.rain+'%</div></div>').join('')+'</div>';
+ d=d||SEL;
+ const dd=d?new Date(d):null,lab=dd?(dd.getMonth()+1)+'/'+dd.getDate()+'('+'일월화수목금토'[dd.getDay()]+')':'';
+ const has=WX.some(function(w){return w.days&&w.days[d]});
+ let h='<div class="wxhd">🌤️ <b>'+lab+' 날씨</b>';
+ if(has){const wet=rainRts(d);
+  h+=wet.length?'<span class="wxwet">☔ 비 예보 동선 — '+wet.sort(function(a,b){return b.p-a.p}).map(function(x){return esc(x.nm.replace(/^[^.]*\.\s*/,''))+' '+x.p+'%'}).join(' · ')+'</span>'
+   :'<span class="wxok">가는 동선에 비 예보 없음</span>'}
+ else h+='<span class="wxok">예보는 오늘부터 7일까지만 나옵니다</span>';
+ h+='</div>';
+ if(!has)return h;
+ return h+'<div class="wxbar">'+WX.map(function(w){const x=w.days[d]||{};
+  return '<div class="wx '+wxRainClass(x.rain||0)+'"><div class="wt">'+wxIcon(x.code)+'</div>'
+  +'<div class="wn">'+w.nm+'</div><div class="wd"><b>'+x.hi+'°</b><span>/'+x.lo+'°</span></div>'
+  +'<div class="wr">☔ '+(x.rain||0)+'%'+(x.mm?' · '+x.mm+'mm':'')+'</div></div>'}).join('')+'</div>';
 }
 
 function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
@@ -1448,7 +1467,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261021d';
+const APPVER='20261021e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2345,6 +2364,8 @@ function ring(pct,a,b){const R=38,C=2*Math.PI*R;
 
 /* ============ 렌더 ============ */
 function render(){
+ /* 2026-10-21 배차·기사별·기사별 배송·현황 탭은 지웠다 — 예전에 열어 둔 화면이면 동선별로 */
+ if(TAB===0||TAB===1||TAB===2||TAB===4)TAB=3;
  build();
  document.getElementById('mA').textContent=Object.keys(ADDR).length;
  const ds=document.getElementById('dsel');
@@ -2782,7 +2803,7 @@ function setTrip(i,v){
  save();render();
  toast(v==='0'?'회차 자동으로 되돌림':(v+'차로 옮김'));
 }
-function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=0;render();window.scrollTo(0,0)}
+function srchGo(i){const o=ORDERS[i];FQ=i;EXP[o.key]=true;TAB=3;render();window.scrollTo(0,0)}
 /* 검색 → 카드 상세로 들어가지 않고 Ctrl+F 처럼 그 자리로만 이동 */
 function srchJump(i){
  const o=ORDERS[i];if(!o)return;
@@ -3168,6 +3189,7 @@ function tabRoute(today){
   h+='</div>';
  })();
  h+=weakBar(today);
+ h+=wxHTML(SEL);
  h+='<div class="hd2">🛣️ 동선별 '
   +'<button class="btn g rlbtn'+(RLIST?'':' on')+'" onclick="rlistSet(0)">▦ 카드</button>'
   +'<button class="btn g rlbtn'+(RLIST?' on':'')+'" onclick="rlistSet(1)">☰ 목록 — 주소·품명 다 보기</button>'
@@ -3183,6 +3205,7 @@ function tabRoute(today){
    +'<span style="display:inline-flex;width:24px;height:24px;border-radius:7px;background:'+x.cl+';color:#fff;font-size:11px;font-weight:800;align-items:center;justify-content:center;flex:none">'+x.nm.slice(0,2)+'</span>'
    +'<b style="display:inline;font-size:15.5px;margin-top:0">'+x.nm+'</b>'+slotTag(x)+rt2Tag(x)
    +'<span style="display:inline;font-size:12px;color:#8b9aab;margin-top:0">'+x.zone.slice(0,24)+'</span>'
+   +(function(){const w=list.length&&RT_GEO[x.id]?wxOf(SEL,x.id):null;return (w&&(w.p>=30||w.m>=1))?'<em class="rwx'+(w.p>=60||w.m>=1?' r3':'')+'">☔ '+w.p+'%'+(w.m?' · '+w.m+'mm':'')+'</em>':''})()
    +'<span style="display:inline;margin-left:auto;font-size:12.5px;font-weight:800;color:#5f7086;margin-top:0">'+(list.length?dn+'/'+list.length+'곳 · '+qtyTxtL(list):'배차 없음')+'</span></div>'
    +'<div class="mini" style="margin-top:8px"><i style="width:'+pc+'%"></i></div>'
    +(list.length&&x.id!=='nb'&&x.id!=='jn'?'<div class="seqbar" onclick="event.stopPropagation()">'+'<button onclick="learnOrder(\''+x.id+'\')" title="지금 보이는 차례를 이 동선의 기본 순서로 저장">\uD83D\uDD22 이 순서 기억</button>'+(SEQL[x.id]?'<em>\uD83D\uDCCC 기억된 순서 적용중</em><button onclick="forgetOrder(\''+x.id+'\')">\u2715</button>':'')+'</div>':'')
