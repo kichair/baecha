@@ -50,6 +50,26 @@ button,select,input{font-family:inherit}
 .hlcard .ft{display:flex;justify-content:flex-end;gap:4px;padding:9px 14px 12px}
 .hlcard .ef{padding:10px 14px;display:grid;grid-template-columns:82px 1fr;gap:6px 8px;align-items:center;font-size:12px;color:#5b6b7c;font-weight:700}
 @media(max-width:560px){.cttb .hm{display:none}.hlgrid{grid-template-columns:1fr}}
+/* 2026-10-21 월별 현황 */
+.msbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.msbar select{padding:8px 10px;border:1px solid #cfd8e3;border-radius:8px;font-size:14px;font-weight:700}
+.mscards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.mscard{background:#fff;border:1px solid #e3e8ee;border-radius:12px;padding:10px 12px}
+.mscard span{display:block;font-size:11.5px;color:#8b9aab;font-weight:700}
+.mscard b{display:block;font-size:18px;font-weight:800;color:#1c2530;margin-top:2px}
+.mscard i{font-style:normal;font-size:11.5px;color:#6b7c90;font-weight:600}
+.msscroll{overflow-x:auto;background:#fff;border:1px solid #e3e8ee;border-radius:12px}
+.mstb{border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap}
+.mstb th{background:#f3f6f9;color:#4a5b6e;font-weight:800;padding:6px 8px;border:1px solid #e3e8ee;text-align:center}
+.mstb th.gk{background:#e9f7ef;color:#0f6b3a}.mstb th.gs{background:#fdecea;color:#a93226}
+.mstb th.gc{background:#eaf2fd;color:#1d5fc4}.mstb th.gy{background:#fff5e6;color:#a8621b}
+.mstb td{padding:6px 8px;border:1px solid #edf0f4;text-align:right;font-variant-numeric:tabular-nums}
+.mstb td.dt{text-align:left;font-weight:800;color:#3c4a5a}
+.mstb tr.we td{background:#fafbfc;color:#a6b1bd}
+.mstb tr.fu td{color:#8b9aab;font-style:italic}
+.mstb tr.sum td{background:#f3f6f9;font-weight:800;border-top:2px solid #cfd8e3}
+.mstb td.z{color:#c9d1da}
+.mstb td.bk{border-left:2px solid #cfd8e3}
 .hero{background:#fff;border-radius:16px;padding:15px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 10px rgba(22,50,79,.07);margin-bottom:10px}
 .ring{position:relative;width:88px;height:88px;flex:none}
 .ring svg{transform:rotate(-90deg)}
@@ -874,6 +894,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb4" onclick="go(4)"><em>🧑‍✈️</em>기사별</button>
  <button id="tb1" onclick="go(1)"><em>🚚</em>기사별 배송</button>
  <button id="tb2" onclick="go(2)"><em>🏁</em>현황</button>
+ <button id="tb10" onclick="go(10)"><em>📊</em>월별현황</button>
  <button id="tb5" onclick="go(5)"><em>📢</em>공지·메모<span class="bdg" id="bd5" style="display:none"></span></button>
  <button id="tb8" onclick="go(8)"><em>📞</em>사내연락처</button>
  <button id="tb9" onclick="go(9)"><em>🚛</em>운반비연락처</button>
@@ -1132,6 +1153,8 @@ function ycBox(k,v){const n=Math.max(0,+v||0);if(k==='w')YCBW=n;else if(k==='d')
 let YCB=LSU('_ycb',{});
 /* 사내연락처·운반비연락처 {in:[사람], hl:[운반업체]} (2026-10-21) */
 let CTS=LSU('_cts',{});
+/* 삼정 판매현황 날짜별 공급가액 합 {날짜:원} — 자동조회 삼정 파일엔 금액이 없어 월별현황 탭에서 따로 올린다 (2026-10-21) */
+let SJA=LSU('_sja',{});
 let YCV=localStorage.getItem(KEY+'_ycv')||'대현물류';
 let YCD=localStorage.getItem(KEY+'_ycd')||'';
 let YCBALL=false;
@@ -1419,12 +1442,12 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
- SU('_ycb',YCB);SU('_cts',CTS);
+ SU('_ycb',YCB);SU('_cts',CTS);SU('_sja',SJA);
  localStorage.setItem(KEY+'_sel',SEL);localStorage.setItem(KEY+'_tab',TAB);localStorage.setItem(KEY+'_me',ME);syncPush()}
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261021a';
+const APPVER='20261021b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1445,10 +1468,10 @@ setTimeout(chkVer,4000);setInterval(chkVer,600000);
 const SB_URL=localStorage.getItem('SB_URL')||'https://eirnudzaysvvqfjzhwni.supabase.co';
 const SB_KEY=localStorage.getItem('SB_KEY')||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
 let SB=null,SB_ON=false,pushT=null,applying=false;
-const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts'];
+const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts','_sja'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_itx']=ITX;
+ o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_sja']=SJA;o['_itx']=ITX;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -1482,6 +1505,8 @@ function applySnap(o){applying=true;try{
   ['in','hl'].forEach(function(k){if(!Array.isArray(IC[k]))return;
    const mine=+(ASGV['ct:'+k]||0),yours=+(IV4['ct:'+k]||0);
    if(!Array.isArray(CTS[k])||yours>mine){CTS[k]=IC[k];if(yours)ASGV['ct:'+k]=yours}});}
+ if(o['_sja']&&typeof o['_sja']==='object'&&!Array.isArray(o['_sja'])){const ms=+(ASGV['sja']||0),ys=+((o['_asgv']||{})['sja']||0);
+  if(!SJA||typeof SJA!=='object'||!Object.keys(SJA).length||ys>ms){SJA=o['_sja'];if(ys)ASGV['sja']=ys}}
  /* 따로 뺀 품목도 통째로 덮어쓰지 않는다 — 나중에 손댄 쪽만 남긴다 */
  if(o['_itx']){const IX=o['_itx'],IV3=o['_asgv']||{};
   if(!ITX||typeof ITX!=='object')ITX={};
@@ -2325,7 +2350,7 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2,3,4,5,6,7,8,9].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
+ [0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  drawWx();drawRw();drawDiff();drawUpd();
  /* 알림줄은 맨 위에 띄우지 않고 [공지·메모] 탭 안에만 둔다 */
  const NB=['rainbar','rwbar','dfbar'].filter(function(id){var e=document.getElementById(id);return e&&e.style.display!=='none'});
@@ -2336,7 +2361,7 @@ function render(){
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():tabStat(today);
  bind();if(TAB===6)drawYcOne();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
@@ -3603,7 +3628,7 @@ function onOrders(fs){
   const dup=RAW.some(function(l){return nd.indexOf(l.d)>=0});
   if(!confirm('파일 '+files.length+'개\n'+names.join('\n')+'\n\n거래처 '+cn+'곳 · '+nd.join(', ')+'\n'+ALL.length+'건을 불러올까요?'))return;
   let addMode=false;
-  if(dup)addMode=confirm('※ '+nd.join(', ')+' 자료가 이미 있습니다.\n\n[확인]  기존 자료에 합치기\n[취소]  기존 자료를 지우고 이 파일로 교체');
+  if(dup)addMode=confirm('※ '+nd.join(', ')+' 자료가 이미 있습니다.\n\n[확인]  기존 자료에 합치기\n[취소]  기존 자료를 지우고 이 파일로 교체 ('+(ALL.some(function(l){return l.sj})?(ALL.some(function(l){return !l.sj})?'광일·삼정':'삼정'):'광일')+' 줄만 바뀝니다)');
   const before=RAW.slice();
   if(addMode){
    /* 같은 건이 두 번 들어오는 걸 막는다.
@@ -3620,7 +3645,11 @@ function onOrders(fs){
     seen[key(l)]=1;(bag[b]=bag[b]||[]).push(m);
     return true});
    RAW=RAW.concat(add);RAWV=Date.now();
-  }else{RAW=RAW.filter(l=>nd.indexOf(l.d)<0).concat(ALL);RAWV=Date.now()}
+  }else{
+   /* 2026-10-21 사고: 광일 명세서만 '교체'로 올렸는데 그 날짜의 삼정 줄까지 다 지워졌다(10월 삼정 923줄).
+      교체는 올린 파일과 같은 쪽(광일 / 삼정) 줄만 바꾼다. 다른 쪽 줄은 그대로 둔다. */
+   const upK=ALL.some(function(l){return !l.sj}),upS=ALL.some(function(l){return !!l.sj});
+   RAW=RAW.filter(function(l){return nd.indexOf(l.d)<0||(l.sj?!upS:!upK)}).concat(ALL);RAWV=Date.now()}
   LASTDIFF=diffRaw(before,RAW,nd);LASTDIFF.dates=nd;LASTDIFF.first=!dup;
   if(nd.length===1)SEL=nd[0];
   ASSIGN=null;ST={};build(true);save();render();
@@ -4634,6 +4663,104 @@ function hlSave(k){ctFix();if(!CTS.hl[k])return;const n=ctV('hle_n');if(!n){aler
 function hlDel(k){ctFix();const c=CTS.hl[k];if(!c)return;if(!confirm((c.n||'이 업체')+' 연락처를 지울까요?'))return;CTS.hl.splice(k,1);ctPut('hl')}
 function hlAcct(k){const c=CTS.hl[k];if(!c||!c.co)return;const v=prompt(c.n+' 결재 계좌 (지출결의서에도 같이 바뀝니다)',ycbAcct(c.co));
  if(v===null)return;ycbSetAcct(c.co,v);render()}
+/* ===== 월별 현황 (2026-10-21) =====
+   9월부터 날짜별로 광일 / 삼정 명세서 건수·부피·매출, 우리 차 운행 대수(1톤 / 3.5톤), 용차를 한 표로 본다.
+   · 건수 = 같은 날 같은 거래처 한 건 (명세서가 광일인지 삼정인지로 나눔 — 섞인 건은 양쪽에 다 셈)
+   · 부피 = 우리 1톤 적재 기준(신부장님 기준) 몇 대분. 삼정 명세서의 '광일체어' 앞 줄(공장 입고 자재)은 뺀다
+   · 매출 = 광일은 명세서 공급가액, 삼정은 '삼정 판매현황 올리기'로 넣은 날짜별 공급가액 합
+   · 우리 차 = 그날 배송을 실은 기사 수. 배진성(3.5톤 동선) = 3.5톤, 나머지 = 1톤. 용차는 따로 */
+let MSV='';try{MSV=localStorage.getItem(KEY+'_msv')||''}catch(e){}
+function msPad(n){return (n<10?'0':'')+n}
+function msToday(){const t=new Date();return t.getFullYear()+'-'+msPad(t.getMonth()+1)+'-'+msPad(t.getDate())}
+function msMonths(){const s={};ORDERS.forEach(function(o){if(o.d>='2026-09-01')s[o.d.slice(0,7)]=1});
+ Object.keys(SJA||{}).forEach(function(d){if(d>='2026-09-01')s[d.slice(0,7)]=1});return Object.keys(s).sort()}
+function msSet(v){MSV=v;try{localStorage.setItem(KEY+'_msv',v)}catch(e){}render()}
+function msCalc(mon){
+ const D={};
+ const day=function(d){return D[d]||(D[d]={k:{n:0,v:0,a:0},s:{n:0,v:0,a:0},t1:{},t35:{},yc:0,ycf:0})};
+ ORDERS.forEach(function(o){if(o.d.slice(0,7)!==mon||ST[o.i]==='del')return;
+  const r=day(o.d);let hk=0,hs=0;
+  (o.items||[]).forEach(function(it){if(!it||it.x)return;const v=(+it.q||0)/(capOf(it.p).c||60);
+   if(it.sj){if(/^광일체어/.test(o.n))return;hs=1;r.s.v+=v}else{hk=1;r.k.v+=v;r.k.a+=(+it.a||0)}});
+  if(hk)r.k.n++;if(hs)r.s.n++;
+  if(!hk&&!hs)return;
+  const C=CARD[o.d]||DAY_DRV[o.d]||autoRotate(o.d);
+  const a=ASSIGN?ASSIGN[o.i]:'';
+  const drv=DRVOV[o.key]||((a&&a!=='_'&&!offRoute(a))?C[a]:'');
+  const put=function(n,rt){if(!n||/^용차/.test(n))return;if(rt==='t35'||/^배진성/.test(n))r.t35[n]=1;else r.t1[n]=1};
+  put(drv,a);if(DRV2[o.key])put(DRV2[o.key],'');});
+ Object.keys(SJA||{}).forEach(function(d){if(d.slice(0,7)===mon)day(d).s.a=+SJA[d]||0});
+ YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){const d=String(y.d||'');if(d.slice(0,7)!==mon||y.link)return;
+  const r=day(d);r.yc++;if(y.co!=='착불')r.ycf+=(+y.fee||0)})});
+ Object.keys(D).forEach(function(d){const r=D[d];r.n1=Object.keys(r.t1).length;r.n35=Object.keys(r.t35).length});
+ /* 그 달 평일은 물량이 없어도 줄을 만든다 */
+ const y=+mon.slice(0,4),m=+mon.slice(5,7),last=new Date(y,m,0).getDate();
+ for(let i=1;i<=last;i++){const d=mon+'-'+msPad(i),w=new Date(y,m-1,i).getDay();if(w>0&&w<6)day(d)}
+ return D}
+function msWon(v){v=Math.round(+v||0);return v?won(v):'<span class="z">-</span>'}
+function msN(v,f){v=+v||0;return v?(f?v.toFixed(f):String(v)):'-'}
+function tabMs(){
+ const ms=msMonths();if(!MSV||ms.indexOf(MSV)<0)MSV=ms.length?ms[ms.length-1]:msToday().slice(0,7);
+ const D=msCalc(MSV),days=Object.keys(D).sort(),td=msToday();
+ let h='<div class="ycwrap">';
+ h+='<div class="hd2">📊 월별 현황 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">날짜별 광일·삼정 명세서 건수·부피·매출 · 우리 차 운행 대수 · 용차</span></div>';
+ h+='<div class="msbar"><select onchange="msSet(this.value)">'+ms.map(function(m){return '<option value="'+m+'"'+(m===MSV?' selected':'')+'>'+m.slice(0,4)+'년 '+(+m.slice(5))+'월</option>'}).join('')+'</select>'
+  +'<input type="file" id="msf" accept=".xls,.xlsx" hidden onchange="msSjUp(this.files[0]);this.value=\'\'">'
+  +'<button class="ctbtn" style="padding:8px 12px;margin:0" onclick="document.getElementById(\'msf\').click()">📄 삼정 판매현황 올리기 (매출)</button>'
+  +'<span style="font-size:11.5px;color:#8b9aab">이카운트 삼정 판매현황 엑셀 — 삼정 매출 칸이 채워집니다</span></div>';
+ /* 합계 · 평균 — 평균은 오늘까지의 배송일(명세서 20건 이상)만 */
+ const T={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,n35:0,yc:0,ycf:0},A={kn:0,kv:0,sn:0,sv:0,n1:0,n35:0,yc:0,c:0};
+ days.forEach(function(d){const r=D[d];
+  T.kn+=r.k.n;T.kv+=r.k.v;T.ka+=r.k.a;T.sn+=r.s.n;T.sv+=r.s.v;T.sa+=r.s.a;T.n1+=r.n1;T.n35+=r.n35;T.yc+=r.yc;T.ycf+=r.ycf;
+  if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.sn+=r.s.n;A.sv+=r.s.v;A.n1+=r.n1;A.n35+=r.n35;A.yc+=r.yc}});
+ const av=function(x,f){return A.c?(x/A.c).toFixed(f==null?1:f):'-'};
+ h+='<div class="mscards">'
+  +'<div class="mscard"><span>광일 매출 (공급가액)</span><b>'+won(Math.round(T.ka))+'원</b><i>하루 '+av(A.kn)+'건 · '+av(A.kv)+'대분</i></div>'
+  +'<div class="mscard"><span>삼정 매출 (공급가액)</span><b>'+(T.sa?won(Math.round(T.sa))+'원':'-')+'</b><i>하루 '+av(A.sn)+'건 · '+av(A.sv)+'대분</i></div>'
+  +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.n1)+'대 · 3.5톤 '+av(A.n35)+'대</b><i>배송일 '+A.c+'일 기준</i></div>'
+  +'<div class="mscard"><span>용차 (부가세 별도)</span><b>'+T.yc+'건 · '+won(T.ycf)+'원</b><i>용차내역서 기준 · 착불 제외</i></div></div>';
+ h+='<div class="msscroll"><table class="mstb"><tr><th rowspan="2">날짜</th>'
+  +'<th class="gk bk" colspan="3">광일 명세서</th><th class="gs bk" colspan="3">삼정 명세서</th>'
+  +'<th class="gc bk" colspan="2">우리 차 운행</th><th class="gy bk" colspan="2">용차</th></tr>'
+  +'<tr><th class="gk bk">건수</th><th class="gk">부피</th><th class="gk">매출</th>'
+  +'<th class="gs bk">건수</th><th class="gs">부피</th><th class="gs">매출</th>'
+  +'<th class="gc bk">1톤</th><th class="gc">3.5톤</th><th class="gy bk">대수</th><th class="gy">운임</th></tr>';
+ days.forEach(function(d){const r=D[d],w=new Date(d).getDay();
+  const cls=(w===0||w===6)?'we':(d>td?'fu':'');
+  h+='<tr class="'+cls+'"><td class="dt">'+(+d.slice(5,7))+'/'+(+d.slice(8))+' ('+'일월화수목금토'[w]+')'+(d>td?' 예정':'')+'</td>'
+   +'<td class="bk">'+msN(r.k.n)+'</td><td>'+msN(r.k.v,1)+'</td><td>'+msWon(r.k.a)+'</td>'
+   +'<td class="bk">'+msN(r.s.n)+'</td><td>'+msN(r.s.v,1)+'</td><td>'+msWon(r.s.a)+'</td>'
+   +'<td class="bk">'+msN(r.n1)+'</td><td>'+msN(r.n35)+'</td>'
+   +'<td class="bk">'+msN(r.yc)+'</td><td>'+msWon(r.ycf)+'</td></tr>'});
+ h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+T.kv.toFixed(1)+'</td><td>'+won(Math.round(T.ka))+'</td>'
+  +'<td class="bk">'+T.sn+'</td><td>'+T.sv.toFixed(1)+'</td><td>'+(T.sa?won(Math.round(T.sa)):'-')+'</td>'
+  +'<td class="bk">'+T.n1+'</td><td>'+T.n35+'</td><td class="bk">'+T.yc+'</td><td>'+won(T.ycf)+'</td></tr>';
+ h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+av(A.kv)+'</td><td>'+(A.c?won(Math.round(days.filter(function(d){return d<=td&&D[d].k.n+D[d].s.n>=20}).reduce(function(s,d){return s+D[d].k.a},0)/A.c)):'-')+'</td>'
+  +'<td class="bk">'+av(A.sn)+'</td><td>'+av(A.sv)+'</td><td>'+(A.c&&T.sa?won(Math.round(days.filter(function(d){return d<=td&&D[d].k.n+D[d].s.n>=20}).reduce(function(s,d){return s+D[d].s.a},0)/A.c)):'-')+'</td>'
+  +'<td class="bk">'+av(A.n1)+'</td><td>'+av(A.n35)+'</td><td class="bk">'+av(A.yc)+'</td><td></td></tr>';
+ h+='</table></div>';
+ h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · 부피 = 우리 1톤 적재 기준(신부장님 기준) 몇 대분 · 삼정 부피에서 광일체어 앞 자재는 뺌 · 우리 차 = 그날 배송을 실은 기사 수(배진성 = 3.5톤) · 하루 평균은 오늘까지 명세서 20건 이상인 날만 · 용차는 용차내역서 기준(같은 차로 묶인 줄·착불 제외)</div>';
+ h+='</div>';
+ return h}
+function msSjUp(f){if(!f)return;
+ readSheets(f,function(sheets){try{
+  const rows=sheets[0][1];let hi=-1;
+  for(let i=0;i<Math.min(rows.length,20);i++){const hh=(rows[i]||[]).map(function(x){return String(x||'').replace(/\s/g,'')});
+   if(hh.some(function(x){return x.indexOf('일자-No')>=0})&&hh.some(function(x){return x.indexOf('공급가액')>=0})){hi=i;break}}
+  if(hi<0){alert('삼정 판매현황 파일이 아닙니다.\n(일자-No. · 공급가액 칸이 있어야 합니다)');return}
+  const H=rows[hi].map(function(x){return String(x||'').replace(/\s/g,'')});
+  const iD=H.findIndex(function(x){return x.indexOf('일자-No')>=0}),iA=H.findIndex(function(x){return x.indexOf('공급가액')>=0});
+  const m={};
+  rows.slice(hi+1).forEach(function(r){const mm=String(r[iD]||'').match(/^(\d{4})[\/.-]?(\d{2})[\/.-]?(\d{2})-/);if(!mm)return;
+   const d=mm[1]+'-'+mm[2]+'-'+mm[3];m[d]=(m[d]||0)+(parseFloat(String(r[iA]==null?'':r[iA]).replace(/,/g,''))||0)});
+  const ds=Object.keys(m).sort();if(!ds.length){alert('날짜별 금액을 찾지 못했습니다.');return}
+  if(!SJA||typeof SJA!=='object'||Array.isArray(SJA))SJA={};
+  /* 파일이 덮는 기간 안의 날짜는 파일 값으로 바꾼다 (그 사이 매출이 없어진 날은 지움) */
+  Object.keys(SJA).forEach(function(d){if(d>=ds[0]&&d<=ds[ds.length-1]&&m[d]===undefined)delete SJA[d]});
+  ds.forEach(function(d){SJA[d]=Math.round(m[d])});
+  ASGV['sja']=Date.now();save();render();
+  toast('📄 삼정 매출 '+ds.length+'일치 반영 ('+ds[0].slice(5)+' ~ '+ds[ds.length-1].slice(5)+')');
+ }catch(e){alert('읽기 오류: '+e.message)}})}
 function tabYcb(){
  ycbFix();
  /* 두 칸으로 나눈다 — 내역 담기(원래 화면)와 결재 올릴 종이 뽑기 (2026-09-17) */
