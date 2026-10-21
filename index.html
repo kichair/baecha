@@ -79,6 +79,9 @@ button,select,input{font-family:inherit}
 .mstb tr.sum td.dt{background:#d5dee8}
 .mstb .z{color:#c3ccd6;font-weight:400}
 .mstb .bk{border-left:3px solid #6b7c90}
+.mstb td.tr2{color:#c0392b}
+.mstb td.yt{text-align:left;font-size:12.5px;color:#5b4a2a}.mstb td.yt b{color:#8a4f0e}
+.mstb small.cc{display:block;font-size:10px;font-weight:600;color:#a8621b}
 .hero{background:#fff;border-radius:16px;padding:15px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 10px rgba(22,50,79,.07);margin-bottom:10px}
 .ring{position:relative;width:88px;height:88px;flex:none}
 .ring svg{transform:rotate(-90deg)}
@@ -1475,7 +1478,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261021g';
+const APPVER='20261021h';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4715,27 +4718,41 @@ function msMonths(){const s={};ORDERS.forEach(function(o){if(o.d>='2026-09-01')s
  Object.keys(SJA||{}).forEach(function(d){if(d>='2026-09-01')s[d.slice(0,7)]=1});return Object.keys(s).sort()}
 function msSet(v){MSV=v;try{localStorage.setItem(KEY+'_msv',v)}catch(e){}render()}
 function msCalc(mon){
- const D={};
- const day=function(d){return D[d]||(D[d]={k:{n:0,v:0,a:0},s:{n:0,v:0,a:0},t1:{},t35:{},yc:0,ycf:0})};
+ const D={},BY={};
+ const day=function(d){return D[d]||(D[d]={k:{n:0,v:0,a:0},s:{n:0,v:0,a:0},t1:{},t35:{},tr1:0,tr35:0,yc:0,ycf:0,ycc:0,yt:{}})};
  ORDERS.forEach(function(o){if(o.d.slice(0,7)!==mon||ST[o.i]==='del')return;
   const r=day(o.d);let hk=0,hs=0;
   (o.items||[]).forEach(function(it){if(!it||it.x)return;const v=(+it.q||0)/(capOf(it.p).c||60);
    if(it.sj){if(/^광일체어/.test(o.n))return;hs=1;r.s.v+=v}else{hk=1;r.k.v+=v;r.k.a+=(+it.a||0)}});
   if(hk)r.k.n++;if(hs)r.s.n++;
-  if(!hk&&!hs)return;
-  const C=CARD[o.d]||DAY_DRV[o.d]||autoRotate(o.d);
-  const a=ASSIGN?ASSIGN[o.i]:'';
-  const drv=DRVOV[o.key]||((a&&a!=='_'&&!offRoute(a))?C[a]:'');
-  const put=function(n,rt){if(!n||/^용차/.test(n))return;if(rt==='t35'||/^배진성/.test(n))r.t35[n]=1;else r.t1[n]=1};
-  put(drv,a);if(DRV2[o.key])put(DRV2[o.key],'');});
+  if(hk||hs)(BY[o.d]=BY[o.d]||[]).push(o)});
+ /* 우리 차 운행 — 그날 배차표(회차 나누기 포함)로 기사별 몇 번 나갔는지 센다 (2026-10-21: 2차로 돌면 2회) */
+ const keepCAR=CAR;
+ try{Object.keys(BY).forEach(function(d){
+  const r=day(d);CAR=CARD[d]||DAY_DRV[d]||autoRotate(d);
+  const lb=tripLabels(BY[d]),tr={};
+  BY[d].forEach(function(o){const L=lb[o.i];if(!L||L==='용차')return;
+   const nm=effDrv(o);if(!nm||/^용차/.test(nm))return;(tr[nm]=tr[nm]||{})[L]=1;
+   if(DRV2[o.key]&&!/^용차/.test(DRV2[o.key]))(tr[DRV2[o.key]]=tr[DRV2[o.key]]||{})['동승']=1});
+  Object.keys(tr).forEach(function(nm){const n=Object.keys(tr[nm]).length,big=/^배진성/.test(nm)||BY[d].some(function(o){return ASSIGN[o.i]==='t35'&&effDrv(o)===nm});
+   if(big){r.t35[nm]=1;r.tr35+=n}else{r.t1[nm]=1;r.tr1+=n}})});
+ }finally{CAR=keepCAR}
  Object.keys(SJA||{}).forEach(function(d){if(d.slice(0,7)===mon)day(d).s.a=+SJA[d]||0});
+ /* 용차 — 착불이든 선불이든 차 한 대는 한 대로 센다. 운임은 우리가 내는 것(착불 제외) */
  YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){const d=String(y.d||'');if(d.slice(0,7)!==mon||y.link)return;
-  const r=day(d);r.yc++;if(y.co!=='착불')r.ycf+=(+y.fee||0)})});
+  const r=day(d);r.yc++;const t=msTon(y.tk);r.yt[t]=(r.yt[t]||0)+1;
+  if(y.co==='착불')r.ycc++;else r.ycf+=(+y.fee||0)})});
  /* 그 달 평일은 물량이 없어도 줄을 만든다 */
  const y=+mon.slice(0,4),m=+mon.slice(5,7),last=new Date(y,m,0).getDate();
  for(let i=1;i<=last;i++){const d=mon+'-'+msPad(i),w=new Date(y,m-1,i).getDay();if(w>0&&w<6)day(d)}
  Object.keys(D).forEach(function(d){const r=D[d];r.n1=Object.keys(r.t1).length;r.n35=Object.keys(r.t35).length});
  return D}
+/* 용차 차종을 짧게 — 다마스·라보·1톤·1.4톤·2.5톤·3.5톤·5톤·11톤·합바 */
+const MS_TON=['다마스','라보','1톤','1.4톤','2.5톤','3.5톤','5톤','11톤','합바'];
+function msTon(tk){tk=String(tk||'');if(tk[0]==='m')return '합바';
+ return {'0.5':'다마스','0.6':'라보','1':'1톤','1L':'1톤','1.4':'1.4톤','2.5':'2.5톤','3.5':'3.5톤','5':'5톤','5L':'5톤','11':'11톤'}[tk]||tk||'?'}
+function msTonTxt(yt){const ks=Object.keys(yt||{}).sort(function(a,b){const ia=MS_TON.indexOf(a),ib=MS_TON.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib)});
+ return ks.length?ks.map(function(k){return k+' <b>'+yt[k]+'</b>'}).join(' · '):'<span class="z">-</span>'}
 function msWon(v){v=Math.round(+v||0);return v?won(v):'<span class="z">-</span>'}
 function msMan(v){v=+v||0;return v?won(Math.round(v/10000)):'<span class="z">-</span>'}
 function msN(v,f){v=+v||0;return v?(f?v.toFixed(f):String(v)):'-'}
@@ -4743,28 +4760,30 @@ function tabMs(){
  const ms=msMonths();if(!MSV||ms.indexOf(MSV)<0)MSV=ms.length?ms[ms.length-1]:msToday().slice(0,7);
  const D=msCalc(MSV),days=Object.keys(D).sort(),td=msToday();
  let h='<div class="ycwrap">';
- h+='<div class="hd2">📊 월별 현황 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">날짜별 광일·삼정 명세서 건수·부피·매출 · 우리 차 운행 대수 · 용차</span></div>';
+ h+='<div class="hd2">📊 월별 현황 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">날짜별 광일·삼정 명세서 건수·부피·매출 · 우리 차 운행 · 용차</span></div>';
  h+='<div class="msbar"><select onchange="msSet(this.value)">'+ms.map(function(m){return '<option value="'+m+'"'+(m===MSV?' selected':'')+'>'+m.slice(0,4)+'년 '+(+m.slice(5))+'월</option>'}).join('')+'</select>'
   +'<input type="file" id="msf" accept=".xls,.xlsx" hidden onchange="msSjUp(this.files[0]);this.value=\'\'">'
   +'<button class="ctbtn" style="padding:8px 12px;margin:0" onclick="document.getElementById(\'msf\').click()">📄 삼정 판매현황 올리기 (매출)</button>'
   +'<span style="font-size:11.5px;color:#8b9aab">이카운트 삼정 판매현황 엑셀 — 삼정 매출 칸이 채워집니다</span></div>';
  /* 합계 · 평균 — 평균은 오늘까지의 배송일(명세서 20건 이상)만 */
- const T={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,n35:0,yc:0,ycf:0},A={kn:0,kv:0,sn:0,sv:0,n1:0,n35:0,yc:0,c:0};
+ const T={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,ycf:0,ycc:0,yt:{}},A={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,c:0};
  days.forEach(function(d){const r=D[d];
-  T.kn+=r.k.n;T.kv+=r.k.v;T.ka+=r.k.a;T.sn+=r.s.n;T.sv+=r.s.v;T.sa+=r.s.a;T.n1+=r.n1;T.n35+=r.n35;T.yc+=r.yc;T.ycf+=r.ycf;
-  if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.sn+=r.s.n;A.sv+=r.s.v;A.n1+=r.n1;A.n35+=r.n35;A.yc+=r.yc}});
+  T.kn+=r.k.n;T.kv+=r.k.v;T.ka+=r.k.a;T.sn+=r.s.n;T.sv+=r.s.v;T.sa+=r.s.a;T.n1+=r.n1;T.tr1+=r.tr1;T.tr35+=r.tr35;T.yc+=r.yc;T.ycf+=r.ycf;T.ycc+=r.ycc;
+  Object.keys(r.yt).forEach(function(k){T.yt[k]=(T.yt[k]||0)+r.yt[k]});
+  if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.ka+=r.k.a;A.sn+=r.s.n;A.sv+=r.s.v;A.sa+=r.s.a;A.n1+=r.n1;A.tr1+=r.tr1;A.tr35+=r.tr35;A.yc+=r.yc}});
  const av=function(x,f){return A.c?(x/A.c).toFixed(f==null?1:f):'-'};
  h+='<div class="mscards">'
   +'<div class="mscard"><span>광일 매출 (공급가액)</span><b>'+won(Math.round(T.ka))+'원</b><i>하루 '+av(A.kn)+'건 · '+av(A.kv)+'대분</i></div>'
   +'<div class="mscard"><span>삼정 매출 (공급가액)</span><b>'+(T.sa?won(Math.round(T.sa))+'원':'-')+'</b><i>하루 '+av(A.sn)+'건 · '+av(A.sv)+'대분</i></div>'
-  +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.n1)+'대 · 3.5톤 '+av(A.n35)+'대</b><i>배송일 '+A.c+'일 기준</i></div>'
-  +'<div class="mscard"><span>용차 (부가세 별도)</span><b>'+T.yc+'건 · '+won(T.ycf)+'원</b><i>용차내역서 기준 · 착불 제외</i></div></div>';
+  +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.n1)+'대 '+av(A.tr1)+'회 · 3.5톤 '+av(A.tr35)+'회</b><i>배송일 '+A.c+'일 기준 · 2차로 돌면 2회</i></div>'
+  +'<div class="mscard"><span>용차</span><b>'+T.yc+'대 · '+won(T.ycf)+'원</b><i>'+msTonTxt(T.yt).replace(/<\/?b>/g,'')+(T.ycc?' · 착불 '+T.ycc+'대 포함':'')+'</i></div></div>';
  h+='<div class="msscroll"><table class="mstb"><tr><th rowspan="2">날짜</th>'
   +'<th class="gk bk" colspan="3">광일 명세서</th><th class="gs bk" colspan="3">삼정 명세서</th>'
-  +'<th class="gc bk" colspan="2">우리 차 운행</th><th class="gy bk" colspan="2">용차</th></tr>'
+  +'<th class="gc bk" colspan="3">우리 차 운행</th><th class="gy bk" colspan="3">용차</th></tr>'
   +'<tr><th class="gk bk">건수</th><th class="gk">부피<small>1톤 몇 대분</small></th><th class="gk">매출<small>만원</small></th>'
   +'<th class="gs bk">건수</th><th class="gs">부피<small>1톤 몇 대분</small></th><th class="gs">매출<small>만원</small></th>'
-  +'<th class="gc bk">1톤<small>대</small></th><th class="gc">3.5톤<small>대</small></th><th class="gy bk">대수</th><th class="gy">운임<small>원</small></th></tr>';
+  +'<th class="gc bk">1톤<small>대</small></th><th class="gc">1톤<small>운행 (회)</small></th><th class="gc">3.5톤<small>운행 (회)</small></th>'
+  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">운임<small>원 · 착불 제외</small></th></tr>';
  let zi=0;
  days.forEach(function(d){const r=D[d],w=new Date(d).getDay();
   const we=(w===0||w===6);if(!we)zi++;
@@ -4772,16 +4791,19 @@ function tabMs(){
   h+='<tr class="'+cls+'"><td class="dt">'+(+d.slice(5,7))+'/'+(+d.slice(8))+' ('+'일월화수목금토'[w]+')'+(d===td?' 오늘':(d>td?' 예정':''))+'</td>'
    +'<td class="bk n">'+msN(r.k.n)+'</td><td>'+msN(r.k.v,1)+'</td><td class="w">'+msMan(r.k.a)+'</td>'
    +'<td class="bk n">'+msN(r.s.n)+'</td><td>'+msN(r.s.v,1)+'</td><td class="ws">'+msMan(r.s.a)+'</td>'
-   +'<td class="bk n">'+msN(r.n1)+'</td><td class="n">'+msN(r.n35)+'</td>'
-   +'<td class="bk n">'+msN(r.yc)+'</td><td>'+msWon(r.ycf)+'</td></tr>'});
+   +'<td class="bk">'+msN(r.n1)+'</td><td class="n'+(r.tr1>r.n1?' tr2':'')+'">'+msN(r.tr1)+'</td><td class="n'+(r.tr35>r.n35?' tr2':'')+'">'+msN(r.tr35)+'</td>'
+   +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msWon(r.ycf)+'</td></tr>'});
  h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+T.kv.toFixed(1)+'</td><td class="w">'+msMan(T.ka)+'</td>'
   +'<td class="bk">'+T.sn+'</td><td>'+T.sv.toFixed(1)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
-  +'<td class="bk">'+T.n1+'</td><td>'+T.n35+'</td><td class="bk">'+T.yc+'</td><td>'+won(T.ycf)+'</td></tr>';
- h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+av(A.kv)+'</td><td class="w">'+(A.c?msMan(days.filter(function(d){return d<=td&&D[d].k.n+D[d].s.n>=20}).reduce(function(s,d){return s+D[d].k.a},0)/A.c):'-')+'</td>'
-  +'<td class="bk">'+av(A.sn)+'</td><td>'+av(A.sv)+'</td><td class="ws">'+(A.c&&T.sa?msMan(days.filter(function(d){return d<=td&&D[d].k.n+D[d].s.n>=20}).reduce(function(s,d){return s+D[d].s.a},0)/A.c):'-')+'</td>'
-  +'<td class="bk">'+av(A.n1)+'</td><td>'+av(A.n35)+'</td><td class="bk">'+av(A.yc)+'</td><td></td></tr>';
+  +'<td class="bk">'+T.n1+'</td><td>'+T.tr1+'</td><td>'+T.tr35+'</td>'
+  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+won(T.ycf)+'</td></tr>';
+ h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+av(A.kv)+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
+  +'<td class="bk">'+av(A.sn)+'</td><td>'+av(A.sv)+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
+  +'<td class="bk">'+av(A.n1)+'</td><td>'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td></td></tr>';
  h+='</table></div>';
- h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>부피 = 그날 물량을 우리 1톤 트럭(신부장님 적재 기준)에 꽉 채우면 몇 대가 나오는지</b> (10.9 = 1톤 트럭 약 11대분) · 매출은 만원 단위 · 삼정 부피에서 광일체어 앞 자재는 뺌 · 우리 차 = 그날 배송을 실은 기사 수(배진성 = 3.5톤) · 하루 평균은 오늘까지 명세서 20건 이상인 날만 · 용차는 용차내역서 기준(같은 차로 묶인 줄·착불 제외)</div>';
+ h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>부피 = 그날 물량을 우리 1톤 트럭(신부장님 적재 기준)에 꽉 채우면 몇 대가 나오는지</b> (10.9 = 1톤 트럭 약 11대분) · 매출은 만원 단위 · 삼정 부피에서 광일체어 앞 자재는 뺌<br>'
+  +'<b>우리 차 운행</b> = 대는 나간 차 수, 회는 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 이상 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
+  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). 운임은 우리가 내는 금액이라 착불은 뺌 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
  h+='</div>';
  return h}
 function msSjUp(f){if(!f)return;
