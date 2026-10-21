@@ -1478,7 +1478,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261021h';
+const APPVER='20261021i';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4775,14 +4775,14 @@ function tabMs(){
  h+='<div class="mscards">'
   +'<div class="mscard"><span>광일 매출 (공급가액)</span><b>'+won(Math.round(T.ka))+'원</b><i>하루 '+av(A.kn)+'건 · '+av(A.kv)+'대분</i></div>'
   +'<div class="mscard"><span>삼정 매출 (공급가액)</span><b>'+(T.sa?won(Math.round(T.sa))+'원':'-')+'</b><i>하루 '+av(A.sn)+'건 · '+av(A.sv)+'대분</i></div>'
-  +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.n1)+'대 '+av(A.tr1)+'회 · 3.5톤 '+av(A.tr35)+'회</b><i>배송일 '+A.c+'일 기준 · 2차로 돌면 2회</i></div>'
+  +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.tr1)+'회 · 3.5톤 '+av(A.tr35)+'회</b><i>배송일 '+A.c+'일 기준 · 2차로 돌면 2회</i></div>'
   +'<div class="mscard"><span>용차</span><b>'+T.yc+'대 · '+won(T.ycf)+'원</b><i>'+msTonTxt(T.yt).replace(/<\/?b>/g,'')+(T.ycc?' · 착불 '+T.ycc+'대 포함':'')+'</i></div></div>';
  h+='<div class="msscroll"><table class="mstb"><tr><th rowspan="2">날짜</th>'
   +'<th class="gk bk" colspan="3">광일 명세서</th><th class="gs bk" colspan="3">삼정 명세서</th>'
-  +'<th class="gc bk" colspan="3">우리 차 운행</th><th class="gy bk" colspan="3">용차</th></tr>'
+  +'<th class="gc bk" colspan="2">우리 차 운행</th><th class="gy bk" colspan="3">용차</th></tr>'
   +'<tr><th class="gk bk">건수</th><th class="gk">부피<small>1톤 몇 대분</small></th><th class="gk">매출<small>만원</small></th>'
   +'<th class="gs bk">건수</th><th class="gs">부피<small>1톤 몇 대분</small></th><th class="gs">매출<small>만원</small></th>'
-  +'<th class="gc bk">1톤<small>대</small></th><th class="gc">1톤<small>운행 (회)</small></th><th class="gc">3.5톤<small>운행 (회)</small></th>'
+  +'<th class="gc bk">1톤<small>운행 (회)</small></th><th class="gc">3.5톤<small>운행 (회)</small></th>'
   +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">운임<small>원 · 착불 제외</small></th></tr>';
  let zi=0;
  days.forEach(function(d){const r=D[d],w=new Date(d).getDay();
@@ -4791,18 +4791,18 @@ function tabMs(){
   h+='<tr class="'+cls+'"><td class="dt">'+(+d.slice(5,7))+'/'+(+d.slice(8))+' ('+'일월화수목금토'[w]+')'+(d===td?' 오늘':(d>td?' 예정':''))+'</td>'
    +'<td class="bk n">'+msN(r.k.n)+'</td><td>'+msN(r.k.v,1)+'</td><td class="w">'+msMan(r.k.a)+'</td>'
    +'<td class="bk n">'+msN(r.s.n)+'</td><td>'+msN(r.s.v,1)+'</td><td class="ws">'+msMan(r.s.a)+'</td>'
-   +'<td class="bk">'+msN(r.n1)+'</td><td class="n'+(r.tr1>r.n1?' tr2':'')+'">'+msN(r.tr1)+'</td><td class="n'+(r.tr35>r.n35?' tr2':'')+'">'+msN(r.tr35)+'</td>'
+   +'<td class="bk n'+(r.tr1>r.n1?' tr2':'')+'" title="'+r.n1+'대가 '+r.tr1+'회">'+msN(r.tr1)+'</td><td class="n'+(r.tr35>r.n35?' tr2':'')+'">'+msN(r.tr35)+'</td>'
    +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msWon(r.ycf)+'</td></tr>'});
  h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+T.kv.toFixed(1)+'</td><td class="w">'+msMan(T.ka)+'</td>'
   +'<td class="bk">'+T.sn+'</td><td>'+T.sv.toFixed(1)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
-  +'<td class="bk">'+T.n1+'</td><td>'+T.tr1+'</td><td>'+T.tr35+'</td>'
+  +'<td class="bk">'+T.tr1+'</td><td>'+T.tr35+'</td>'
   +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+won(T.ycf)+'</td></tr>';
  h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+av(A.kv)+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
   +'<td class="bk">'+av(A.sn)+'</td><td>'+av(A.sv)+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
-  +'<td class="bk">'+av(A.n1)+'</td><td>'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td></td></tr>';
+  +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td></td></tr>';
  h+='</table></div>';
  h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>부피 = 그날 물량을 우리 1톤 트럭(신부장님 적재 기준)에 꽉 채우면 몇 대가 나오는지</b> (10.9 = 1톤 트럭 약 11대분) · 매출은 만원 단위 · 삼정 부피에서 광일체어 앞 자재는 뺌<br>'
-  +'<b>우리 차 운행</b> = 대는 나간 차 수, 회는 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 이상 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
+  +'<b>우리 차 운행</b> = 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 돈 차가 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
   +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). 운임은 우리가 내는 금액이라 착불은 뺌 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
  h+='</div>';
  return h}
