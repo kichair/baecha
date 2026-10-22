@@ -1523,7 +1523,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261022f';
+const APPVER='20261022g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4776,7 +4776,7 @@ function msMonths(){const s={};ORDERS.forEach(function(o){if(o.d>='2026-09-01')s
 function msSet(v){MSV=v;try{localStorage.setItem(KEY+'_msv',v)}catch(e){}render()}
 function msCalc(mon){
  const D={},BY={};
- const day=function(d){return D[d]||(D[d]={k:{n:0,v:0,a:0},s:{n:0,v:0,a:0},t1:{},t35:{},tr1:0,tr35:0,yc:0,ycf:0,ycc:0,yt:{}})};
+ const day=function(d){return D[d]||(D[d]={k:{n:0,v:0,a:0},s:{n:0,v:0,a:0},t1:{},t35:{},tr1:0,tr35:0,yc:0,ycv:0,ycf:0,ycc:0,yt:{}})};
  ORDERS.forEach(function(o){if(o.d.slice(0,7)!==mon||ST[o.i]==='del')return;
   const r=day(o.d);let hk=0,hs=0;
   (o.items||[]).forEach(function(it){if(!it||it.x)return;const v=(+it.q||0)/(capOf(it.p).c||60);
@@ -4798,6 +4798,8 @@ function msCalc(mon){
  /* 용차 — 착불이든 선불이든 차 한 대는 한 대로 센다. 운임은 우리가 내는 것(착불 제외) */
  YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){const d=String(y.d||'');if(d.slice(0,7)!==mon||y.link)return;
   const r=day(d);r.yc++;const t=msTon(y.tk);r.yt[t]=(r.yt[t]||0)+1;
+  /* 짐칸 m 환산 — 그 차 적재량(1톤=1.0)을 명세서 짐 길이와 같은 잣대(폭 2.3m 짐칸)로. 1톤 ≈ 1.95m, 합바 3m = 3m */
+  const tr=YC_TRUCK.filter(function(x){return x.t===String(y.tk||'')})[0];if(tr)r.ycv+=tr.c;
   if(y.co==='착불')r.ycc++;else r.ycf+=(+y.fee||0)})});
  /* 그 달 평일은 물량이 없어도 줄을 만든다 */
  const y=+mon.slice(0,4),m=+mon.slice(5,7),last=new Date(y,m,0).getDate();
@@ -4846,24 +4848,24 @@ function tabMs(){
   +'<button class="ctbtn" style="padding:8px 12px;margin:0" onclick="document.getElementById(\'msf\').click()">📄 삼정 판매현황 올리기 (매출)</button>'
   +'<span style="font-size:11.5px;color:#8b9aab">이카운트 삼정 판매현황 엑셀 — 삼정 매출 칸이 채워집니다</span></div>';
  /* 합계 · 평균 — 평균은 오늘까지의 배송일(명세서 20건 이상)만 */
- const T={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,ycf:0,ycc:0,yt:{}},A={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,c:0};
+ const T={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,ycv:0,ycf:0,ycc:0,yt:{}},A={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,ycv:0,c:0};
  days.forEach(function(d){const r=D[d];
-  T.kn+=r.k.n;T.kv+=r.k.v;T.ka+=r.k.a;T.sn+=r.s.n;T.sv+=r.s.v;T.sa+=r.s.a;T.n1+=r.n1;T.tr1+=r.tr1;T.tr35+=r.tr35;T.yc+=r.yc;T.ycf+=r.ycf;T.ycc+=r.ycc;
+  T.kn+=r.k.n;T.kv+=r.k.v;T.ka+=r.k.a;T.sn+=r.s.n;T.sv+=r.s.v;T.sa+=r.s.a;T.n1+=r.n1;T.tr1+=r.tr1;T.tr35+=r.tr35;T.yc+=r.yc;T.ycv+=r.ycv;T.ycf+=r.ycf;T.ycc+=r.ycc;
   Object.keys(r.yt).forEach(function(k){T.yt[k]=(T.yt[k]||0)+r.yt[k]});
-  if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.ka+=r.k.a;A.sn+=r.s.n;A.sv+=r.s.v;A.sa+=r.s.a;A.n1+=r.n1;A.tr1+=r.tr1;A.tr35+=r.tr35;A.yc+=r.yc}});
+  if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.ka+=r.k.a;A.sn+=r.s.n;A.sv+=r.s.v;A.sa+=r.s.a;A.n1+=r.n1;A.tr1+=r.tr1;A.tr35+=r.tr35;A.yc+=r.yc;A.ycv+=r.ycv}});
  const av=function(x,f){return A.c?(x/A.c).toFixed(f==null?1:f):'-'};
  h+='<div class="mscards">'
   +'<div class="mscard"><span>광일 매출 (공급가액)</span><b>'+won(Math.round(T.ka))+'원</b><i>하루 '+av(A.kn)+'건 · 짐 '+(A.c?msLen(A.kv/A.c):'-')+'</i></div>'
   +'<div class="mscard"><span>삼정 매출 (공급가액)</span><b>'+(T.sa?won(Math.round(T.sa))+'원':'-')+'</b><i>하루 '+av(A.sn)+'건 · 짐 '+(A.c?msLen(A.sv/A.c):'-')+'</i></div>'
   +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.tr1)+'회 · 3.5톤 '+av(A.tr35)+'회</b><i>배송일 '+A.c+'일 기준 · 2차로 돌면 2회</i></div>'
-  +'<div class="mscard"><span>용차</span><b>'+T.yc+'대 · '+won(T.ycf)+'원</b><i>'+msTonTxt(T.yt).replace(/<\/?b>/g,'')+(T.ycc?' · 착불 '+T.ycc+'대 포함':'')+'</i></div></div>';
+  +'<div class="mscard"><span>용차</span><b>'+T.yc+'대 · 짐칸 '+msLen(T.ycv)+' · '+won(T.ycf)+'원</b><i>'+msTonTxt(T.yt).replace(/<\/?b>/g,'')+(T.ycc?' · 착불 '+T.ycc+'대 포함':'')+'</i></div></div>';
  h+='<div class="msscroll"><table class="mstb"><tr><th rowspan="2">날짜</th>'
   +'<th class="gk bk" colspan="3">광일 명세서</th><th class="gs bk" colspan="3">삼정 명세서</th>'
-  +'<th class="gc bk" colspan="2">우리 차 운행</th><th class="gy bk" colspan="4">용차</th></tr>'
+  +'<th class="gc bk" colspan="2">우리 차 운행</th><th class="gy bk" colspan="5">용차</th></tr>'
   +'<tr><th class="gk bk">건수</th><th class="gk">짐 길이<small>폭 2.3m 짐칸</small></th><th class="gk">매출<small>만원</small></th>'
   +'<th class="gs bk">건수</th><th class="gs">짐 길이<small>폭 2.3m 짐칸</small></th><th class="gs">매출<small>만원</small></th>'
   +'<th class="gc bk">1톤<small>운행 (회)</small></th><th class="gc">3.5톤<small>운행 (회)</small></th>'
-  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">운임<small>원 · 착불 제외</small></th><th class="gy">누락<small>내역서에 없는 곳</small></th></tr>';
+  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">짐칸<small>m 환산</small></th><th class="gy">운임<small>원 · 착불 제외</small></th><th class="gy">누락<small>내역서에 없는 곳</small></th></tr>';
  let zi=0;
  days.forEach(function(d){const r=D[d],w=new Date(d).getDay();
   const we=(w===0||w===6);if(!we)zi++;
@@ -4872,18 +4874,18 @@ function tabMs(){
    +'<td class="bk n">'+msN(r.k.n)+'</td><td>'+msLen(r.k.v)+'</td><td class="w">'+msMan(r.k.a)+'</td>'
    +'<td class="bk n">'+msN(r.s.n)+'</td><td>'+msLen(r.s.v)+'</td><td class="ws">'+msMan(r.s.a)+'</td>'
    +'<td class="bk n'+(r.tr1>r.n1?' tr2':'')+'" title="'+r.n1+'대가 '+r.tr1+'회">'+msN(r.tr1)+'</td><td class="n'+(r.tr35>r.n35?' tr2':'')+'">'+msN(r.tr35)+'</td>'
-   +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msWon(r.ycf)+'</td><td class="ck">'+msChk(r)+'</td></tr>'});
+   +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msLen(r.ycv)+'</td><td>'+msWon(r.ycf)+'</td><td class="ck">'+msChk(r)+'</td></tr>'});
  h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+msLen(T.kv)+'</td><td class="w">'+msMan(T.ka)+'</td>'
   +'<td class="bk">'+T.sn+'</td><td>'+msLen(T.sv)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
   +'<td class="bk">'+T.tr1+'</td><td>'+T.tr35+'</td>'
-  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+(days.reduce(function(s,d){return s+D[d].miss.length},0)?'<b class="ckx">누락 '+days.reduce(function(s,d){return s+D[d].miss.length},0)+'</b>':'')+'</td></tr>';
+  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+msLen(T.ycv)+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+(days.reduce(function(s,d){return s+D[d].miss.length},0)?'<b class="ckx">누락 '+days.reduce(function(s,d){return s+D[d].miss.length},0)+'</b>':'')+'</td></tr>';
  h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+(A.c?msLen(A.kv/A.c):'-')+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
   +'<td class="bk">'+av(A.sn)+'</td><td>'+(A.c?msLen(A.sv/A.c):'-')+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
-  +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td></td><td></td></tr>';
+  +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td>'+(A.c?msLen(A.ycv/A.c):'-')+'</td><td></td><td></td></tr>';
  h+='</table></div>';
  h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>짐 길이 = 그날 물량을 폭 2.3m 짐칸에 신부장님 적재 기준으로 깔면 몇 m 나오는지</b> (합바차 「3m」와 같은 뜻 · 1톤 트럭 한 대분 = 약 1.9m) · 매출은 만원 단위 · 삼정 짐에서 광일체어 앞 자재는 뺌<br>'
   +'<b>우리 차 운행</b> = 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 돈 차가 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
-  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). 운임은 우리가 내는 금액이라 착불은 뺌<br><b>누락</b> = 명세서에서 우리 동선에 안 잡힌 건 중 적요에 용차·상차·차종(다마스·라보·1톤·3m…) 표기가 있거나 원거리인데, 용차내역서(앞뒤 2일)에 그 거래처가 없는 곳 수 · 마우스를 대면 거래처 이름이 보임 · 다 있으면 빈칸 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
+  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). <b>짐칸 m 환산</b> = 부른 차가 실을 수 있는 양을 짐 길이와 같은 잣대로 바꾼 것 (라보 0.9m · 1톤 1.9m · 1.4톤 2.6m · 2.5톤 3.4m · 3.5톤 4.2m · 5톤 6.2m · 합바 3m = 3m) — 명세서 짐 길이와 바로 비교. 운임은 우리가 내는 금액이라 착불은 뺌<br><b>누락</b> = 명세서에서 우리 동선에 안 잡힌 건 중 적요에 용차·상차·차종(다마스·라보·1톤·3m…) 표기가 있거나 원거리인데, 용차내역서(앞뒤 2일)에 그 거래처가 없는 곳 수 · 마우스를 대면 거래처 이름이 보임 · 다 있으면 빈칸 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
  h+='</div>';
  return h}
 function msSjUp(f){if(!f)return;
