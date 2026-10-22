@@ -550,6 +550,49 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 @media print{#ycbprt table.pw td.mm{font-size:10.5px;max-width:210px;word-break:keep-all;overflow-wrap:anywhere;line-height:1.35}}
 /* 용차내역서 — 이 주만 인쇄 */
 #ycbprt{display:none}
+/* 2026-10-21 운임지출결의서 — A4 가로 한 장에 두 건 */
+.ujpick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ujpick label{border:1px solid #d6dee8;border-radius:8px;padding:5px 9px;font-size:12.5px;background:#fff;cursor:pointer;color:#8b9aab}
+.ujpick label.on{color:#1c2530;border-color:#9fb3c8;background:#f4f8fc}
+.ujpick label i{font-style:normal;color:#a8621b;font-weight:700}
+.ujprev{background:#e9edf2;padding:12px;overflow-x:auto;border-radius:12px;margin-top:10px}
+.ujpage{width:297mm;height:210mm;background:#fff;margin:0 auto 12px;display:flex;box-shadow:0 2px 10px rgba(0,0,0,.15);box-sizing:border-box;color:#000}
+.ujhalf{width:148.5mm;height:210mm;box-sizing:border-box;padding:9mm 0 0 5.25mm;position:relative}
+.ujhalf+.ujhalf{border-left:1px dashed #c3ccd6}
+.ujf{width:138mm;font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#000;font-size:11pt}
+.ujf table{border-collapse:collapse;width:100%;table-layout:fixed}
+.ujf td{border:1px solid #000;text-align:center;vertical-align:middle;padding:0 2mm;word-break:keep-all;overflow-wrap:anywhere}
+.ujf [contenteditable]:focus{outline:2px solid #2F7FE8;background:#f0f6ff}
+.ujh td.ujt{font-size:19pt;font-weight:800;letter-spacing:1px;border-right:1px solid #000;height:22mm}
+.ujh td.ujg{width:7mm;font-size:10pt;line-height:1.1;padding:0}
+.ujh td.ujs{width:14.5mm;height:7mm;font-size:10.5pt;padding:0}
+.ujh td.ujsg{height:22mm;font-size:11pt;font-weight:700;padding:0;white-space:nowrap}
+.ujh td.ujd{height:8mm;font-size:10.5pt;text-align:right;padding-right:5mm;word-spacing:1mm}
+.ujh{width:100%}.ujh col{}
+.ujk{display:flex;align-items:flex-end;gap:4mm;height:13mm;padding:0 1mm;border-bottom:0}
+.ujk1{flex:1;border-bottom:1px solid #000;padding:0 1mm 1mm;font-size:11.5pt}
+.ujk2{width:58mm;border-bottom:1px solid #000;padding:0 1mm 1mm;font-size:11.5pt;text-align:center}
+.ujk b{font-weight:700;display:inline-block;min-width:20mm}
+.ujm{margin-top:5mm;border:1.5px solid #000}
+.ujm td{border:1px dotted #000;height:13.5mm;font-size:11pt}
+.ujm td:first-child{padding:0 1mm;font-size:10.5pt;line-height:1.3}
+.ujm tr.hd td{height:14mm}
+.ujm tr.am td{height:13mm;text-align:right;padding-right:3mm}
+.ujm tr.am td:first-child{text-align:center}
+.ujm tr.tl td{height:16mm}
+.ujm td+td[colspan]{text-align:left;padding-left:4mm}
+.ujm td.ujnm{font-size:10pt;line-height:1.25}
+.ujm tr td:first-child{border-left:1.5px solid #000}
+.ujm tr:last-child td{border-bottom:1.5px solid #000}
+.ujb{border:1.5px solid #000;border-top:0}
+.ujb td{height:12.5mm;border:1px solid #000;font-size:11pt}
+.ujc{text-align:center;font-size:11pt;margin-top:2mm}
+@media print{
+ #ycbprt .ujprev{background:none;padding:0;margin:0;border-radius:0;overflow:visible}
+ #ycbprt .ujpage{margin:0;box-shadow:none;page-break-after:always;break-after:page}
+ #ycbprt .ujpage:last-child{page-break-after:auto;break-after:auto}
+ #ycbprt .ujhalf+.ujhalf{border-left:0}
+}
 /* 결재 종이를 재는 동안만 — 화면 밖에 인쇄 폭(297-14mm) 그대로 펼친다 */
 #ycbprt.measure{display:block!important;position:absolute;left:-9999px;top:0;width:283mm}
 #ycbprt.measure .sgprev{background:none;padding:0;overflow:visible}
@@ -909,6 +952,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb9" onclick="go(9)"><em>🚛</em>운반비연락처</button>
  <button id="tb6" onclick="go(6)"><em>💰</em>용차</button>
  <button id="tb7" onclick="go(7)"><em>🚚</em>용차내역서</button>
+ <button id="tb11" onclick="go(11)"><em>🧾</em>운임지출결의서</button>
  <button id="tb0" onclick="go(0)" style="display:none"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
  <button id="tb4" onclick="go(4)" style="display:none"><em>🧑‍✈️</em>기사별</button>
  <button id="tb1" onclick="go(1)" style="display:none"><em>🚚</em>기사별 배송</button>
@@ -1479,7 +1523,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261021l';
+const APPVER='20261022b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2391,7 +2435,7 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
+ [0,1,2,3,4,5,6,7,8,9,10,11].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  drawWx();drawRw();drawDiff();drawUpd();
  /* 알림줄은 맨 위에 띄우지 않고 [공지·메모] 탭 안에만 둔다 */
  const NB=['rainbar','rwbar','dfbar'].filter(function(id){var e=document.getElementById(id);return e&&e.style.display!=='none'});
@@ -2402,7 +2446,7 @@ function render(){
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():TAB===11?tabUj():tabStat(today);
  bind();if(TAB===6)drawYcOne();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
@@ -4098,6 +4142,17 @@ function ycDedupTime(s){
  for(let k=cut.length-1;k>=0;k--)s=s.slice(0,cut[k][0])+s.slice(cut[k][1]);
  return s.replace(/\s*\/\s*\//g,'/').replace(/^[\s\/\-·]+/,'').replace(/[\s\/\-·]+$/,'');
 }
+/* 2026-10-22 카톡 복사 때 짐 양도 같이 — 그 거래처·그날 명세서의 의자(삼정) 개수와 짐칸 길이(m) */
+function ycbQtyOf(x){if(!x||!x.n||!x.d)return null;
+ let ch=0,sj=0,ld=0,hit=0;
+ ORDERS.forEach(function(o){if(o.n!==x.n||ST[o.i]==='del')return;
+  let sd='';if(o.d!==x.d){try{sd=shipDate(o)||''}catch(e){}if(sd!==x.d)return}
+  const q=qtySplit(o);ch+=q.ch;sj+=q.sj;ld+=(+o.load||0);hit++});
+ if(!hit||!(ch+sj))return null;
+ return {ch:ch,sj:sj,ld:ld,len:ycLen(ld)}}
+function ycbQtyTxt(x){const q=ycbQtyOf(x);if(!q)return '';
+ const p=[];if(q.ch)p.push('의자 '+q.ch+'개');if(q.sj)p.push('삼정 '+q.sj+'개');
+ return '📦 '+p.join(' · ')+' · 짐칸 약 '+(q.len<0.1?'0.1':q.len.toFixed(1))+'m'}
 function ycbTxt1(x){
  const tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
  const mm=ycDedupTime(String(x.mm||'').trim());
@@ -4108,7 +4163,8 @@ function ycbTxt1(x){
  const head=[md(x.d),String(x.n||'').trim(),
    dup(reg)?'':reg,
    (x.link||!dup(car))?car:''].filter(function(v){return v}).join(' / ');
- return mm?(head+'\n'+mm):head;
+ const qt=ycbQtyTxt(x);
+ return [head,mm,qt].filter(function(v){return v}).join('\n');
 }
 function ycbClip(txt,msg){
  if(navigator.clipboard&&navigator.clipboard.writeText)
@@ -4767,11 +4823,9 @@ function msCalc(mon){
 /* 검증용 — 퀵·화물·택배는 용차가 아니므로 뺀다 */
 const MS_YC_RE=/용차|상차|장축|다마스|라보|\d(?:\.\d)?\s*톤|\d+(?:\.\d+)?\s*m(?![a-z])/i;   /* 우리 동선에 안 잡힌 건 중 이 표기가 있으면 용차로 본다 */
 function msChk(r){
- if(!r.vc&&!r.yc)return '<span class="z">-</span>';
- const tip=(r.miss.length?'내역서에 없음: '+r.miss.join(', '):'')+(r.extra.length?(r.miss.length?' / ':'')+'명세서 표기 없이 내역서에만: '+r.extra.join(', '):'');
- return '<span title="'+esc(tip||'명세서 용차 건이 내역서에 다 있음')+'">'
-  +(r.miss.length?'<b class="ckx">누락 '+r.miss.length+'</b>':'<b class="cko">✓ 맞음</b>')
-  +'<small class="cks">명세서 '+r.vc+'곳</small></span>'}
+ /* 2026-10-21 누락만 표시 — 다 맞으면 빈칸 */
+ if(!r.miss||!r.miss.length)return '';
+ return '<b class="ckx" title="'+esc('용차내역서에 없음: '+r.miss.join(', '))+'">누락 '+r.miss.length+'</b>'}
 /* 용차 차종을 짧게 — 다마스·라보·1톤·1.4톤·2.5톤·3.5톤·5톤·11톤·합바 */
 const MS_TON=['다마스','라보','1톤','1.4톤','2.5톤','3.5톤','5톤','11톤','합바'];
 function msTon(tk){tk=String(tk||'');if(tk[0]==='m')return '합바';
@@ -4780,6 +4834,7 @@ function msTonTxt(yt){const ks=Object.keys(yt||{}).sort(function(a,b){const ia=M
  return ks.length?ks.map(function(k){return k+' <b>'+yt[k]+'</b>'}).join(' · '):'<span class="z">-</span>'}
 function msWon(v){v=Math.round(+v||0);return v?won(v):'<span class="z">-</span>'}
 function msMan(v){v=+v||0;return v?won(Math.round(v/10000)):'<span class="z">-</span>'}
+function msLen(v){v=ycLen(+v||0);return v>=0.05?v.toFixed(1)+'m':'-'}
 function msN(v,f){v=+v||0;return v?(f?v.toFixed(f):String(v)):'-'}
 function tabMs(){
  const ms=msMonths();if(!MSV||ms.indexOf(MSV)<0)MSV=ms.length?ms[ms.length-1]:msToday().slice(0,7);
@@ -4798,37 +4853,37 @@ function tabMs(){
   if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.ka+=r.k.a;A.sn+=r.s.n;A.sv+=r.s.v;A.sa+=r.s.a;A.n1+=r.n1;A.tr1+=r.tr1;A.tr35+=r.tr35;A.yc+=r.yc}});
  const av=function(x,f){return A.c?(x/A.c).toFixed(f==null?1:f):'-'};
  h+='<div class="mscards">'
-  +'<div class="mscard"><span>광일 매출 (공급가액)</span><b>'+won(Math.round(T.ka))+'원</b><i>하루 '+av(A.kn)+'건 · '+av(A.kv)+'대분</i></div>'
-  +'<div class="mscard"><span>삼정 매출 (공급가액)</span><b>'+(T.sa?won(Math.round(T.sa))+'원':'-')+'</b><i>하루 '+av(A.sn)+'건 · '+av(A.sv)+'대분</i></div>'
+  +'<div class="mscard"><span>광일 매출 (공급가액)</span><b>'+won(Math.round(T.ka))+'원</b><i>하루 '+av(A.kn)+'건 · 짐 '+(A.c?msLen(A.kv/A.c):'-')+'</i></div>'
+  +'<div class="mscard"><span>삼정 매출 (공급가액)</span><b>'+(T.sa?won(Math.round(T.sa))+'원':'-')+'</b><i>하루 '+av(A.sn)+'건 · 짐 '+(A.c?msLen(A.sv/A.c):'-')+'</i></div>'
   +'<div class="mscard"><span>우리 차 하루 평균</span><b>1톤 '+av(A.tr1)+'회 · 3.5톤 '+av(A.tr35)+'회</b><i>배송일 '+A.c+'일 기준 · 2차로 돌면 2회</i></div>'
   +'<div class="mscard"><span>용차</span><b>'+T.yc+'대 · '+won(T.ycf)+'원</b><i>'+msTonTxt(T.yt).replace(/<\/?b>/g,'')+(T.ycc?' · 착불 '+T.ycc+'대 포함':'')+'</i></div></div>';
  h+='<div class="msscroll"><table class="mstb"><tr><th rowspan="2">날짜</th>'
   +'<th class="gk bk" colspan="3">광일 명세서</th><th class="gs bk" colspan="3">삼정 명세서</th>'
   +'<th class="gc bk" colspan="2">우리 차 운행</th><th class="gy bk" colspan="4">용차</th></tr>'
-  +'<tr><th class="gk bk">건수</th><th class="gk">부피<small>1톤 몇 대분</small></th><th class="gk">매출<small>만원</small></th>'
-  +'<th class="gs bk">건수</th><th class="gs">부피<small>1톤 몇 대분</small></th><th class="gs">매출<small>만원</small></th>'
+  +'<tr><th class="gk bk">건수</th><th class="gk">짐 길이<small>폭 2.3m 짐칸</small></th><th class="gk">매출<small>만원</small></th>'
+  +'<th class="gs bk">건수</th><th class="gs">짐 길이<small>폭 2.3m 짐칸</small></th><th class="gs">매출<small>만원</small></th>'
   +'<th class="gc bk">1톤<small>운행 (회)</small></th><th class="gc">3.5톤<small>운행 (회)</small></th>'
-  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">운임<small>원 · 착불 제외</small></th><th class="gy">검증<small>명세서와 맞나</small></th></tr>';
+  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">운임<small>원 · 착불 제외</small></th><th class="gy">누락<small>내역서에 없는 곳</small></th></tr>';
  let zi=0;
  days.forEach(function(d){const r=D[d],w=new Date(d).getDay();
   const we=(w===0||w===6);if(!we)zi++;
   const cls=we?'we':(d===td?'td':(d>td?'fu':(zi%2?'':'zb')));
   h+='<tr class="'+cls+'"><td class="dt">'+(+d.slice(5,7))+'/'+(+d.slice(8))+' ('+'일월화수목금토'[w]+')'+(d===td?' 오늘':(d>td?' 예정':''))+'</td>'
-   +'<td class="bk n">'+msN(r.k.n)+'</td><td>'+msN(r.k.v,1)+'</td><td class="w">'+msMan(r.k.a)+'</td>'
-   +'<td class="bk n">'+msN(r.s.n)+'</td><td>'+msN(r.s.v,1)+'</td><td class="ws">'+msMan(r.s.a)+'</td>'
+   +'<td class="bk n">'+msN(r.k.n)+'</td><td>'+msLen(r.k.v)+'</td><td class="w">'+msMan(r.k.a)+'</td>'
+   +'<td class="bk n">'+msN(r.s.n)+'</td><td>'+msLen(r.s.v)+'</td><td class="ws">'+msMan(r.s.a)+'</td>'
    +'<td class="bk n'+(r.tr1>r.n1?' tr2':'')+'" title="'+r.n1+'대가 '+r.tr1+'회">'+msN(r.tr1)+'</td><td class="n'+(r.tr35>r.n35?' tr2':'')+'">'+msN(r.tr35)+'</td>'
    +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msWon(r.ycf)+'</td><td class="ck">'+msChk(r)+'</td></tr>'});
- h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+T.kv.toFixed(1)+'</td><td class="w">'+msMan(T.ka)+'</td>'
-  +'<td class="bk">'+T.sn+'</td><td>'+T.sv.toFixed(1)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
+ h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+msLen(T.kv)+'</td><td class="w">'+msMan(T.ka)+'</td>'
+  +'<td class="bk">'+T.sn+'</td><td>'+msLen(T.sv)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
   +'<td class="bk">'+T.tr1+'</td><td>'+T.tr35+'</td>'
-  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+(days.reduce(function(s,d){return s+D[d].miss.length},0)?'<b class="ckx">누락 '+days.reduce(function(s,d){return s+D[d].miss.length},0)+'</b>':'<b class="cko">✓</b>')+'</td></tr>';
- h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+av(A.kv)+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
-  +'<td class="bk">'+av(A.sn)+'</td><td>'+av(A.sv)+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
+  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+(days.reduce(function(s,d){return s+D[d].miss.length},0)?'<b class="ckx">누락 '+days.reduce(function(s,d){return s+D[d].miss.length},0)+'</b>':'')+'</td></tr>';
+ h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+(A.c?msLen(A.kv/A.c):'-')+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
+  +'<td class="bk">'+av(A.sn)+'</td><td>'+(A.c?msLen(A.sv/A.c):'-')+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
   +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td></td><td></td></tr>';
  h+='</table></div>';
- h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>부피 = 그날 물량을 우리 1톤 트럭(신부장님 적재 기준)에 꽉 채우면 몇 대가 나오는지</b> (10.9 = 1톤 트럭 약 11대분) · 매출은 만원 단위 · 삼정 부피에서 광일체어 앞 자재는 뺌<br>'
+ h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>짐 길이 = 그날 물량을 폭 2.3m 짐칸에 신부장님 적재 기준으로 깔면 몇 m 나오는지</b> (합바차 「3m」와 같은 뜻 · 1톤 트럭 한 대분 = 약 1.9m) · 매출은 만원 단위 · 삼정 짐에서 광일체어 앞 자재는 뺌<br>'
   +'<b>우리 차 운행</b> = 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 돈 차가 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
-  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). 운임은 우리가 내는 금액이라 착불은 뺌<br><b>검증</b> = 명세서에서 우리 동선에 안 잡힌 건 중 적요에 용차·상차·차종(다마스·라보·1톤·3m…) 표기가 있거나 원거리인 거래처가 용차내역서(앞뒤 2일)에 다 있는지 맞춰 봄 · <b>누락</b>에 마우스를 대면 빠진 거래처가 보임 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
+  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). 운임은 우리가 내는 금액이라 착불은 뺌<br><b>누락</b> = 명세서에서 우리 동선에 안 잡힌 건 중 적요에 용차·상차·차종(다마스·라보·1톤·3m…) 표기가 있거나 원거리인데, 용차내역서(앞뒤 2일)에 그 거래처가 없는 곳 수 · 마우스를 대면 거래처 이름이 보임 · 다 있으면 빈칸 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
  h+='</div>';
  return h}
 function msSjUp(f){if(!f)return;
@@ -4850,6 +4905,100 @@ function msSjUp(f){if(!f)return;
   ASGV['sja']=Date.now();save();render();
   toast('📄 삼정 매출 '+ds.length+'일치 반영 ('+ds[0].slice(5)+' ~ '+ds[ds.length-1].slice(5)+')');
  }catch(e){alert('읽기 오류: '+e.message)}})}
+/* ===== 운임지출결의서 (2026-10-21) =====
+   사무실 엑셀 「운임지출결의서」 시트 그대로 — A4 가로 한 장에 두 건(왼쪽·오른쪽).
+   용차내역서의 그날 용차(같은 차로 묶인 줄은 매출거래처에 합침)를 한 대에 한 장씩 채운다. 작성 = 강현아.
+   착불은 우리가 돈을 안 내므로 기본으로 빼 두되, 체크하면 넣을 수 있다.
+   기사님 성명·전화번호는 미리보기에서 바로 적으면 그 용차 줄에 저장돼 다시 뽑아도 남는다. */
+let UJD='';try{UJD=localStorage.getItem(KEY+'_ujd')||''}catch(e){}
+let UJX={};   /* 이번에 뺄 줄 {co|k:1} — 착불은 기본 뺌, UJI 로 다시 넣음 */
+let UJI={};
+const UJ_WRITER='강현아';
+function ujSetD(v){UJD=v;UJX={};UJI={};try{localStorage.setItem(KEY+'_ujd',v)}catch(e){}render()}
+function ujDates(){const s={};YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){if(y&&y.d)s[y.d]=1})});return Object.keys(s).sort().reverse()}
+function ujCoName(co){ctFix();const h=(CTS.hl||[]).filter(function(x){return x.co===co})[0];return (h&&h.n)||co}
+/* 그날 용차를 차 한 대씩 — 묶인 줄(link)은 바로 위 줄 차에 붙인다 */
+function ujList(d){const out=[];
+ YC_CO.forEach(function(c){
+  const rows=(YCB[c]||[]).map(function(y,k){return {y:y,k:k}}).filter(function(x){return x.y&&x.y.d===d});
+  let cur=null;
+  rows.forEach(function(x){
+   if(x.y.link&&cur){cur.names.push(x.y.n);if(x.y.reg&&cur.regs.indexOf(x.y.reg)<0)cur.regs.push(x.y.reg);return}
+   cur={co:c,k:x.k,y:x.y,names:[x.y.n],regs:x.y.reg?[x.y.reg]:[]};out.push(cur)})});
+ return out}
+function ujOn(e){const key=e.co+'|'+e.k;if(e.y.co==='착불')return !!UJI[key];return !UJX[key]}
+function ujTog(key,cb,isCb){if(isCb){if(cb)UJI[key]=1;else delete UJI[key]}else{if(cb)delete UJX[key];else UJX[key]=1}render()}
+/* 금액 한글 — 일금 이십삼만일천원정 */
+function ujKor(n){n=Math.round(+n||0);if(!n)return '';
+ const D='영일이삼사오육칠팔구',S=['','십','백','천'],B=['','만','억','조'];let s='',g=0;
+ while(n>0){const p=n%10000;n=Math.floor(n/10000);
+  if(p){let t='';const ds=String(p).split('').reverse();
+   for(let i=ds.length-1;i>=0;i--){const v=+ds[i];if(v)t+=D[v]+S[i]}
+   s=t+B[g]+s}
+  g++}
+ return s}
+function ujForm(e,last){
+ const y=e.y,sup=Math.round(+y.fee||0),tax=Math.round(sup*1.1)-sup,tot=sup+tax;
+ const dd=new Date(y.d+'T00:00:00');
+ const reg=e.regs.join('·')+(y.tnm?' · '+y.tnm:'');
+ const book=(y.co==='삼정'?'삼정부담':'광일부담');
+ const key=e.co+'|'+e.k;
+ return '<div class="ujf">'
+  +'<table class="ujh"><tr><td class="ujt" rowspan="3">운임지출결의서</td><td class="ujg" rowspan="4">결<br><br>재</td><td class="ujs">작성</td><td class="ujs">과장</td><td class="ujs">사장</td><td class="ujs">승인</td></tr>'
+  +'<tr><td class="ujsg" rowspan="3">'+UJ_WRITER+'</td><td class="ujsg" rowspan="3"></td><td class="ujsg" rowspan="3"></td><td class="ujsg" rowspan="3"></td></tr><tr></tr>'
+  +'<tr><td class="ujd">'+dd.getFullYear()+' 년 <b>'+(dd.getMonth()+1)+'</b> 월 <b>'+dd.getDate()+'</b> 일</td></tr></table>'
+  +'<div class="ujk"><span class="ujk1">일금 <b contenteditable="true">'+(tot?ujKor(tot)+'원정':'')+'</b></span><span class="ujk2">( ₩ <b contenteditable="true">'+(tot?won(tot):'')+'</b> )</span></div>'
+  +'<table class="ujm"><colgroup><col style="width:24mm"><col style="width:30mm"><col style="width:26mm"><col></colgroup>'
+  +'<tr class="hd"><td>내역</td><td>공급가액</td><td>세액</td><td>합계</td></tr>'
+  +'<tr class="am"><td>운임</td><td contenteditable="true">'+(sup?won(sup):'')+'</td><td contenteditable="true">'+(sup?won(tax):'')+'</td><td contenteditable="true">'+(sup?won(tot):'')+'</td></tr>'
+  +'<tr><td>물류업체</td><td colspan="3" contenteditable="true">'+esc(ujCoName(e.co))+'</td></tr>'
+  +'<tr class="tl"><td>기사님 성명<br>전화번호</td><td colspan="3" contenteditable="true" class="ujdv" data-k="'+esc(key)+'" onblur="ujDv(this)">'+esc(y.dv||'')+'</td></tr>'
+  +'<tr class="tl"><td>매출거래처</td><td colspan="3" contenteditable="true" class="ujnm">'+e.names.map(esc).join('<br>')+'</td></tr>'
+  +'<tr class="tl"><td>지역</td><td colspan="3" contenteditable="true">'+esc(reg)+'</td></tr>'
+  +'<tr><td>장부</td><td colspan="3" contenteditable="true" style="text-align:center">'+book+'</td></tr></table>'
+  +'<table class="ujb"><colgroup><col style="width:54mm"><col></colgroup>'
+  +'<tr><td>영 &nbsp;수 &nbsp;자</td><td contenteditable="true" style="text-align:right">(인)&nbsp;&nbsp;</td></tr>'
+  +'<tr><td>처 리 일 자</td><td contenteditable="true"></td></tr>'
+  +'<tr><td>'+(last?'계 정 과 목':'')+'</td><td contenteditable="true"></td></tr></table>'
+  +'<div class="ujc">㈜ 광일체어</div></div>'}
+function ujDv(el){const k=String(el.getAttribute('data-k')||'').split('|');if(k.length<2)return;
+ const co=k[0],i=+k[1],v=el.innerText.replace(/\s+/g,' ').trim();const a=YCB[co]&&YCB[co][i];if(!a||(a.dv||'')===v)return;
+ a.dv=v;ASGV['yb:'+co]=Date.now();save();toast('기사님 정보 저장')}
+function ujPages(L){let h='';
+ for(let i=0;i<L.length;i+=2){
+  h+='<div class="ujpage"><div class="ujhalf">'+ujForm(L[i],false)+'</div><div class="ujhalf">'+(L[i+1]?ujForm(L[i+1],true):'')+'</div></div>'}
+ return h}
+function tabUj(){
+ const ds=ujDates();if(!UJD||ds.indexOf(UJD)<0){const td=ycbToday();UJD=ds.filter(function(d){return d<=td})[0]||ds[0]||td}
+ const all=ujList(UJD),L=all.filter(ujOn);
+ let h='<div class="ycwrap">';
+ h+='<div class="hd2">🧾 운임지출결의서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">용차 한 대에 한 장 · A4 가로 한 장에 두 건 · 작성 '+UJ_WRITER+'</span></div>';
+ h+='<div class="ycnote">고른 날짜의 <b>용차내역서</b>를 한 대씩 결의서로 채웁니다. 같은 차로 묶인 줄은 <b>매출거래처</b>에 같이 적힙니다. <b>착불</b>은 우리가 운임을 안 내므로 기본으로 빠져 있습니다.<br>'
+  +'종이의 칸은 <b>눌러서 바로 고칠 수 있고</b>, 고친 그대로 인쇄됩니다. <b>기사님 성명·전화번호</b>는 적으면 저장돼 다음에 다시 뽑아도 남습니다.</div>';
+ h+='<div class="dcard" style="cursor:default">'
+  +'<div class="ycrow"><label style="white-space:nowrap">① 날짜</label><select onchange="ujSetD(this.value)">'
+  +ds.map(function(d){const n=ujList(d).length;return '<option value="'+d+'"'+(d===UJD?' selected':'')+'>'+md(d)+' ('+'일월화수목금토'[new Date(d+'T00:00:00').getDay()]+') · '+n+'대</option>'}).join('')+'</select>'
+  +'<button class="btn" style="margin-left:10px" onclick="ujPrint()"'+(L.length?'':' disabled')+'>🖨️ 인쇄 ('+L.length+'장 → A4 '+Math.ceil(L.length/2)+'장)</button></div>'
+  +'<div class="ujpick">'+(all.length?all.map(function(e){const key=e.co+'|'+e.k,cb=e.y.co==='착불',on=ujOn(e);
+    return '<label class="'+(on?'on':'')+'"><input type="checkbox"'+(on?' checked':'')+' onchange="ujTog(\''+esc(key)+'\',this.checked,'+(cb?1:0)+')"> '
+     +'<b style="color:'+(YC_COLOR[e.co]||'#555')+'">'+esc(e.co.replace('물류',''))+'</b> '+esc(e.names[0].slice(0,14))+(e.names.length>1?' 외 '+(e.names.length-1):'')
+     +' · '+esc(e.y.tnm||'')+' · '+(cb?'<i>착불</i>':won(+e.y.fee||0)+'원')+'</label>'}).join(''):'<span style="color:#8b9aab">그날 용차가 없습니다.</span>')+'</div></div>';
+ h+='<div class="ujprev" id="ujprev">'+(L.length?ujPages(L):'')+'</div></div>';
+ return h}
+function ujPrint(){
+ const src=document.getElementById('ujprev');if(!src||!src.querySelector('.ujpage'))return toast('뽑을 결의서가 없습니다');
+ let el=document.getElementById('ycbprt');
+ if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
+ el.innerHTML='<div class="ujprev ujprint">'+src.innerHTML+'</div>';
+ el.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable')});
+ const st=document.createElement('style');
+ st.textContent='@media print{@page{size:A4 landscape;margin:0}}';
+ document.head.appendChild(st);
+ document.body.classList.add('ycbprint');
+ const off=function(){document.body.classList.remove('ycbprint');if(st.parentNode)st.parentNode.removeChild(st);window.removeEventListener('afterprint',off)};
+ window.addEventListener('afterprint',off);
+ setTimeout(function(){window.print();setTimeout(off,400)},80);
+}
 function tabYcb(){
  ycbFix();
  /* 두 칸으로 나눈다 — 내역 담기(원래 화면)와 결재 올릴 종이 뽑기 (2026-09-17) */
