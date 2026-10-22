@@ -81,7 +81,7 @@ button,select,input{font-family:inherit}
 .mstb .bk{border-left:3px solid #6b7c90}
 .mstb td.tr2{color:#c0392b}
 .mstb td.yt{text-align:left;font-size:12.5px;color:#5b4a2a}.mstb td.yt b{color:#8a4f0e}
-.mstb td.ck{text-align:center}.mstb .cko{color:#1f8a4c}.mstb .ckx{color:#fff;background:#d64541;border-radius:6px;padding:1px 7px}.mstb small.cks{display:block;font-size:10px;color:#8b9aab;font-weight:600}
+.mstb td.ck{text-align:center}.mstb .cko{color:#1f8a4c}.mstb .ckx{color:#fff;background:#d64541;border-radius:6px;padding:1px 7px}.mstb .ckw{color:#fff;background:#e0a33a;border-radius:6px;padding:1px 7px}.mstb td.ck b{margin-left:4px;font-size:12px}.mstb small.cks{display:block;font-size:10px;color:#8b9aab;font-weight:600}
 .mstb small.cc{display:block;font-size:10px;font-weight:600;color:#a8621b}
 .hero{background:#fff;border-radius:16px;padding:15px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 10px rgba(22,50,79,.07);margin-bottom:10px}
 .ring{position:relative;width:88px;height:88px;flex:none}
@@ -1523,7 +1523,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261022g';
+const APPVER='20261022h';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4824,10 +4824,17 @@ function msCalc(mon){
  return D}
 /* 검증용 — 퀵·화물·택배는 용차가 아니므로 뺀다 */
 const MS_YC_RE=/용차|상차|장축|다마스|라보|\d(?:\.\d)?\s*톤|\d+(?:\.\d+)?\s*m(?![a-z])/i;   /* 우리 동선에 안 잡힌 건 중 이 표기가 있으면 용차로 본다 */
-function msChk(r){
- /* 2026-10-21 누락만 표시 — 다 맞으면 빈칸 */
- if(!r.miss||!r.miss.length)return '';
- return '<b class="ckx" title="'+esc('용차내역서에 없음: '+r.miss.join(', '))+'">누락 '+r.miss.length+'</b>'}
+/* 2026-10-22 검증 — 그날 짐 길이(광일+삼정)를 나간 차 짐칸(우리 1톤·3.5톤 운행 + 용차)과 맞대 본다.
+   모두 폭 2.3m 짐칸 기준 m. 1톤 1회 = 1.0대분(≈1.9m), 3.5톤 1회 = 2.15대분(≈4.2m), 용차 = 차종 적재량. */
+const MS_C1=1,MS_C35=(YC_TRUCK.filter(function(x){return x.t==='3.5'})[0]||{c:2.15}).c;
+function msFit(ld,t1,t35,ycv,sub){
+ const cap=t1*MS_C1+t35*MS_C35+ycv;ld=+ld||0;
+ if(ld<0.03&&cap<0.03)return '';
+ const L=ycLen(ld),C=ycLen(cap),df=C-L;
+ const tip='짐 '+L.toFixed(1)+'m (광일+삼정 명세서)\n차 '+C.toFixed(1)+'m = 1톤 '+(+t1.toFixed(1))+'회 '+ycLen(t1*MS_C1).toFixed(1)+'m + 3.5톤 '+(+t35.toFixed(1))+'회 '+ycLen(t35*MS_C35).toFixed(1)+'m + 용차 '+ycLen(ycv).toFixed(1)+'m'+(sub||'');
+ const b=df>=0?'<b class="cko">✓ 여유 '+df.toFixed(1)+'m</b>':(df>-2?'<b class="ckw">빠듯 '+(-df).toFixed(1)+'m</b>':'<b class="ckx">넘침 '+(-df).toFixed(1)+'m</b>');
+ return '<span title="'+esc(tip)+'">'+L.toFixed(1)+' / '+C.toFixed(1)+'m '+b+'</span>'}
+function msChk(r){return msFit(r.k.v+r.s.v,r.tr1,r.tr35,r.ycv,(r.miss&&r.miss.length)?'\n용차내역서에 없는 곳: '+r.miss.join(', '):'')}
 /* 용차 차종을 짧게 — 다마스·라보·1톤·1.4톤·2.5톤·3.5톤·5톤·11톤·합바 */
 const MS_TON=['다마스','라보','1톤','1.4톤','2.5톤','3.5톤','5톤','11톤','합바'];
 function msTon(tk){tk=String(tk||'');if(tk[0]==='m')return '합바';
@@ -4865,7 +4872,7 @@ function tabMs(){
   +'<tr><th class="gk bk">건수</th><th class="gk">짐 길이<small>폭 2.3m 짐칸</small></th><th class="gk">매출<small>만원</small></th>'
   +'<th class="gs bk">건수</th><th class="gs">짐 길이<small>폭 2.3m 짐칸</small></th><th class="gs">매출<small>만원</small></th>'
   +'<th class="gc bk">1톤<small>운행 (회)</small></th><th class="gc">3.5톤<small>운행 (회)</small></th>'
-  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">짐칸<small>m 환산</small></th><th class="gy">운임<small>원 · 착불 제외</small></th><th class="gy">누락<small>내역서에 없는 곳</small></th></tr>';
+  +'<th class="gy bk">차종<small>착불·선불 다 셈</small></th><th class="gy">대수</th><th class="gy">짐칸<small>m 환산</small></th><th class="gy">운임<small>원 · 착불 제외</small></th><th class="gy">검증<small>짐 길이 / 나간 차 짐칸</small></th></tr>';
  let zi=0;
  days.forEach(function(d){const r=D[d],w=new Date(d).getDay();
   const we=(w===0||w===6);if(!we)zi++;
@@ -4878,14 +4885,14 @@ function tabMs(){
  h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+msLen(T.kv)+'</td><td class="w">'+msMan(T.ka)+'</td>'
   +'<td class="bk">'+T.sn+'</td><td>'+msLen(T.sv)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
   +'<td class="bk">'+T.tr1+'</td><td>'+T.tr35+'</td>'
-  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+msLen(T.ycv)+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+(days.reduce(function(s,d){return s+D[d].miss.length},0)?'<b class="ckx">누락 '+days.reduce(function(s,d){return s+D[d].miss.length},0)+'</b>':'')+'</td></tr>';
+  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+msLen(T.ycv)+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+msFit(T.kv+T.sv,T.tr1,T.tr35,T.ycv)+'</td></tr>';
  h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+(A.c?msLen(A.kv/A.c):'-')+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
   +'<td class="bk">'+av(A.sn)+'</td><td>'+(A.c?msLen(A.sv/A.c):'-')+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
-  +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td>'+(A.c?msLen(A.ycv/A.c):'-')+'</td><td></td><td></td></tr>';
+  +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td>'+(A.c?msLen(A.ycv/A.c):'-')+'</td><td></td><td class="ck">'+(A.c?msFit((A.kv+A.sv)/A.c,A.tr1/A.c,A.tr35/A.c,A.ycv/A.c):'')+'</td></tr>';
  h+='</table></div>';
  h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>짐 길이 = 그날 물량을 폭 2.3m 짐칸에 신부장님 적재 기준으로 깔면 몇 m 나오는지</b> (합바차 「3m」와 같은 뜻 · 1톤 트럭 한 대분 = 약 1.9m) · 매출은 만원 단위 · 삼정 짐에서 광일체어 앞 자재는 뺌<br>'
   +'<b>우리 차 운행</b> = 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 돈 차가 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
-  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). <b>짐칸 m 환산</b> = 부른 차가 실을 수 있는 양을 짐 길이와 같은 잣대로 바꾼 것 (라보 0.9m · 1톤 1.9m · 1.4톤 2.6m · 2.5톤 3.4m · 3.5톤 4.2m · 5톤 6.2m · 합바 3m = 3m) — 명세서 짐 길이와 바로 비교. 운임은 우리가 내는 금액이라 착불은 뺌<br><b>누락</b> = 명세서에서 우리 동선에 안 잡힌 건 중 적요에 용차·상차·차종(다마스·라보·1톤·3m…) 표기가 있거나 원거리인데, 용차내역서(앞뒤 2일)에 그 거래처가 없는 곳 수 · 마우스를 대면 거래처 이름이 보임 · 다 있으면 빈칸 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
+  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). <b>짐칸 m 환산</b> = 부른 차가 실을 수 있는 양을 짐 길이와 같은 잣대로 바꾼 것 (라보 0.9m · 1톤 1.9m · 1.4톤 2.6m · 2.5톤 3.4m · 3.5톤 4.2m · 5톤 6.2m · 합바 3m = 3m) — 명세서 짐 길이와 바로 비교. 운임은 우리가 내는 금액이라 착불은 뺌<br><b>검증</b> = 그날 <b>짐 길이(광일+삼정)</b> / <b>나간 차 짐칸 합</b>(우리 1톤 1회 1.9m · 3.5톤 1회 4.2m · 용차 짐칸 m 환산) — 차가 짐보다 길면 <b style="color:#1f8a4c">✓ 여유</b>, 2m 안쪽으로 모자라면 <b style="color:#b7791f">빠듯</b>, 그보다 모자라면 <b style="color:#d64541">넘침</b> · 마우스를 대면 계산 내역 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
  h+='</div>';
  return h}
 function msSjUp(f){if(!f)return;
