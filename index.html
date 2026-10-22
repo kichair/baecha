@@ -81,7 +81,7 @@ button,select,input{font-family:inherit}
 .mstb .bk{border-left:3px solid #6b7c90}
 .mstb td.tr2{color:#c0392b}
 .mstb td.yt{text-align:left;font-size:12.5px;color:#5b4a2a}.mstb td.yt b{color:#8a4f0e}
-.mstb td.ck{text-align:center}.mstb .cko{color:#1f8a4c}.mstb .ckx{color:#fff;background:#d64541;border-radius:6px;padding:1px 7px}.mstb .ckw{color:#fff;background:#e0a33a;border-radius:6px;padding:1px 7px}.mstb td.ck b{margin-left:4px;font-size:12px}.mstb small.cks{display:block;font-size:10px;color:#8b9aab;font-weight:600}
+.mstb td.ck{text-align:center}.mstb .cko{color:#1f8a4c}.mstb .ckx{color:#fff;background:#d64541;border-radius:6px;padding:1px 7px}.mstb .ckf{color:#8b9aab;font-size:12px}.mstb .ckw{color:#fff;background:#e0a33a;border-radius:6px;padding:1px 7px}.mstb td.ck b{margin-left:4px;font-size:12px}.mstb small.cks{display:block;font-size:10px;color:#8b9aab;font-weight:600}
 .mstb small.cc{display:block;font-size:10px;font-weight:600;color:#a8621b}
 .hero{background:#fff;border-radius:16px;padding:15px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 10px rgba(22,50,79,.07);margin-bottom:10px}
 .ring{position:relative;width:88px;height:88px;flex:none}
@@ -1523,7 +1523,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261022h';
+const APPVER='20261022i';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4834,7 +4834,8 @@ function msFit(ld,t1,t35,ycv,sub){
  const tip='짐 '+L.toFixed(1)+'m (광일+삼정 명세서)\n차 '+C.toFixed(1)+'m = 1톤 '+(+t1.toFixed(1))+'회 '+ycLen(t1*MS_C1).toFixed(1)+'m + 3.5톤 '+(+t35.toFixed(1))+'회 '+ycLen(t35*MS_C35).toFixed(1)+'m + 용차 '+ycLen(ycv).toFixed(1)+'m'+(sub||'');
  const b=df>=0?'<b class="cko">✓ 여유 '+df.toFixed(1)+'m</b>':(df>-2?'<b class="ckw">빠듯 '+(-df).toFixed(1)+'m</b>':'<b class="ckx">넘침 '+(-df).toFixed(1)+'m</b>');
  return '<span title="'+esc(tip)+'">'+L.toFixed(1)+' / '+C.toFixed(1)+'m '+b+'</span>'}
-function msChk(r){return msFit(r.k.v+r.s.v,r.tr1,r.tr35,r.ycv,(r.miss&&r.miss.length)?'\n용차내역서에 없는 곳: '+r.miss.join(', '):'')}
+function msChk(r,fu){if(fu){const L=r.k.v+r.s.v;return L>=0.03?'<span class="ckf" title="오늘 이후는 차 배정 전이라 비교 안 함">짐 '+ycLen(L).toFixed(1)+'m · 배차 전</span>':''}
+ return msFit(r.k.v+r.s.v,r.tr1,r.tr35,r.ycv,(r.miss&&r.miss.length)?'\n용차내역서에 없는 곳: '+r.miss.join(', '):'')}
 /* 용차 차종을 짧게 — 다마스·라보·1톤·1.4톤·2.5톤·3.5톤·5톤·11톤·합바 */
 const MS_TON=['다마스','라보','1톤','1.4톤','2.5톤','3.5톤','5톤','11톤','합바'];
 function msTon(tk){tk=String(tk||'');if(tk[0]==='m')return '합바';
@@ -4856,9 +4857,11 @@ function tabMs(){
   +'<span style="font-size:11.5px;color:#8b9aab">이카운트 삼정 판매현황 엑셀 — 삼정 매출 칸이 채워집니다</span></div>';
  /* 합계 · 평균 — 평균은 오늘까지의 배송일(명세서 20건 이상)만 */
  const T={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,ycv:0,ycf:0,ycc:0,yt:{}},A={kn:0,kv:0,ka:0,sn:0,sv:0,sa:0,n1:0,tr1:0,tr35:0,yc:0,ycv:0,c:0};
+ const PV={v:0,t1:0,t35:0,yc:0};   /* 검증 합계는 오늘까지만 */
  days.forEach(function(d){const r=D[d];
   T.kn+=r.k.n;T.kv+=r.k.v;T.ka+=r.k.a;T.sn+=r.s.n;T.sv+=r.s.v;T.sa+=r.s.a;T.n1+=r.n1;T.tr1+=r.tr1;T.tr35+=r.tr35;T.yc+=r.yc;T.ycv+=r.ycv;T.ycf+=r.ycf;T.ycc+=r.ycc;
   Object.keys(r.yt).forEach(function(k){T.yt[k]=(T.yt[k]||0)+r.yt[k]});
+  if(d<=td){PV.v+=r.k.v+r.s.v;PV.t1+=r.tr1;PV.t35+=r.tr35;PV.yc+=r.ycv}
   if(d<=td&&r.k.n+r.s.n>=20){A.c++;A.kn+=r.k.n;A.kv+=r.k.v;A.ka+=r.k.a;A.sn+=r.s.n;A.sv+=r.s.v;A.sa+=r.s.a;A.n1+=r.n1;A.tr1+=r.tr1;A.tr35+=r.tr35;A.yc+=r.yc;A.ycv+=r.ycv}});
  const av=function(x,f){return A.c?(x/A.c).toFixed(f==null?1:f):'-'};
  h+='<div class="mscards">'
@@ -4881,18 +4884,18 @@ function tabMs(){
    +'<td class="bk n">'+msN(r.k.n)+'</td><td>'+msLen(r.k.v)+'</td><td class="w">'+msMan(r.k.a)+'</td>'
    +'<td class="bk n">'+msN(r.s.n)+'</td><td>'+msLen(r.s.v)+'</td><td class="ws">'+msMan(r.s.a)+'</td>'
    +'<td class="bk n'+(r.tr1>r.n1?' tr2':'')+'" title="'+r.n1+'대가 '+r.tr1+'회">'+msN(r.tr1)+'</td><td class="n'+(r.tr35>r.n35?' tr2':'')+'">'+msN(r.tr35)+'</td>'
-   +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msLen(r.ycv)+'</td><td>'+msWon(r.ycf)+'</td><td class="ck">'+msChk(r)+'</td></tr>'});
+   +'<td class="bk yt">'+msTonTxt(r.yt)+'</td><td class="n">'+msN(r.yc)+(r.ycc?'<small class="cc">착불 '+r.ycc+'</small>':'')+'</td><td>'+msLen(r.ycv)+'</td><td>'+msWon(r.ycf)+'</td><td class="ck">'+msChk(r,d>td)+'</td></tr>'});
  h+='<tr class="sum"><td class="dt">합계</td><td class="bk">'+T.kn+'</td><td>'+msLen(T.kv)+'</td><td class="w">'+msMan(T.ka)+'</td>'
   +'<td class="bk">'+T.sn+'</td><td>'+msLen(T.sv)+'</td><td class="ws">'+msMan(T.sa)+'</td>'
   +'<td class="bk">'+T.tr1+'</td><td>'+T.tr35+'</td>'
-  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+msLen(T.ycv)+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+msFit(T.kv+T.sv,T.tr1,T.tr35,T.ycv)+'</td></tr>';
+  +'<td class="bk yt">'+msTonTxt(T.yt)+'</td><td>'+T.yc+'</td><td>'+msLen(T.ycv)+'</td><td>'+won(T.ycf)+'</td><td class="ck">'+msFit(PV.v,PV.t1,PV.t35,PV.yc,'\n(오늘까지)')+(days.some(function(d){return d>td})?'<small class="cks">오늘까지</small>':'')+'</td></tr>';
  h+='<tr class="sum"><td class="dt">하루 평균</td><td class="bk">'+av(A.kn)+'</td><td>'+(A.c?msLen(A.kv/A.c):'-')+'</td><td class="w">'+(A.c?msMan(A.ka/A.c):'-')+'</td>'
   +'<td class="bk">'+av(A.sn)+'</td><td>'+(A.c?msLen(A.sv/A.c):'-')+'</td><td class="ws">'+(A.c&&A.sa?msMan(A.sa/A.c):'-')+'</td>'
   +'<td class="bk">'+av(A.tr1)+'</td><td>'+av(A.tr35)+'</td><td class="bk"></td><td>'+av(A.yc)+'</td><td>'+(A.c?msLen(A.ycv/A.c):'-')+'</td><td></td><td class="ck">'+(A.c?msFit((A.kv+A.sv)/A.c,A.tr1/A.c,A.tr35/A.c,A.ycv/A.c):'')+'</td></tr>';
  h+='</table></div>';
  h+='<div class="ycnote" style="margin-top:10px">건수 = 같은 날 같은 거래처 한 건 · <b>짐 길이 = 그날 물량을 폭 2.3m 짐칸에 신부장님 적재 기준으로 깔면 몇 m 나오는지</b> (합바차 「3m」와 같은 뜻 · 1톤 트럭 한 대분 = 약 1.9m) · 매출은 만원 단위 · 삼정 짐에서 광일체어 앞 자재는 뺌<br>'
   +'<b>우리 차 운행</b> = 나간 횟수 (2차로 한 번 더 돌면 2회 — 배차표의 회차 나누기 기준, 빨간 숫자 = 2차 돈 차가 있음) · 배진성(3.5톤 동선) = 3.5톤<br>'
-  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). <b>짐칸 m 환산</b> = 부른 차가 실을 수 있는 양을 짐 길이와 같은 잣대로 바꾼 것 (라보 0.9m · 1톤 1.9m · 1.4톤 2.6m · 2.5톤 3.4m · 3.5톤 4.2m · 5톤 6.2m · 합바 3m = 3m) — 명세서 짐 길이와 바로 비교. 운임은 우리가 내는 금액이라 착불은 뺌<br><b>검증</b> = 그날 <b>짐 길이(광일+삼정)</b> / <b>나간 차 짐칸 합</b>(우리 1톤 1회 1.9m · 3.5톤 1회 4.2m · 용차 짐칸 m 환산) — 차가 짐보다 길면 <b style="color:#1f8a4c">✓ 여유</b>, 2m 안쪽으로 모자라면 <b style="color:#b7791f">빠듯</b>, 그보다 모자라면 <b style="color:#d64541">넘침</b> · 마우스를 대면 계산 내역 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
+  +'<b>용차</b> = 용차내역서 기준. 착불이든 선불이든 차 한 대는 한 대로 셈(같은 차로 묶인 줄은 한 대). <b>짐칸 m 환산</b> = 부른 차가 실을 수 있는 양을 짐 길이와 같은 잣대로 바꾼 것 (라보 0.9m · 1톤 1.9m · 1.4톤 2.6m · 2.5톤 3.4m · 3.5톤 4.2m · 5톤 6.2m · 합바 3m = 3m) — 명세서 짐 길이와 바로 비교. 운임은 우리가 내는 금액이라 착불은 뺌<br><b>검증</b> = 그날 <b>짐 길이(광일+삼정)</b> / <b>나간 차 짐칸 합</b>(우리 1톤 1회 1.9m · 3.5톤 1회 4.2m · 용차 짐칸 m 환산) — 차가 짐보다 길면 <b style="color:#1f8a4c">✓ 여유</b>, 2m 안쪽으로 모자라면 <b style="color:#b7791f">빠듯</b>, 그보다 모자라면 <b style="color:#d64541">넘침</b> · 오늘 이후(예정)는 차 배정 전이라 짐 길이만 · 합계 줄 검증은 오늘까지 · 마우스를 대면 계산 내역 · 하루 평균은 오늘까지 명세서 20건 이상인 날만</div>';
  h+='</div>';
  return h}
 function msSjUp(f){if(!f)return;
