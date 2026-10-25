@@ -17,10 +17,11 @@ warnings.filterwarnings("ignore")
 
 # ===================== 업체 정보 (바뀔 때만 여기를 고치세요) =====================
 COMPANY = "주식회사 광일체어"
-ADDRESS = "인천광역시 서구 건지로109번길 21 (석남동)"
-BIZ_NO = ""                    # 사업자등록번호 (예: "123-45-67890")
-CEO = "오 상 효"
-ORDERER = "경기도 이천시 환경수자원국 수도과"   # 발주처(수신처) 기본값
+ADDRESS = "인천광역시 서구 건지로109번길 21(석남동)"
+BIZ_NO = "137-81-50515"        # 사업자등록번호
+CEO = "오상현"
+ORDERER = "서울지방조달청"            # 발주처 기본값
+SUBMIT_TO = "서울지방조달청 자재구매과"  # 납품계 맨 아래 수신처 기본값
 STAMP_FILE = "도장.png"        # 이 프로그램과 같은 폴더에 두면 (인) 위치에 자동으로 찍힙니다
 # ================================================================================
 
@@ -30,7 +31,8 @@ MIN_ROWS = 14                  # 납품내용 표의 기본 빈 줄 수
 
 HP = "{http://www.hancom.co.kr/hwpml/2011/paragraph}"
 H = lambda pt: int(round(pt * 100))
-BAT, MAL, GUL, TIT = "함초롬바탕", "맑은 고딕", "굴림", "HY헤드라인M"
+FONT = "굴림체"   # 글꼴을 바꾸려면 여기만 고치세요
+BAT = MAL = GUL = TIT = FONT
 
 
 # ----------------------------------------------------------------- 값 변환
@@ -51,7 +53,11 @@ def kr_date(d):
 
 
 def spaced_date(d):
-    return f"{d.year}년   {d.month} 월   {d.day} 일"
+    return f"{d.year}년 {d.month}월 {d.day}일"
+
+
+def dot_date(d):
+    return f"{d.year}.{d.month:02d}.{d.day:02d}"
 
 
 def hangul_amount(n):
@@ -135,11 +141,15 @@ def build(data, photos, out_path, progress=None):
     items = data["items"]
     total = sum(q * p for _, _, q, p in items)
     contract_amt = data.get("contract_amount") or total
-    deliver = parse_date(data["deliver_date"])
+    blank = bool(data.get("blank"))          # 빈 양식(내용 없이 틀만)
+    deliver = None if blank else parse_date(data["deliver_date"])
     contract_date = data.get("contract_date")
     due_date = data.get("due_date")
     orderer = data.get("orderer") or ORDERER
-    place = data.get("place") or orderer
+    submit_to = data.get("submit_to") or SUBMIT_TO
+    submit_date = parse_date(data["submit_date"]) if data.get("submit_date") else deliver
+    fmt = lambda f, x: f(x) if x else ""
+    place = data.get("place", "")
     title = data.get("contract_name", "")
 
     def run(font, size, bold=False):
@@ -208,25 +218,25 @@ def build(data, photos, out_path, progress=None):
                                          "vertAlign": "TOP", "horzOffset": H(x), "vertOffset": H(y)},
                           text_wrap="IN_FRONT_OF_TEXT")
 
-    # ======== 1. 납품계 ========
+    # ======== 1. 납품계 (위치·크기는 작성된 광일체어 원본 기준) ========
     s = Sec(0, 45, 68.7)
     s.text("납 품 계", 99.7, 26, TIT, True, "CENTER")
-    amt_txt = (f"금{won(contract_amt)}원(금{hangul_amount(contract_amt)}원/VAT포함)"
+    amt_txt = (f"{won(contract_amt)}원(금 {hangul_amount(contract_amt)}원정/VAT포함)"
                if contract_amt else "")
     for lab, val, top in [("○ 계 약 명 :", title, 197.4),
-                          ("○ 계약금액 :", amt_txt, 229.4),
-                          ("○ 계약일자 :", kr_date(parse_date(contract_date)) if contract_date else "", 261.5),
-                          ("○ 납품기한 :", kr_date(parse_date(due_date)) if due_date else "", 293.4),
-                          ("○ 납품일자 :", kr_date(deliver), 325.5)]:
-        s.text(f"{lab} {val}".rstrip(), top, 16, BAT)
-    s.text("상기와 같이 납품하였기에 납품계를 제출합니다.", 381.5, 15, BAT, align="CENTER")
-    s.text(spaced_date(deliver), 525.5, 15, BAT, align="CENTER")
-    for txt, top in [(f"업체명 : {COMPANY}", 597.5), (f"사업자번호 : {BIZ_NO}".rstrip(), 621.5),
-                     (f"주    소 : {ADDRESS}", 645.5)]:
-        s.text(txt, top, 15, BAT, indent=97.1)
-    p = s.text(f"대표이사 : {CEO}          (인)", 669.5, 15, BAT, indent=97.1)
-    stamp(p, 286, 660, 49)
-    s.text(f"{orderer} 귀하", 742.6, 20, TIT, True, "CENTER")
+                          ("○ 계약금액 :", amt_txt, 228.4),
+                          ("○ 계약일자 :", dot_date(parse_date(contract_date)) if contract_date else "", 259.5),
+                          ("○ 납품기한 :", dot_date(parse_date(due_date)) if due_date else "", 290.4),
+                          ("○ 납품일자 :", fmt(dot_date, deliver), 321.5)]:
+        s.text(f"{lab} {val}".rstrip(), top, 15, BAT)
+    s.text("상기와 같이 납품하였기에 납품계를 제출합니다.", 376.5, 15, BAT, align="CENTER")
+    s.text(fmt(spaced_date, submit_date) or "20    년      월      일", 520.5, 15, BAT, align="CENTER")
+    for txt, top in [(f"업체명 : {COMPANY}", 592.5), (f"사업자번호 : {BIZ_NO}".rstrip(), 616.5),
+                     (f"주    소 : {ADDRESS}", 640.5)]:
+        s.text(txt, top, 15, BAT, True, indent=97.1)
+    p = s.text(f"대표이사 : {CEO}               (인)", 664.5, 15, BAT, True, indent=97.1)
+    stamp(p, 367.4, 650.5, 48.4)
+    s.text(f"{submit_to} 귀하", 737.6, 20, TIT, True, "CENTER")
 
     # ======== 2. 납품확인서 ========
     d.add_section()
@@ -246,24 +256,26 @@ def build(data, photos, out_path, progress=None):
     for i, (name, model, qty, price) in enumerate(items):
         r = 1 + i
         if i == 0:
-            cell(t, r, 0, f"{deliver.month}월 {deliver.day}일", MAL, 10)
+            cell(t, r, 0, f"{deliver.month}/{deliver.day}" if deliver else "", MAL, 10)
         cell(t, r, 1, name, MAL, 10); cell(t, r, 2, model, MAL, 10)
-        cell(t, r, 3, str(qty), MAL, 10); cell(t, r, 4, won(price), MAL, 10, "RIGHT")
-        cell(t, r, 5, won(qty * price), MAL, 10, "RIGHT")
+        cell(t, r, 3, str(qty), MAL, 10); cell(t, r, 4, won(price), MAL, 10)
+        cell(t, r, 5, won(qty * price), MAL, 10)
     base = 1 + body
-    for r, lab, val in [(base, "계", won(total)), (base + 1, "부가세", "(포함)"), (base + 2, "합계", "0")]:
-        cell(t, r, 4, lab, MAL, 10); cell(t, r, 5, val, MAL, 10, "RIGHT")
+    for r, lab, val in [(base, "계", won(total) if items else ""), (base + 1, "부가세", "" if blank else "(포함)"), (base + 2, "합계", "")]:
+        cell(t, r, 4, lab, MAL, 10)
+        if val:
+            cell(t, r, 5, val, MAL, 10, "RIGHT")
         nb = S.ensure_border_fill(border_color="#000000", active_borders=[])
         for c in range(4):
             t.cell(r, c).element.set("borderFillIDRef", nb)
     finish(t, cw, rh)
-    y_after = 202.7 + sum(rh)
-    s.text(spaced_date(deliver), y_after + 11.7, 11, MAL, align="CENTER")
-    for txt, off in [(f"사업자등록번호      {BIZ_NO}".rstrip(), 51.2), (f"주          소      {ADDRESS}", 67.8),
-                     (f"상          호      {COMPANY}", 84.5)]:
-        s.text(txt, y_after + off, 11, MAL, indent=10.2)
-    p = s.text(f"대    표    자      {CEO}                    (인)", y_after + 100.9, 11, MAL, indent=10.2)
-    stamp(p, 269, y_after + 76.1, 50)
+    y_end = 202.7 + sum(rh)
+    s.text(fmt(spaced_date, submit_date) or "20    년      월      일", y_end + 33.6, 11, MAL, align="CENTER")
+    for txt, off in [(f"사업자등록번호      {BIZ_NO}".rstrip(), 73.1), (f"주          소      {ADDRESS}", 89.7),
+                     (f"상          호      {COMPANY}", 106.4)]:
+        s.text(txt, y_end + off, 11, MAL, indent=10.2)
+    p = s.text(f"대    표    자      {CEO}                  (인)", y_end + 122.8, 11, MAL, indent=10.2)
+    stamp(p, 282.9, y_end + 100.8, 49.8)
 
     # ======== 3. 사진대지 (사진 2장 = 1쪽) ========
     d.add_section()
@@ -282,14 +294,14 @@ def build(data, photos, out_path, progress=None):
         for r0 in (2, 5):
             t.merge_cells(r0, 1, r0, 3)
         for k, r0 in enumerate((1, 4)):
-            cell(t, r0, 0, "위치"); cell(t, r0, 1, place); cell(t, r0, 2, "날짜")
-            cell(t, r0, 3, f"{deliver.year}.{deliver.month:02d}.{deliver.day:02d}")
-            cell(t, r0 + 1, 0, "내용"); cell(t, r0 + 1, 1, title)
+            cell(t, r0, 0, "위치"); cell(t, r0, 1, place, align="LEFT"); cell(t, r0, 2, "날짜")
+            cell(t, r0, 3, fmt(dot_date, deliver))
+            cell(t, r0 + 1, 0, "내용"); cell(t, r0 + 1, 1, title, align="LEFT")
             idx = pg * 2 + k
             if idx < len(photos):
                 jpg, w, h = prepare_photo(photos[idx])
                 bid = d.add_image(jpg, "jpg")
-                box_w, box_h = 430.0, (255.0 if k == 0 else 258.0)
+                box_w, box_h = 442.0, (252.0 if k == 0 else 255.0)
                 sc = min(box_w / w, box_h / h)
                 pw, ph = w * sc, h * sc
                 photo_row = r0 - 1
@@ -354,19 +366,21 @@ def run_gui():
 
     root = tk.Tk()
     root.title("납품서류 만들기 - 납품계 · 납품확인서 · 사진대지")
-    root.geometry("760x820")
+    root.geometry("780x880")
     frm = ttk.Frame(root, padding=12)
     frm.pack(fill="both", expand=True)
     frm.columnconfigure(1, weight=1)
 
     today = date.today().strftime("%Y-%m-%d")
     fields = [("contract_name", "계약명 (사진대지 '내용'에도 들어감)", last.get("contract_name", "")),
-              ("orderer", "발주처 (수신처)", last.get("orderer", ORDERER)),
-              ("place", "사진대지 '위치' (비우면 발주처)", last.get("place", "")),
+              ("submit_to", "납품계 수신처 (맨 아래 '○○ 귀하')", last.get("submit_to", SUBMIT_TO)),
+              ("orderer", "납품확인서 발주처", last.get("orderer", ORDERER)),
+              ("place", "사진대지 '위치' (수요기관·부서)", last.get("place", "경기도 이천시 ")),
               ("contract_amount", "계약금액 숫자 (비우면 품목 합계)", ""),
               ("contract_date", "계약일자  예) 2026-09-29", last.get("contract_date", "")),
-              ("due_date", "납품기한  예) 2026-10-29", last.get("due_date", "")),
-              ("deliver_date", "납품일자  예) 2026-10-06", today)]
+              ("due_date", "납품기한  예) 2026-11-14", last.get("due_date", "")),
+              ("deliver_date", "납품일자  예) 2026-10-15", today),
+              ("submit_date", "제출일자 (납품계·확인서 날짜, 비우면 납품일자)", today)]
     vars_ = {}
     for r, (key, label, init) in enumerate(fields):
         ttk.Label(frm, text=label).grid(row=r, column=0, sticky="w", pady=3)
@@ -378,7 +392,7 @@ def run_gui():
     ttk.Label(frm, text="품목 (한 줄에 하나)\n품명, 모델명, 수량, 단가", justify="left").grid(row=r, column=0, sticky="nw", pady=(10, 3))
     items_box = tk.Text(frm, height=8, width=60)
     items_box.grid(row=r, column=1, sticky="ew", pady=(10, 3), padx=(8, 0))
-    items_box.insert("1.0", last.get("items_text", "사무실칸막이, 65B8012, 61, 203000\n"))
+    items_box.insert("1.0", last.get("items_text", "캐비닛, SJAC0083D, 22, 225500\n"))
 
     r += 1
     ttk.Label(frm, text="사진 (위→아래 순서대로 들어감)").grid(row=r, column=0, sticky="nw", pady=(10, 3))
@@ -455,6 +469,7 @@ def run_gui():
             build(data, paths, out, progress=lambda m: (status.set(m), root.update()))
             SETTINGS.write_text(json.dumps({
                 "contract_name": data["contract_name"], "orderer": data["orderer"], "place": data["place"],
+                "submit_to": data["submit_to"],
                 "contract_date": data["contract_date"], "due_date": data["due_date"],
                 "items_text": items_box.get("1.0", "end").strip(), "pdf_auto": pdf_var.get(), "open_after": open_var.get()}, ensure_ascii=False), encoding="utf-8")
             msg = f"저장했습니다.\n{out}"
