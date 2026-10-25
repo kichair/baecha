@@ -151,6 +151,7 @@ def build(data, photos, out_path, progress=None):
     fmt = lambda f, x: f(x) if x else ""
     place = data.get("place", "")
     title = data.get("contract_name", "")
+    photo_content = data.get("photo_content") or title   # 비우면 계약명과 동일
 
     def run(font, size, bold=False):
         return S.ensure_run(font=font, size=size, bold=bold)
@@ -296,7 +297,7 @@ def build(data, photos, out_path, progress=None):
         for k, r0 in enumerate((1, 4)):
             cell(t, r0, 0, "위치"); cell(t, r0, 1, place, align="LEFT"); cell(t, r0, 2, "날짜")
             cell(t, r0, 3, fmt(dot_date, deliver))
-            cell(t, r0 + 1, 0, "내용"); cell(t, r0 + 1, 1, title, align="LEFT")
+            cell(t, r0 + 1, 0, "내용"); cell(t, r0 + 1, 1, photo_content, align="LEFT")
             idx = pg * 2 + k
             if idx < len(photos):
                 jpg, w, h = prepare_photo(photos[idx])
@@ -437,10 +438,11 @@ def run_gui():
     c1 = card("계약 정보", "비워도 되는 칸은 비워 두세요")
     for i in range(2):
         c1.columnconfigure(i, weight=1, uniform="c")
-    entry(c1, "contract_name", "계약명  (사진대지 '내용'에도 들어갑니다)", last.get("contract_name", ""), 0, 0, 2)
+    entry(c1, "contract_name", "계약명", last.get("contract_name", ""), 0, 0, 2)
     entry(c1, "submit_to", "납품계 수신처  (맨 아래 '○○ 귀하')", last.get("submit_to", SUBMIT_TO), 1, 0)
     entry(c1, "orderer", "납품확인서 발주처", last.get("orderer", ORDERER), 1, 1)
-    entry(c1, "place", "사진대지 '위치'  (수요기관·부서)", last.get("place", "경기도 이천시 "), 2, 0, 2)
+    entry(c1, "place", "사진대지 '위치'  (수요기관·부서)", last.get("place", "경기도 이천시 "), 2, 0)
+    entry(c1, "photo_content", "사진대지 '내용'  (비우면 계약명과 같게)", last.get("photo_content", ""), 2, 1)
     entry(c1, "contract_date", "계약일자   예) 2026-09-29", last.get("contract_date", ""), 3, 0)
     entry(c1, "due_date", "납품기한   예) 2026-11-14", last.get("due_date", ""), 3, 1)
     entry(c1, "deliver_date", "납품일자   예) 2026-10-15", today, 4, 0)
@@ -578,7 +580,7 @@ def run_gui():
             build(data, paths, out, progress=lambda m: (status.set(m), root.update()))
             SETTINGS.write_text(json.dumps({
                 "contract_name": data["contract_name"], "orderer": data["orderer"], "place": data["place"],
-                "submit_to": data["submit_to"],
+                "submit_to": data["submit_to"], "photo_content": data["photo_content"],
                 "contract_date": data["contract_date"], "due_date": data["due_date"],
                 "items_text": items_box.get("1.0", "end").strip(),
                 "pdf_auto": pdf_var.get(), "open_after": open_var.get()}, ensure_ascii=False), encoding="utf-8")
