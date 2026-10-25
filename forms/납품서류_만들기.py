@@ -432,7 +432,8 @@ def run_gui():
     refresh()
 
     status = tk.StringVar()
-    pdf_var = tk.BooleanVar(value=last.get("pdf", True))
+    pdf_var = tk.BooleanVar(value=last.get("pdf_auto", False))
+    open_var = tk.BooleanVar(value=last.get("open_after", True))
 
     def make():
         try:
@@ -455,7 +456,7 @@ def run_gui():
             SETTINGS.write_text(json.dumps({
                 "contract_name": data["contract_name"], "orderer": data["orderer"], "place": data["place"],
                 "contract_date": data["contract_date"], "due_date": data["due_date"],
-                "items_text": items_box.get("1.0", "end").strip(), "pdf": pdf_var.get()}, ensure_ascii=False), encoding="utf-8")
+                "items_text": items_box.get("1.0", "end").strip(), "pdf_auto": pdf_var.get(), "open_after": open_var.get()}, ensure_ascii=False), encoding="utf-8")
             msg = f"저장했습니다.\n{out}"
             if pdf_var.get():
                 status.set("PDF 변환 중…")
@@ -464,22 +465,23 @@ def run_gui():
                 if hwpx_to_pdf(out, pdf):
                     msg += f"\n\nPDF도 저장했습니다.\n{pdf}"
                 else:
-                    msg += ("\n\nPDF 자동 변환은 되지 않았습니다.\n한글에서 방금 만든 파일을 열고 "
-                            "[파일 → PDF로 저장하기]를 눌러 주세요.")
-                    try:
-                        os.startfile(out)
-                    except Exception:
-                        pass
-            else:
-                msg += "\n\n한글에서 열어 확인한 뒤 필요하면 .hwp 또는 PDF로 저장하세요."
+                    msg += "\n\nPDF 자동 변환은 되지 않았습니다. 한글에서 열어 [파일 → PDF로 저장하기]를 눌러 주세요."
+            msg += "\n\n한글에서 내용을 고친 뒤 [파일 → PDF로 저장하기]로 PDF를 만드세요."
+            if open_var.get():
+                try:
+                    os.startfile(out)
+                except Exception:
+                    pass
             status.set(f"완료: {out}")
             messagebox.showinfo("완료", msg)
         except Exception as e:
             status.set("")
             messagebox.showerror("확인해 주세요", str(e))
 
-    ttk.Checkbutton(frm, text="PDF도 같이 저장 (한글 프로그램이 설치된 PC)", variable=pdf_var).grid(
-        row=r + 2, column=0, columnspan=2, pady=(10, 0))
+    ttk.Checkbutton(frm, text="만든 뒤 한글에서 바로 열기 (고친 다음 PDF로 저장)", variable=open_var).grid(
+        row=r + 2, column=0, columnspan=2, sticky="w", pady=(10, 0))
+    ttk.Checkbutton(frm, text="수정 없이 PDF도 같이 자동 저장 (선택사항)", variable=pdf_var).grid(
+        row=r + 2, column=1, sticky="e", pady=(10, 0))
     ttk.Button(frm, text="서류 만들기", command=make).grid(row=r + 3, column=0, columnspan=2, pady=10, ipadx=30, ipady=6)
     ttk.Label(frm, textvariable=status, foreground="#0a5").grid(row=r + 4, column=0, columnspan=2)
     root.mainloop()
