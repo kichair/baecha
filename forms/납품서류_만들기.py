@@ -356,7 +356,14 @@ def hwpx_to_pdf(src, dst):
 # ----------------------------------------------------------------- 화면(GUI)
 def run_gui():
     import tkinter as tk
-    from tkinter import filedialog, messagebox, ttk
+    from tkinter import filedialog, messagebox
+
+    # ---------- 색상/글꼴 ----------
+    BG, CARD, NAVY, BLUE, BLUE_D = "#eef1f6", "#ffffff", "#17304f", "#2f6fed", "#2459c7"
+    TXT, SUB, LINE, OK = "#1c2430", "#6b7686", "#d5dbe6", "#0f9d58"
+    FF = "맑은 고딕"
+    f_norm, f_small = (FF, 10), (FF, 9)
+    f_bold, f_title, f_big = (FF, 10, "bold"), (FF, 17, "bold"), (FF, 12, "bold")
 
     last = {}
     try:
@@ -365,49 +372,136 @@ def run_gui():
         pass
 
     root = tk.Tk()
-    root.title("납품서류 만들기 - 납품계 · 납품확인서 · 사진대지")
-    root.geometry("780x880")
-    frm = ttk.Frame(root, padding=12)
-    frm.pack(fill="both", expand=True)
-    frm.columnconfigure(1, weight=1)
+    root.title("납품서류 만들기")
+    root.geometry("880x780")
+    root.minsize(760, 560)
+    root.configure(bg=BG)
+
+    # ---------- 상단 배너 ----------
+    head = tk.Frame(root, bg=NAVY)
+    head.pack(fill="x")
+    tk.Label(head, text="납품서류 만들기", bg=NAVY, fg="white", font=f_title).pack(anchor="w", padx=24, pady=(14, 0))
+    tk.Label(head, text=f"{COMPANY}  ·  납품계 + 납품확인서 + 사진대지를 한 번에", bg=NAVY, fg="#a9b8d0",
+             font=f_small).pack(anchor="w", padx=24, pady=(0, 14))
+
+    # ---------- 하단 고정 영역 (옵션 + 만들기 버튼) ----------
+    foot = tk.Frame(root, bg=CARD, highlightbackground=LINE, highlightthickness=1)
+    foot.pack(side="bottom", fill="x")
+
+    # ---------- 스크롤 가능한 본문 ----------
+    wrap = tk.Frame(root, bg=BG)
+    wrap.pack(fill="both", expand=True)
+    canvas = tk.Canvas(wrap, bg=BG, highlightthickness=0)
+    sb = tk.Scrollbar(wrap, orient="vertical", command=canvas.yview)
+    canvas.configure(yscrollcommand=sb.set)
+    sb.pack(side="right", fill="y")
+    canvas.pack(side="left", fill="both", expand=True)
+    body = tk.Frame(canvas, bg=BG)
+    win = canvas.create_window((0, 0), window=body, anchor="nw")
+    body.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.bind("<Configure>", lambda e: canvas.itemconfig(win, width=e.width))
+    canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-e.delta / 120), "units")
+                    if not isinstance(root.focus_get(), (tk.Text, tk.Listbox)) else None)
+
+    def card(title, hint=""):
+        outer = tk.Frame(body, bg=BG)
+        outer.pack(fill="x", padx=20, pady=(14, 0))
+        box = tk.Frame(outer, bg=CARD, highlightbackground=LINE, highlightthickness=1)
+        box.pack(fill="x")
+        top = tk.Frame(box, bg=CARD)
+        top.pack(fill="x", padx=18, pady=(14, 6))
+        tk.Frame(top, bg=BLUE, width=4, height=18).pack(side="left")
+        tk.Label(top, text=title, bg=CARD, fg=TXT, font=f_big).pack(side="left", padx=(8, 0))
+        if hint:
+            tk.Label(top, text=hint, bg=CARD, fg=SUB, font=f_small).pack(side="left", padx=(10, 0))
+        inner = tk.Frame(box, bg=CARD)
+        inner.pack(fill="x", padx=18, pady=(0, 16))
+        return inner
+
+    vars_ = {}
+
+    def entry(parent, key, label, init, row, col, span=1):
+        cell = tk.Frame(parent, bg=CARD)
+        cell.grid(row=row, column=col, columnspan=span, sticky="ew", padx=(0, 14), pady=(4, 6))
+        tk.Label(cell, text=label, bg=CARD, fg=SUB, font=f_small).pack(anchor="w")
+        v = tk.StringVar(value=init)
+        e = tk.Entry(cell, textvariable=v, font=f_norm, relief="flat", bg="#f7f9fc", fg=TXT,
+                     highlightthickness=1, highlightbackground=LINE, highlightcolor=BLUE, insertbackground=TXT)
+        e.pack(fill="x", ipady=5, pady=(2, 0))
+        vars_[key] = v
+        return e
 
     today = date.today().strftime("%Y-%m-%d")
-    fields = [("contract_name", "계약명 (사진대지 '내용'에도 들어감)", last.get("contract_name", "")),
-              ("submit_to", "납품계 수신처 (맨 아래 '○○ 귀하')", last.get("submit_to", SUBMIT_TO)),
-              ("orderer", "납품확인서 발주처", last.get("orderer", ORDERER)),
-              ("place", "사진대지 '위치' (수요기관·부서)", last.get("place", "경기도 이천시 ")),
-              ("contract_amount", "계약금액 숫자 (비우면 품목 합계)", ""),
-              ("contract_date", "계약일자  예) 2026-09-29", last.get("contract_date", "")),
-              ("due_date", "납품기한  예) 2026-11-14", last.get("due_date", "")),
-              ("deliver_date", "납품일자  예) 2026-10-15", today),
-              ("submit_date", "제출일자 (납품계·확인서 날짜, 비우면 납품일자)", today)]
-    vars_ = {}
-    for r, (key, label, init) in enumerate(fields):
-        ttk.Label(frm, text=label).grid(row=r, column=0, sticky="w", pady=3)
-        v = tk.StringVar(value=init)
-        ttk.Entry(frm, textvariable=v).grid(row=r, column=1, sticky="ew", pady=3, padx=(8, 0))
-        vars_[key] = v
 
-    r = len(fields)
-    ttk.Label(frm, text="품목 (한 줄에 하나)\n품명, 모델명, 수량, 단가", justify="left").grid(row=r, column=0, sticky="nw", pady=(10, 3))
-    items_box = tk.Text(frm, height=8, width=60)
-    items_box.grid(row=r, column=1, sticky="ew", pady=(10, 3), padx=(8, 0))
+    # ---------- 1. 계약 정보 ----------
+    c1 = card("계약 정보", "비워도 되는 칸은 비워 두세요")
+    for i in range(2):
+        c1.columnconfigure(i, weight=1, uniform="c")
+    entry(c1, "contract_name", "계약명  (사진대지 '내용'에도 들어갑니다)", last.get("contract_name", ""), 0, 0, 2)
+    entry(c1, "submit_to", "납품계 수신처  (맨 아래 '○○ 귀하')", last.get("submit_to", SUBMIT_TO), 1, 0)
+    entry(c1, "orderer", "납품확인서 발주처", last.get("orderer", ORDERER), 1, 1)
+    entry(c1, "place", "사진대지 '위치'  (수요기관·부서)", last.get("place", "경기도 이천시 "), 2, 0, 2)
+    entry(c1, "contract_date", "계약일자   예) 2026-09-29", last.get("contract_date", ""), 3, 0)
+    entry(c1, "due_date", "납품기한   예) 2026-11-14", last.get("due_date", ""), 3, 1)
+    entry(c1, "deliver_date", "납품일자   예) 2026-10-15", today, 4, 0)
+    entry(c1, "submit_date", "제출일자  (납품계·확인서 날짜)", today, 4, 1)
+    entry(c1, "contract_amount", "계약금액 숫자  (비우면 품목 합계로 자동 계산)", "", 5, 0, 2)
+
+    # ---------- 2. 품목 ----------
+    c2 = card("품목", "한 줄에 하나   품명, 모델명, 수량, 단가")
+    items_box = tk.Text(c2, height=6, font=f_norm, relief="flat", bg="#f7f9fc", fg=TXT, wrap="none",
+                        highlightthickness=1, highlightbackground=LINE, highlightcolor=BLUE, insertbackground=TXT)
+    items_box.pack(fill="x", pady=(2, 0))
     items_box.insert("1.0", last.get("items_text", "캐비닛, SJAC0083D, 22, 225500\n"))
+    tk.Label(c2, text="공급가액·계·계약금액(한글 금액 포함)은 자동으로 계산됩니다.", bg=CARD, fg=SUB,
+             font=f_small).pack(anchor="w", pady=(6, 0))
 
-    r += 1
-    ttk.Label(frm, text="사진 (위→아래 순서대로 들어감)").grid(row=r, column=0, sticky="nw", pady=(10, 3))
-    pf = ttk.Frame(frm)
-    pf.grid(row=r, column=1, sticky="nsew", pady=(10, 3), padx=(8, 0))
-    pf.columnconfigure(0, weight=1)
-    lb = tk.Listbox(pf, height=10, selectmode="extended")
-    lb.grid(row=0, column=0, rowspan=6, sticky="nsew")
+    # ---------- 3. 사진 ----------
+    c3 = card("사진", "위에서 아래 순서대로 사진대지에 들어갑니다 (2장 = 1쪽)")
     paths = []
+    count_var = tk.StringVar()
+    by_var = tk.StringVar(value="name")
+
+    left = tk.Frame(c3, bg=CARD)
+    left.pack(side="left", fill="both", expand=True)
+    lbf = tk.Frame(left, bg=CARD, highlightbackground=LINE, highlightthickness=1)
+    lbf.pack(fill="both", expand=True)
+    lb = tk.Listbox(lbf, height=9, selectmode="extended", font=f_norm, relief="flat", activestyle="none",
+                    selectbackground="#dbe7ff", selectforeground=TXT, bg="#f7f9fc", highlightthickness=0)
+    lsb = tk.Scrollbar(lbf, command=lb.yview)
+    lb.configure(yscrollcommand=lsb.set)
+    lsb.pack(side="right", fill="y")
+    lb.pack(side="left", fill="both", expand=True)
+    tk.Label(left, textvariable=count_var, bg=CARD, fg=BLUE, font=f_bold).pack(anchor="w", pady=(6, 0))
+
+    right = tk.Frame(c3, bg=CARD)
+    right.pack(side="left", fill="y", padx=(14, 0))
+    prev = tk.Label(right, bg="#f0f3f8", width=24, height=8, text="미리보기", fg=SUB, font=f_small,
+                    highlightbackground=LINE, highlightthickness=1)
+    prev.pack(pady=(0, 8))
+    prev_img = {"im": None}
+
+    def show_preview(_=None):
+        sel = lb.curselection()
+        if not sel:
+            return
+        try:
+            from PIL import Image, ImageOps, ImageTk
+            im = ImageOps.exif_transpose(Image.open(paths[sel[0]]))
+            im.thumbnail((190, 130))
+            prev_img["im"] = ImageTk.PhotoImage(im)
+            prev.configure(image=prev_img["im"], text="", width=190, height=130)
+        except Exception:
+            prev.configure(image="", text="미리보기 없음")
+
+    lb.bind("<<ListboxSelect>>", show_preview)
 
     def refresh():
         lb.delete(0, "end")
         for i, p in enumerate(paths, 1):
-            lb.insert("end", f"{i:>2}. {Path(p).name}")
-        count_var.set(f"사진 {len(paths)}장 → 사진대지 {max(1, (len(paths) + 1) // 2)}쪽")
+            lb.insert("end", f"  {i:>2}.  {Path(p).name}")
+        n = len(paths)
+        count_var.set(f"사진 {n}장  →  사진대지 {max(1, (n + 1) // 2)}쪽" if n else "사진을 추가해 주세요")
 
     def add_photos():
         sel = filedialog.askopenfilenames(title="사진 선택 (여러 장 한 번에)",
@@ -426,28 +520,43 @@ def run_gui():
                 paths[i], paths[j] = paths[j], paths[i]
         refresh()
         for i in idxs:
-            j = min(max(i + delta, 0), len(paths) - 1)
-            lb.selection_set(j)
+            lb.selection_set(min(max(i + delta, 0), len(paths) - 1))
 
     def remove():
         for i in reversed(lb.curselection()):
             del paths[i]
         refresh()
 
-    by_var = tk.StringVar(value="name")
-    ttk.Button(pf, text="사진 추가…", command=add_photos).grid(row=0, column=1, padx=6, sticky="ew")
-    ttk.Button(pf, text="▲ 위로", command=lambda: move(-1)).grid(row=1, column=1, padx=6, sticky="ew")
-    ttk.Button(pf, text="▼ 아래로", command=lambda: move(1)).grid(row=2, column=1, padx=6, sticky="ew")
-    ttk.Button(pf, text="선택 삭제", command=remove).grid(row=3, column=1, padx=6, sticky="ew")
-    ttk.Radiobutton(pf, text="파일명순", variable=by_var, value="name").grid(row=4, column=1, sticky="w", padx=6)
-    ttk.Radiobutton(pf, text="촬영(수정)시간순", variable=by_var, value="time").grid(row=5, column=1, sticky="w", padx=6)
-    count_var = tk.StringVar()
-    ttk.Label(frm, textvariable=count_var).grid(row=r + 1, column=1, sticky="w", padx=8)
-    refresh()
+    def btn(parent, text, cmd, primary=False):
+        return tk.Button(parent, text=text, command=cmd, font=f_norm, relief="flat", cursor="hand2",
+                         bg=BLUE if primary else "#e8edf5", fg="white" if primary else TXT,
+                         activebackground=BLUE_D if primary else "#d8e0ee",
+                         activeforeground="white" if primary else TXT, padx=10, pady=5)
 
+    btn(right, "＋  사진 추가", add_photos, True).pack(fill="x")
+    row = tk.Frame(right, bg=CARD)
+    row.pack(fill="x", pady=(6, 0))
+    btn(row, "▲ 위로", lambda: move(-1)).pack(side="left", expand=True, fill="x", padx=(0, 3))
+    btn(row, "▼ 아래로", lambda: move(1)).pack(side="left", expand=True, fill="x", padx=(3, 0))
+    btn(right, "선택 삭제", remove).pack(fill="x", pady=(6, 0))
+    tk.Label(right, text="추가할 때 정렬", bg=CARD, fg=SUB, font=f_small).pack(anchor="w", pady=(10, 0))
+    for txt, val in [("파일명순", "name"), ("촬영(수정)시간순", "time")]:
+        tk.Radiobutton(right, text=txt, variable=by_var, value=val, bg=CARD, font=f_small, anchor="w",
+                       activebackground=CARD, selectcolor=CARD).pack(fill="x")
+    refresh()
+    tk.Frame(body, bg=BG, height=16).pack()
+
+    # ---------- 하단: 옵션 + 버튼 ----------
     status = tk.StringVar()
     pdf_var = tk.BooleanVar(value=last.get("pdf_auto", False))
     open_var = tk.BooleanVar(value=last.get("open_after", True))
+    opts = tk.Frame(foot, bg=CARD)
+    opts.pack(side="left", padx=18, pady=10)
+    tk.Checkbutton(opts, text="만든 뒤 한글에서 바로 열기  (고친 다음 PDF로 저장)", variable=open_var, bg=CARD,
+                   font=f_small, activebackground=CARD).pack(anchor="w")
+    tk.Checkbutton(opts, text="수정 없이 PDF도 같이 자동 저장  (선택)", variable=pdf_var, bg=CARD,
+                   font=f_small, activebackground=CARD).pack(anchor="w")
+    tk.Label(opts, textvariable=status, bg=CARD, fg=OK, font=f_small).pack(anchor="w")
 
     def make():
         try:
@@ -464,14 +573,15 @@ def run_gui():
                 filetypes=[("한글 문서(hwpx)", "*.hwpx")])
             if not out:
                 return
-            status.set("만드는 중… 잠시만 기다려 주세요")
+            status.set("만드는 중…  잠시만 기다려 주세요")
             root.update()
             build(data, paths, out, progress=lambda m: (status.set(m), root.update()))
             SETTINGS.write_text(json.dumps({
                 "contract_name": data["contract_name"], "orderer": data["orderer"], "place": data["place"],
                 "submit_to": data["submit_to"],
                 "contract_date": data["contract_date"], "due_date": data["due_date"],
-                "items_text": items_box.get("1.0", "end").strip(), "pdf_auto": pdf_var.get(), "open_after": open_var.get()}, ensure_ascii=False), encoding="utf-8")
+                "items_text": items_box.get("1.0", "end").strip(),
+                "pdf_auto": pdf_var.get(), "open_after": open_var.get()}, ensure_ascii=False), encoding="utf-8")
             msg = f"저장했습니다.\n{out}"
             if pdf_var.get():
                 status.set("PDF 변환 중…")
@@ -493,12 +603,10 @@ def run_gui():
             status.set("")
             messagebox.showerror("확인해 주세요", str(e))
 
-    ttk.Checkbutton(frm, text="만든 뒤 한글에서 바로 열기 (고친 다음 PDF로 저장)", variable=open_var).grid(
-        row=r + 2, column=0, columnspan=2, sticky="w", pady=(10, 0))
-    ttk.Checkbutton(frm, text="수정 없이 PDF도 같이 자동 저장 (선택사항)", variable=pdf_var).grid(
-        row=r + 2, column=1, sticky="e", pady=(10, 0))
-    ttk.Button(frm, text="서류 만들기", command=make).grid(row=r + 3, column=0, columnspan=2, pady=10, ipadx=30, ipady=6)
-    ttk.Label(frm, textvariable=status, foreground="#0a5").grid(row=r + 4, column=0, columnspan=2)
+    go = tk.Button(foot, text="서류 만들기", command=make, font=(FF, 13, "bold"), bg=BLUE, fg="white",
+                   activebackground=BLUE_D, activeforeground="white", relief="flat", cursor="hand2",
+                   padx=34, pady=10)
+    go.pack(side="right", padx=18, pady=12)
     root.mainloop()
 
 
