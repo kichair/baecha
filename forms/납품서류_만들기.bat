@@ -17,9 +17,12 @@ if errorlevel 1 (
   %PY% -m pip install python-hwpx pillow pywin32
 )
 
-echo Starting... a window will open.
-%PY% "%~dp0납품서류_만들기.py"
-if errorlevel 1 goto failed
+echo Starting... this black window will close by itself.
+if "%PY%"=="py -3" (
+  start "" pyw -3 "%~dp0납품서류_만들기.py"
+) else (
+  start "" pythonw "%~dp0납품서류_만들기.py"
+)
 exit /b 0
 
 :nopython

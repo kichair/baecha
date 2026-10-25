@@ -488,4 +488,16 @@ def run_gui():
 
 
 if __name__ == "__main__":
-    run_gui()
+    try:
+        run_gui()
+    except Exception:
+        import traceback
+        msg = traceback.format_exc()
+        try:
+            (HERE / "오류기록.txt").write_text(msg, encoding="utf-8")
+            import tkinter
+            from tkinter import messagebox
+            r = tkinter.Tk(); r.withdraw()
+            messagebox.showerror("오류", "프로그램에 문제가 생겼습니다.\n오류기록.txt 파일을 보내주세요.\n\n" + msg[-600:])
+        except Exception:
+            pass
