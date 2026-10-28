@@ -954,6 +954,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb7" onclick="go(7)"><em>🚚</em>용차내역서</button>
  <button id="tb11" onclick="go(11)"><em>🧾</em>운임지출결의서</button>
  <button id="tb12" onclick="go(12)"><em>📄</em>명세서묶기</button>
+ <button id="tb13" onclick="go(13)"><em>💰</em>수금확인</button>
  <button id="tb0" onclick="go(0)" style="display:none"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
  <button id="tb4" onclick="go(4)" style="display:none"><em>🧑‍✈️</em>기사별</button>
  <button id="tb1" onclick="go(1)" style="display:none"><em>🚚</em>기사별 배송</button>
@@ -1524,7 +1525,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261027a';
+const APPVER='20261028a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1743,6 +1744,7 @@ async function syncInit(){
    if(!p.new)return;
    if(p.new.id===1&&p.new.data)applySnap(p.new.data);
    if(p.new.id===3&&p.new.data)inboxApply(p.new.data);
+   if(p.new.id===13&&p.new.data){SJN=p.new.data;SJN._loaded=1;SJN.notes=SJN.notes||[];SJN.paid=SJN.paid||{};if(TAB===13)render()}
   }).subscribe();
   SB_ON=true;setDot('#03C75A');
   if(localStorage.getItem('kiu_gps')==='1'&&ME&&GPSW==null)try{gpsToggle()}catch(e){}
@@ -2454,7 +2456,7 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2,3,4,5,6,7,8,9,10,11,12].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
+ [0,1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  drawWx();drawRw();drawDiff();drawUpd();
  /* 알림줄은 맨 위에 띄우지 않고 [공지·메모] 탭 안에만 둔다 */
  const NB=['rainbar','rwbar','dfbar'].filter(function(id){var e=document.getElementById(id);return e&&e.style.display!=='none'});
@@ -2465,7 +2467,7 @@ function render(){
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():TAB===11?tabUj():TAB===12?tabMsb():tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():TAB===11?tabUj():TAB===12?tabMsb():TAB===13?tabMoney():tabStat(today);
  bind();if(TAB===6)drawYcOne();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
@@ -5007,6 +5009,10 @@ function msbClass(units){
    const o=os.filter(function(o){const r=ASSIGN[o.i];return r&&r!=='_'&&!offRoute(r)})[0]||os[0]||null;
    u.o=o;
    if((o&&o.erp)||/#\s*\]/.test(u.ad||''))u.flags.push('ERP수시');
+   /* 수금확인 탭과 잇기 (2026-10-28) — 출고정지 / 돈 받을 곳인데 입금 확인 체크가 없으면 «입금 전» (선입금으로 다 받은 곳은 뺌) */
+   {const mf=mnFlag(D,(o&&o.n)||u.n),다받음=(u.pre!=null&&u.tot!=null&&u.pre+u.tot<=0);
+    if(mf.stop)u.flags.unshift('출고정지');
+    else if((u.flags.indexOf('ERP수시')>=0||mf.pay)&&!mf.paid&&!다받음)u.flags.push('입금 전')}
    if(MSB_PICK.test(u.memo||'')){u.g='pick';return}
    if(!o){u.g='un';u.why='배차에 없음';return}
    const r=ASSIGN[o.i];
@@ -5078,10 +5084,16 @@ async function msbBuild(bytes,groups){
     else if(g.id!=='pick'&&g.id!=='un')pg.drawText('기사 미정',{x:400+bw,y:799,size:11,font:font,color:GRY});
     /* 공급받는자 보관용(아래 반쪽, 413pt 아래) — 왼쪽 도장은 똑같이, 오른쪽은 동선 색만 칠한다 (2026-10-27 사장님) */
     pg.drawRectangle({x:396,y:789-413,width:bw,height:27,color:col});
-    [0,413].forEach(function(dy){let fx=22;
-     u.flags.forEach(function(f){const w=tw(f,11)+12;
-      pg.drawRectangle({x:fx,y:792-dy,width:w,height:23,borderColor:RED,borderWidth:1.5});
-      pg.drawText(f,{x:fx+6,y:799-dy,size:11,font:font,color:RED});fx+=w+6})});
+    /* 적요(맨 아래 인수자 줄 밑에 찍히던 것)를 왼쪽 위 도장 밑에도 — 위·아래 반쪽 다 (2026-10-27 사장님)
+       자리: 도장 칸(y792~815)과 「일 자」 줄(y755) 사이, 제목 [공급자 보관용] 앞(x≤255)까지. 길면 글자를 줄이고 그래도 길면 자른다 */
+    const memo=String(u.memo||'').trim();
+    if(memo){let ms=10;while(ms>6&&tw(memo,ms)>232)ms-=0.5;
+     [0,413].forEach(function(dy){pg.drawText(fit(memo,ms,232),{x:22,y:773-dy,size:ms,font:font,color:BLK})})}
+    /* 선입금·ERP수시 도장은 공급자 보관용(위)에만 — 거래처가 가져가는 공급받는자용에는 안 찍는다 (2026-10-27 사장님) */
+    let fx=22;
+    u.flags.forEach(function(f){const w=tw(f,11)+12;
+     pg.drawRectangle({x:fx,y:792,width:w,height:23,borderColor:RED,borderWidth:1.5});
+     pg.drawText(f,{x:fx+6,y:799,size:11,font:font,color:RED});fx+=w+6});
    })});
  });
  /* 맨 뒤 — 뺀 전표 */
@@ -5097,6 +5109,7 @@ async function msbBuild(bytes,groups){
 async function msbRun(bytes,name){
  try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:''};
   msbSt('준비 중 (PDF 도구·글꼴 받기)…');await msbLibs();
+  await sjnLoad();
   const units=await msbParse(bytes);
   if(!units.some(function(u){return u.ok}))throw new Error('거래명세표 PDF 가 아닌 것 같습니다 (거래처를 못 읽음)');
   const groups=msbClass(units);
@@ -5110,12 +5123,52 @@ async function msbRun(bytes,name){
 }
 function msbPick(inp){const f=inp.files&&inp.files[0];if(!f)return;const fr=new FileReader();fr.onload=function(){msbRun(fr.result,f.name)};fr.readAsArrayBuffer(f)}
 function msbDown(){if(!MSB.out)return;const a=document.createElement('a');a.href=MSB.out;a.download=MSB.outName;document.body.appendChild(a);a.click();a.remove()}
+
+/* ===== 날짜만 눌러 불러오기 (2026-10-27 사장님 «날짜 클릭만으로 되게 해») =====
+   자동실행컴(거래처원장보내기.py 대기)이 sERP 일별영업현황 → 거래명세표 → PDF 로 뽑아 줄인 뒤
+   Supabase 보관함 statements/<날짜>.pdf 에 올려 둔다 (평일 15:40 다음 영업일 것은 저절로).
+   없으면 board id=12 에 {req:{d,ts,who}} 를 써서 뽑아 달라 하고, st 가 «끝» 이 될 때까지 기다린다. */
+const MSB_SB=(typeof SB_URL!=='undefined'&&SB_URL)||'https://eirnudzaysvvqfjzhwni.supabase.co';
+const MSB_KEY=(typeof SB_KEY!=='undefined'&&SB_KEY)||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
+let MSBD='';try{MSBD=localStorage.getItem(KEY+'_msbd')||''}catch(e){}
+function msbH(){return {apikey:MSB_KEY,Authorization:'Bearer '+MSB_KEY}}
+async function msbBoard12(){const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.12&select=data',{headers:msbH()});const j=await r.json();return (j&&j[0]&&j[0].data)||{}}
+async function msbFile(d){const r=await fetch(MSB_SB+'/storage/v1/object/statements/'+d+'.pdf?t='+Date.now(),{headers:msbH(),cache:'no-store'});if(!r.ok)return null;return await r.arrayBuffer()}
+function msbSetD(v){MSBD=v;try{localStorage.setItem(KEY+'_msbd',v)}catch(e){}}
+async function msbByDate(force){
+ const d=(document.getElementById('msbd')||{}).value||MSBD||SEL;if(!/^\d{4}-\d\d-\d\d$/.test(d)){msbSt('⚠ 날짜를 고르세요');return}
+ msbSetD(d);
+ try{
+  if(!force){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf');return}}
+  /* 자동실행컴에 뽑아 달라고 한다 */
+  const cur=await msbBoard12();const ts=Date.now();
+  cur.req={d:d,ts:ts,who:ME||'사이트'};
+  await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:12,data:cur,updated_at:new Date().toISOString()}])});
+  msbSt('🖨 자동실행컴에 '+d+' 명세표를 sERP 에서 뽑아 달라고 했습니다 — 2~5분 걸립니다…');
+  const end=Date.now()+15*60000;
+  while(Date.now()<end){
+   await new Promise(r=>setTimeout(r,5000));
+   const s=(await msbBoard12()).st||{};
+   if(s.d===d&&(s.ts||0)>ts){
+    if(s.state==='끝'){msbSt('받는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf');return}msbSt('⚠ 뽑았다는데 파일이 없습니다');return}
+    if(s.state==='실패'){msbSt('⚠ 자동실행컴이 못 뽑았습니다: '+(s.msg||'')+' — 파일로 올려 주세요');return}
+    msbSt('🖨 자동실행컴: '+(s.msg||'하는 중')+' …')}
+   else if(Date.now()-ts>90000)msbSt('⏳ 자동실행컴이 아직 안 받았습니다 (원장팩스 대기가 켜져 있어야 합니다) …');
+  }
+  msbSt('⚠ 15분이 지나도 안 끝났습니다 — 자동실행컴을 확인하거나 파일로 올려 주세요');
+ }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
+}
 function tabMsb(){
  let h='<div class="hd2">📄 명세서 묶기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">sERP 거래명세표 PDF → 동선·기사 찍고 동선별로 다시 묶기</span></div>';
- h+='<div class="ycnote">sERP 에서 <b>그날 거래명세표를 PDF 하나로</b> 뽑아 아래에 올리세요. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
-  +'적요에 <b>택배·용차·상차·화물·차량입고·퀵</b> 이 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴</b>은 따로 모읍니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시). 공급받는자 보관용에는 왼쪽 도장과 동선 색 칸만 찍힙니다(동선·기사 글자는 공급자용에만). '
+ h+='<div class="ycnote"><b>날짜를 고르고 「📥 이 날짜 명세서 묶기」</b>를 누르면 자동실행컴이 sERP 에서 뽑아 둔 그날 거래명세표를 가져와 묶습니다(없으면 그 자리에서 뽑아 달라고 합니다, 2~5분). 평일 15:40 에는 다음 영업일 것이 저절로 뽑혀 있습니다. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
+  +'적요에 <b>택배·용차·상차·화물·차량입고·퀵</b> 이 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴</b>은 따로 모읍니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
   +'<b>배차를 다 마친 뒤</b> 올려야 동선·기사가 다 채워집니다.</div>';
- h+='<div style="margin:10px 2px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)">'
+ const md0=MSBD||SEL||'';
+ h+='<div style="margin:10px 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+  +'<b>📅 날짜</b><input type="date" id="msbd" value="'+esc(md0)+'" onchange="msbSetD(this.value)" style="font-size:15px;padding:4px 6px">'
+  +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbByDate(0)">📥 이 날짜 명세서 묶기</button>'
+  +'<button class="btn g" onclick="msbByDate(1)" title="오늘 명세서가 더 들어왔으면 sERP 에서 새로 뽑습니다">🔄 sERP 에서 새로 뽑기</button></div>';
+ h+='<div style="margin:6px 2px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#6b7c90;font-size:12.5px">또는 파일로: <input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)">'
   +(MSB.out?'<button class="btn" onclick="msbDown()">⬇ 다시 내려받기 — '+esc(MSB.outName)+'</button>':'')
   +'<span id="msbst" style="font-weight:700;color:#2F7FE8">'+esc(MSB.st)+'</span></div>';
  if(MSB.groups){
@@ -5129,6 +5182,101 @@ function tabMsb(){
  }
  return h;
 }
+
+/* ===== 💰 수금확인 (2026-10-28 사장님) =====
+   3시 마감 → 4시 상차라, 오전에 «내일 나갈 것» 가운데 돈 받고 실어야 할 곳을 미리 본다.
+   돈 받을 곳 = 거래처구분 ERP수시 (주소 끝 # 과 같은 뜻) 또는 거래처 주의사항에 «입금확인·선입금·송금확인» · 출고정지는 따로 빨갛게.
+   주의사항·입금확인 체크는 board id=13 {notes:[{n,note,who,at}], paid:{"날짜|거래처":{by,at}}} — 전 직원 공유.
+   명세서묶기 도장: 입금 확인 안 된 곳은 공급자용 왼쪽 위 «입금 전», 출고정지는 «출고정지». */
+let SJN={notes:[],paid:{}};
+let MND='';try{MND=localStorage.getItem(KEY+'_mnd')||''}catch(e){}
+function mnNextBiz(d){const x=d?new Date(d+'T00:00:00'):new Date();x.setDate(x.getDate()+1);while(x.getDay()===0||x.getDay()===6)x.setDate(x.getDate()+1);
+ return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+function mnToday(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+async function sjnLoad(){try{const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.13&select=data',{headers:msbH()});const j=await r.json();if(j&&j[0]&&j[0].data){SJN=j[0].data;SJN.notes=SJN.notes||[];SJN.paid=SJN.paid||{}}}catch(e){}}
+async function sjnSave(fn){/* 읽고-바꾸고-쓰기 — 동시에 두 사람이 눌러도 남의 체크를 안 지우게 */
+ await sjnLoad();fn(SJN);
+ await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:13,data:SJN,updated_at:new Date().toISOString()}])});
+ render()}
+function mnNm(s){return String(s||'').replace(/\(주\)|㈜|주식회사|\s/g,'').replace(/[*@#]+/g,'').replace(/\d+$/,'')}
+/* 그 거래처에 걸린 주의사항들 */
+function mnNotes(n){const a=mnNm(n);if(!a)return [];
+ return (SJN.notes||[]).filter(function(x){const b=mnNm(x.n);if(!b)return false;
+  return a===b||(b.length>=3&&a.indexOf(b)>=0)||(a.length>=3&&b.indexOf(a)>=0)})}
+const MN_PAY_RE=/입금|선입금|송금/, MN_STOP_RE=/출고\s*정지/;
+function mnPaid(d,n){return (SJN.paid||{})[d+'|'+n]||null}
+/* 그날 돈 받을 곳 — 거래처 하나에 한 줄 */
+function mnList(D){
+ const by={};
+ ORDERS.forEach(function(o){if(o.d!==D||ST[o.i]==='del')return;
+  const e=by[o.n]=by[o.n]||{n:o.n,os:[],amt:0,sjq:0,erp:false,last:0,memo:[]};
+  e.os.push(o);if(o.erp)e.erp=true;
+  (o.items||[]).forEach(function(it){if(!it||it.x)return;
+   if(/수시/.test(it.g||''))e.erp=true;
+   if(sjItem(it)){e.sjq+=(+it.q||0);if(it.t||it.a)e.amt+=(+it.t||Math.round((+it.a||0)*1.1))}
+   else e.amt+=(+it.t||Math.round((+it.a||0)*1.1));
+   if((it._in||0)>e.last)e.last=it._in;
+   if(it.m&&e.memo.indexOf(it.m)<0)e.memo.push(it.m)})});
+ const out=[];
+ Object.keys(by).forEach(function(n){const e=by[n];
+  const ns=mnNotes(n);e.notes=ns;
+  e.pay=ns.some(function(x){return MN_PAY_RE.test(x.note)});
+  e.stop=ns.some(function(x){return MN_STOP_RE.test(x.note)});
+  if(!(e.erp||e.pay||e.stop))return;
+  e.paid=mnPaid(D,n);
+  const o=e.os.find(function(o){const r=ASSIGN[o.i];return r&&r!=='_'&&!offRoute(r)})||e.os[0];
+  e.rid=o?ASSIGN[o.i]:'';e.drv=o?effDrv(o):'';
+  out.push(e)});
+ out.sort(function(a,b){return (b.stop-a.stop)||((a.paid?1:0)-(b.paid?1:0))||(b.amt-a.amt)});
+ return out}
+/* 명세서묶기에서 쓴다 — 그 거래처가 입금 전인지·출고정지인지 */
+function mnFlag(D,n){const ns=mnNotes(n);const stop=ns.some(function(x){return MN_STOP_RE.test(x.note)});
+ const pay=ns.some(function(x){return MN_PAY_RE.test(x.note)});return {stop:stop,pay:pay,paid:!!mnPaid(D,n)}}
+function mnSetD(v){MND=v;try{localStorage.setItem(KEY+'_mnd',v)}catch(e){}render()}
+function mnTogI(i,on){const e=(window._MNL||[])[i];if(e)mnTog(window._MND,e.n,on)}
+function mnTog(D,n,on){sjnSave(function(s){s.paid=s.paid||{};const k=D+'|'+n;if(on)s.paid[k]={by:ME||'사이트',at:new Date().toISOString()};else delete s.paid[k]})}
+/* 주의사항 붙여넣기 — 게시판 목록을 통째로 복사해 붙이면 «거래처 · 주의 · - · 작성자 / 날짜 삭제» 꼴을 읽는다 */
+function mnParse(t){const out=[];let cur=null;
+ String(t||'').split(/\r?\n/).forEach(function(ln){const f=ln.split('\t');
+  if(f.length>=4&&/^(-|)$/.test(f[2].trim())&&f[0].trim()){cur={n:f[0].trim(),note:f[1].trim(),who:f[3].trim(),at:''};out.push(cur);return}
+  const m=ln.match(/^(\d{4})\.\s*(\d+)\.\s*(\d+)\.\s*(\d+:\d+)/);
+  if(cur&&m)cur.at=m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0')+' '+m[4]});
+ return out}
+function mnPasteSave(){const t=(document.getElementById('mnpaste')||{}).value||'';const ns=mnParse(t);
+ if(!ns.length){toast('⚠ 주의사항 줄을 못 읽었습니다 — 게시판 목록을 통째로 복사해 붙여 주세요');return}
+ sjnSave(function(s){s.notes=ns;s.notes_at=new Date().toISOString().slice(0,16).replace('T',' ')});toast('주의사항 '+ns.length+'건으로 바꿨습니다')}
+function tabMoney(){
+ if(!SJN._loaded){SJN._loaded=1;sjnLoad().then(function(){SJN._loaded=1;render()})}
+ const D=MND&&MND>=mnToday()?MND:mnNextBiz();
+ const L=mnList(D);
+ const nPaid=L.filter(function(e){return e.paid}).length,nStop=L.filter(function(e){return e.stop}).length;
+ let h='<div class="hd2">💰 수금확인 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">내일 나갈 것 가운데 돈 받고 실어야 할 곳 · 4시 상차 전에 확인</span></div>';
+ h+='<div class="ycnote"><b>ERP수시</b> 거래처(주소 끝 # 과 같음)와 <b>주의사항</b>에 「입금확인·선입금·송금확인」이 적힌 곳을 모읍니다. 판매명세서가 저절로 들어올 때마다 늘어납니다. '
+  +'입금을 확인하면 <b>「입금 확인」</b>을 체크하세요 — 전 직원 화면에 바로 보이고, 3시 명세서 묶음에서 체크 안 된 곳은 <b>「입금 전」</b> 도장이 찍힙니다. <b style="color:#c0392b">출고정지</b> 곳은 맨 위에 빨갛게.</div>';
+ h+='<div style="margin:10px 2px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>📅 나가는 날</b><input type="date" value="'+D+'" onchange="mnSetD(this.value)" style="font-size:15px;padding:4px 6px">'
+  +'<span style="font-weight:700">'+L.length+'곳 · 입금 확인 '+nPaid+' · 남음 <span style="color:#c0392b">'+(L.length-nPaid)+'</span>'+(nStop?' · 출고정지 <span style="color:#c0392b">'+nStop+'</span>':'')+'</span></div>';
+ h+='<table class="yctb"><tr><th>입금 확인</th><th>거래처</th><th>까닭</th><th style="text-align:right">금액(부가세 포함)</th><th>동선·기사</th><th>주의사항 · 적요</th></tr>';
+ window._MNL=L;window._MND=D;
+ L.forEach(function(e,ix){
+  const why=[];if(e.stop)why.push('<b style="color:#fff;background:#c0392b;padding:1px 6px;border-radius:4px">출고정지</b>');
+  if(e.erp)why.push('<b style="color:#c0392b">ERP수시</b>');if(e.pay)why.push('<b style="color:#b35c00">주의사항</b>');
+  const pd=e.paid;
+  h+='<tr style="'+(pd?'opacity:.55':'')+'"><td><label style="white-space:nowrap"><input type="checkbox"'+(pd?' checked':'')+' onchange="mnTogI('+ix+',this.checked)"> '
+   +(pd?'<span style="font-size:11px;color:#0f5f37">'+esc(pd.by||'')+' '+esc(String(pd.at||'').slice(5,16).replace('T',' '))+'</span>':'')+'</label></td>'
+   +'<td style="font-weight:800">'+esc(e.n)+'</td><td>'+why.join(' ')+'</td>'
+   +'<td style="text-align:right;font-weight:800">'+(e.amt?won(e.amt):'')+(e.sjq?'<div style="font-size:11px;color:#b5651d">삼정 '+e.sjq+'개 금액 없음</div>':'')+'</td>'
+   +'<td>'+(e.rid&&RID[e.rid]?'<span style="display:inline-block;padding:1px 6px;border-radius:5px;color:#fff;background:'+RID[e.rid].cl+'">'+esc(msbRL(e.rid))+'</span> ':'<span style="color:#8b9aab">미배차</span> ')+esc(e.drv||'')+'</td>'
+   +'<td style="font-size:12px">'+e.notes.map(function(x){return '<div>📌 '+esc(x.note)+' <i style="color:#8b9aab">'+esc(x.who||'')+'</i></div>'}).join('')
+   +(e.memo.length?'<div style="color:#6b7c90">'+esc(e.memo.join(' / ').slice(0,80))+'</div>':'')+'</td></tr>'});
+ if(!L.length)h+='<tr><td colspan="6" style="color:#8b9aab">'+D+' 에 돈 받을 곳이 없습니다 (아직 명세서가 안 들어왔을 수도 있습니다).</td></tr>';
+ h+='</table>';
+ h+='<details style="margin-top:18px"><summary style="cursor:pointer;font-weight:800;color:#6b7c90">📌 거래처 주의사항 '+(SJN.notes||[]).length+'건'+(SJN.notes_at?' · '+esc(SJN.notes_at)+' 바꿈':'')+' — 보기·바꾸기</summary>'
+  +'<div class="ycnote" style="margin-top:8px">주의사항 게시판 목록을 <b>통째로 복사</b>해 아래에 붙이고 「바꾸기」를 누르면 새 목록으로 바뀝니다.</div>'
+  +'<textarea id="mnpaste" style="width:100%;height:110px;font-size:12px" placeholder="거래처 &#9; 주의사항 &#9; - &#9; 작성자 ..."></textarea>'
+  +'<button class="btn" onclick="mnPasteSave()">바꾸기</button>'
+  +'<table class="yctb" style="margin-top:8px"><tr><th>거래처</th><th>주의사항</th><th>작성자</th><th>적은 때</th></tr>'
+  +(SJN.notes||[]).map(function(x){return '<tr><td>'+esc(x.n)+'</td><td>'+esc(x.note)+'</td><td>'+esc(x.who||'')+'</td><td>'+esc(x.at||'')+'</td></tr>'}).join('')+'</table></details>';
+ return h}
 
 /* ===== 운임지출결의서 (2026-10-21) =====
    사무실 엑셀 「운임지출결의서」 시트 그대로 — A4 가로 한 장에 두 건(왼쪽·오른쪽).
