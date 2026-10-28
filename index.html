@@ -1525,7 +1525,7 @@ function save(){const S=(k,v)=>localStorage.setItem(KEY+k,JSON.stringify(v));
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261028a';
+const APPVER='20261028b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3998,7 +3998,12 @@ function shipDate(o){
  }
  if(!dd||dd<1||dd>31)return null;
  let y=+base.slice(0,4),M=mm||+base.slice(5,7);
- if(!mm&&dd<+base.slice(8,10)){M++;if(M>12){M=1;y++}}
+ /* 2026-10-28 엔젤가구: 29일 명세서에 «28일상차29일도착» → 예전엔 날이 작으면 무조건 다음 달(11/28)로 읽어 10/28 용차 목록에 안 떴다.
+    달이 안 적혀 있으면 지난달·이번달·다음달 가운데 거래일자에 가장 가까운 날로 본다 (1일상차 → 다음 달 1일, 28일상차 → 이번 달 28일). */
+ if(!mm){const b0=new Date(base+'T00:00:00');let best=null;
+  [-1,0,1].forEach(function(dm){let yy=y,MM=M+dm;if(MM<1){MM=12;yy--}if(MM>12){MM=1;yy++}
+   const c=new Date(yy,MM-1,dd);if(c.getDate()!==dd)return;const df=Math.abs(c-b0);if(!best||df<best.df)best={yy:yy,MM:MM,df:df}});
+  if(best){y=best.yy;M=best.MM}}
  return y+'-'+String(M).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
 }
 function shipTag(o){const d=shipDate(o);return d&&d!==o.d?md(d)+' 출고':''}
