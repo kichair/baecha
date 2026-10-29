@@ -1551,7 +1551,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261029g';
+const APPVER='20261029h';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5008,6 +5008,7 @@ function msSjUp(f){if(!f)return;
    글자 위치는 sERP 거래명세표 PDF(A4 세로 595×842pt) 실측 — 거래처 y737 · 주소 y720 · 일자 y755 · PAGE y774 · 전미수잔액 y487 · 적요 y446 */
 const MSB_EXCL=/택배|용차|상차|화물|차량입고|퀵/;
 const MSB_PICK=/찾으러|방문수령/;
+const MSB_DRV=['장세훈','안정수','배진성'];   /* 명세서에 이름을 찍는 기사 — 호로차 둘·3.5톤 */
 let MSB={name:'',units:null,groups:null,st:'',out:null,outName:''};
 const MSB_LIB={pdfjs:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
  pdflib:'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',fontkit:'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
@@ -5064,10 +5065,18 @@ function msbClass(units){
    if(mx){u.g='x';u.why='적요 「'+mx[0]+'」';return}
    const D=u.date||keepSEL;
    if(D!==SEL){SEL=D;CAR=CARD[D]||DAY_DRV[D]||autoRotate(D)}
-   const os=ORDERS.filter(function(o){return (o.d===D||o.od===D)&&ST[o.i]!=='del'&&(o.n===u.n||(o.items||[]).some(function(it){return it.n===u.n}))});
+   /* 2026-10-29 «으뜸퍼니처(문정동)  메일 꼭 넣어주세요» 처럼 거래처명에 띄어쓰기 두 칸이 있으면 PDF 에는 한 칸·뒤가 잘려 찍혀
+      못 찾고 미배차로 빠졌다 → 띄어쓰기를 빼고 비교, 잘린 이름은 앞부분(6자 이상)이 같으면 같은 거래처 */
+   const nz=function(s){return String(s||'').replace(/\s+/g,'')},un=nz(u.n);
+   const same=function(n){const a=nz(n);return a===un||(un.length>=6&&a.indexOf(un)===0)||(a.length>=6&&un.indexOf(a)===0)};
+   const os=ORDERS.filter(function(o){return (o.d===D||o.od===D)&&ST[o.i]!=='del'&&(same(o.n)||(o.items||[]).some(function(it){return same(it.n)}))});
    const o=os.filter(function(o){const r=ASSIGN[o.i];return r&&r!=='_'&&!offRoute(r)})[0]||os[0]||null;
    u.o=o;
    if((o&&o.erp)||/#\s*\]/.test(u.ad||''))u.flags.push('ERP수시');
+   /* 2026-10-29 사장님 — 직납: 적요에 직납·직배, 또는 거래처와 다른 시·구 주소(o.dst, 예: «안산시 …»)가 있으면 직납.
+      파란 네모 도장 + 아래 반쪽에도 «직납». 금액은 지우지 않는다(수기 명세서를 따로 써서 같이 감) */
+   u.jik=/직납|직배|직접\s*배송/.test(u.memo||'')||!!(o&&o.dst);
+   const em=String(u.memo||'').match(/오전\s*일찍|오전\s*배송|일찍/);u.early=em?em[0].replace(/\s+/g,''):'';
    /* 수금확인 탭과 잇기 (2026-10-28) — 출고정지 / 돈 받을 곳인데 입금 확인 체크가 없으면 «입금 전» (선입금으로 다 받은 곳은 뺌) */
    {const mf=mnFlag(D,(o&&o.n)||u.n),다받음=(u.pre!=null&&u.tot!=null&&u.pre+u.tot<=0);
     if(mf.stop)u.flags.unshift('출고정지');
@@ -5077,7 +5086,9 @@ function msbClass(units){
    const r=ASSIGN[o.i];
    if(!r||r==='_'){u.g='un';u.why='아직 미배차';return}
    if(offRoute(r)){u.g='x';u.why=(r==='x'?'배차에서 뺀 건':'실물 명세서 없음');return}
-   u.g=r;u.drv=effDrv(o)||'';
+   u.g=r;u.drv=effDrv(o)||'';u.trip=Math.min(TRIP_MAX,+TRIP[o.key]||1);
+   /* 기사 이름은 호로차(장세훈·안정수)·3.5톤(배진성)만 찍는다 (2026-10-29 사장님) */
+   if(MSB_DRV.indexOf(u.drv)<0)u.drv='';
   });
   units.forEach(function(u){(by[u.g]=by[u.g]||[]).push(u)});
   /* 동선 안 순서 = 동선별 탭과 같은 순서(잠근 순서·방문순서) */
@@ -5087,7 +5098,8 @@ function msbClass(units){
    const os=[];by[g].forEach(function(u){if(u.o&&os.indexOf(u.o)<0)os.push(u.o)});
    const sorted=sortLocked(g,os.slice()),pos={};sorted.forEach(function(o,i){pos[o.i]=i});
    by[g].forEach(function(u,i){u._i=i});
-   by[g].sort(function(a,b){return (pos[a.o.i]-pos[b.o.i])||(a._i-b._i)});
+   /* 1차분 먼저, 그다음 2차분 — 그 안은 방문순서 */
+   by[g].sort(function(a,b){return ((a.trip||1)-(b.trip||1))||(pos[a.o.i]-pos[b.o.i])||(a._i-b._i)});
   });
  }finally{SEL=keepSEL;CAR=keepCAR}
  const ids=ROUTES.map(function(r){return r.id}).filter(function(id){return id!=='nb'}).concat(['pick','un']);
@@ -5113,6 +5125,10 @@ async function msbBuild(bytes,groups){
  const dtxt=function(d){return d?d+' ('+'일월화수목금토'[new Date(d+'T00:00:00').getDay()]+')':''};
  groups.forEach(function(g,gi){
   const col=hex(msbCL(g.id)),lab=msbRL(g.id),r=RID[g.id];
+  /* 1차·2차 — 그 동선에 2차분이 있는 날만 «1동선-1 / 1동선-2» 로 찍는다 */
+  const has2=g.units.some(function(u){return (u.trip||1)>1});
+  const labOf=function(u){return has2?lab+'-'+(u.trip||1):lab};
+  const BLU=rgb(.1,.35,.85);
   const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
   const np=g.units.reduce(function(s,u){return s+u.pages.length},0);
   /* 표지 */
@@ -5124,7 +5140,7 @@ async function msbBuild(bytes,groups){
   g.units.forEach(function(u,i){
    if(i&&i%perCol===0){x+=(W-80)/2;y=H-160}
    if(i===perCol*2)return;   /* 두 단 넘으면 표지에는 더 못 적는다 */
-   const line=(i+1)+'. '+u.n;
+   const line=(i+1)+'. '+(has2?'['+(u.trip||1)+'차] ':'')+u.n;
    cv.drawText(fit(line,11,(W-80)/2-70),{x:x,y:y,size:11,font:font,color:BLK});
    let fx=x+(W-80)/2-66;
    if(u.tot!=null){const t=won(u.tot);cv.drawText(t,{x:fx-tw(t,9)-4,y:y,size:9,font:font,color:GRY})}
@@ -5136,15 +5152,14 @@ async function msbBuild(bytes,groups){
   g.units.forEach(function(u){
    u.pages.forEach(function(){
     const pg=copied[ci++];out.addPage(pg);
-    const bw=Math.max(66,tw(lab,13)+16);
+    const lb=labOf(u),bw=Math.max(66,tw(lb,13)+16);
     pg.drawRectangle({x:396,y:789,width:bw,height:27,color:col});
-    pg.drawText(lab,{x:396+(bw-tw(lab,13))/2,y:797,size:13,font:font,color:WHT});
+    pg.drawText(lb,{x:396+(bw-tw(lb,13))/2,y:797,size:13,font:font,color:WHT});
     if(u.drv)pg.drawText(fit(u.drv,15,570-(400+bw)),{x:400+bw,y:797,size:15,font:font,color:BLK});
-    else if(g.id!=='pick'&&g.id!=='un')pg.drawText('기사 미정',{x:400+bw,y:799,size:11,font:font,color:GRY});
     /* 수기전표 (2026-10-29 사장님) — 주소에 «수기전표» 가 있으면 금액을 다 지운다: 품목 칸 단가·공급가액·세액·금액,
        합계금액, 전미수잔액·합계, 총합계·입금액·총미수잔액. 칸 안쪽만 흰색으로 덮어 칸선은 남긴다. 위·아래 반쪽 다.
        칸 경계는 sERP 거래명세표 PDF 실측 (1028 PDF): 열 286.5|345|419|484.5|572.2, 품목 줄 501.9~651 (15pt 간격, 머리줄 651~666) */
-    if(u.sugi){
+    if(u.sugi){   /* 직납은 금액 그대로 둔다 (2026-10-29 사장님 «지우지 말자») */
      const R=function(x0,y0,x1,y1){[0,413].forEach(function(dy){pg.drawRectangle({x:x0+1,y:y0+1-dy,width:x1-x0-2,height:y1-y0-2,color:WHT})})};
      const 열=[286.5,345,419,484.5,572.2], 줄=[501.9,516.4,531.4,546.4,561.4,576.4,591.4,606.4,621.4,636.4,651.0];
      for(let a=0;a<열.length-1;a++)for(let b=0;b<줄.length-1;b++)R(열[a],줄[b],열[a+1],줄[b+1]);
@@ -5154,9 +5169,18 @@ async function msbBuild(bytes,groups){
     }
     /* 공급받는자 보관용(아래 반쪽, 413pt 아래) — 왼쪽 도장은 똑같이, 오른쪽은 동선 색만 칠한다 (2026-10-27 사장님) */
     pg.drawRectangle({x:396,y:789-413,width:bw,height:27,color:col});
+    /* 찾으러옴·직납은 아래 반쪽(공급받는자용)에도 글자를 찍는다 (2026-10-29 사장님) */
+    {const bt=g.id==='pick'?'찾으러옴':u.jik?'직납':'';
+     if(bt)pg.drawText(bt,{x:396+(bw-tw(bt,13))/2,y:797-413,size:13,font:font,color:WHT})}
     /* 적요(맨 아래 인수자 줄 밑에 찍히던 것)를 왼쪽 위 도장 밑에도 — 위·아래 반쪽 다 (2026-10-27 사장님)
-       자리: 도장 칸(y792~815)과 「일 자」 줄(y755) 사이, 제목 [공급자 보관용] 앞(x≤255)까지. 길면 글자를 줄이고 그래도 길면 자른다 */
-    const memo=String(u.memo||'').trim();
+       자리: 도장 칸(y792~815)과 「일 자」 줄(y755) 사이, 제목 [공급자 보관용] 앞(x≤255)까지. 길면 글자를 줄이고 그래도 길면 자른다
+       «회수되면차감» 은 <<회수되면차감>> 으로 감싸 눈에 띄게 (2026-10-29 사장님) */
+    const memo=String(u.memo||'').trim().replace(/회수\s*\S{0,2}\s*차감/g,function(s){return '<<'+s.replace(/\s+/g,'')+'>>'});
+    /* 일찍·오전일찍·오전배송 — 글씨 키워 동그라미 안에. 자리: 일자·거래처 줄 오른쪽 빈칸(공급자 칸 x298 앞). 위·아래 반쪽 다 */
+    if(u.early){const es=14,ew=tw(u.early,es),rx=Math.max(24,ew/2+10),cx=292-rx;
+     [0,413].forEach(function(dy){
+      pg.drawEllipse({x:cx,y:748-dy,xScale:rx,yScale:15,color:WHT,borderColor:RED,borderWidth:2});
+      pg.drawText(u.early,{x:cx-ew/2,y:743-dy,size:es,font:font,color:RED})})}
     if(memo){let ms=10;while(ms>6&&tw(memo,ms)>232)ms-=0.5;
      [0,413].forEach(function(dy){pg.drawText(fit(memo,ms,232),{x:22,y:773-dy,size:ms,font:font,color:BLK})})}
     /* 선입금·ERP수시 도장은 공급자 보관용(위)에만 — 거래처가 가져가는 공급받는자용에는 안 찍는다 (2026-10-27 사장님) */
@@ -5164,6 +5188,10 @@ async function msbBuild(bytes,groups){
     u.flags.forEach(function(f){const w=tw(f,11)+12;
      pg.drawRectangle({x:fx,y:792,width:w,height:23,borderColor:RED,borderWidth:1.5});
      pg.drawText(f,{x:fx+6,y:799,size:11,font:font,color:RED});fx+=w+6});
+    /* 직납 — ERP수시 도장 크기로 파란 네모 (2026-10-29 사장님) */
+    if(u.jik){const w=tw('직납',11)+12;
+     pg.drawRectangle({x:fx,y:792,width:w,height:23,borderColor:BLU,borderWidth:1.5});
+     pg.drawText('직납',{x:fx+6,y:799,size:11,font:font,color:BLU})}
    })});
  });
  /* 맨 뒤 — 뺀 전표 */
