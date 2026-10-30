@@ -952,7 +952,6 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb9" onclick="go(9)"><em>🚛</em>운반비연락처</button>
  <button id="tb6" onclick="go(6)"><em>💰</em>용차계산기</button>
  <button id="tb7" onclick="go(7)"><em>🚚</em>용차내역서</button>
- <button id="tb11" onclick="go(11)"><em>🧾</em>운임지출결의서</button>
  <button id="tb12" onclick="go(12)"><em>📄</em>명세서묶기</button>
  <button id="tb13" onclick="go(13)"><em>💰</em>수금확인</button>
  <button id="tb0" onclick="go(0)" style="display:none"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
@@ -1553,7 +1552,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261030b';
+const APPVER='20261030d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2426,6 +2425,8 @@ function confetti(){const C=['#03C75A','#2F7FE8','#e0a03a','#e04b45','#8e5aa8','
   d.style.background=C[i%C.length];d.style.animationDelay=(Math.random()*0.3)+'s';
   document.getElementById('fxl').appendChild(d);setTimeout(()=>d.remove(),1800)}}
 function go(t){TAB=t;save();render();window.scrollTo(0,0)}
+/* 2026-10-30 운임지출결의서는 맨 위 탭에서 빼고 용차내역서 안 «지출결의서» 옆으로 옮겼다 — 예전에 11번 탭을 보던 PC 도 그쪽으로 */
+if(TAB===11){TAB=7;YCSUB='uj'}
 function tg(k){OPEN[k]=!OPEN[k];save();render()}
 
 /* ============ 카드 ============ */
@@ -4258,6 +4259,127 @@ function ycbKakao(co,k){
  const x=ycbRows(co)[k];if(!x)return;
  ycbClip(ycbTxt1(x),'카톡용으로 복사했습니다 (금액 제외)');
 }
+/* ===== 📷 수기전표 카톡 보내기 (2026-10-30) =====
+   손으로 쓰던 거래명세표(금액 없음)를 그림으로 만들고, 메시지와 함께 운송업체 카톡방으로 보낸다.
+   «전송» → board id=14 에 요청을 올리면 사무실 PC 의 카톡보내기 프로그램(바탕화면 카톡보내기 폴더)이
+   카카오톡에서 방을 찾아 그림·메시지를 붙여 넣고 보낸다. 방 찾는 말: 대현=박남 · 나눔=나눔 · 명진=명진 */
+const KK_ROOM={'대현물류':'박남','나눔물류':'나눔','명진로지텍':'명진'};
+let KKX=null;
+function kkItems(x){const L=[];
+ ORDERS.forEach(function(o){if(o.n!==x.n||ST[o.i]==='del')return;
+  let sd='';if(o.d!==x.d){try{sd=shipDate(o)||''}catch(e){}if(sd!==x.d)return}
+  (o.items||[]).forEach(function(it){L.push({p:String(it.p||''),s:String(it.s||''),q:+it.q||0})})});
+ return L}
+/* 적요에서 «30일상차31일도착» «11/2상차 11/3하차» 를 읽는다. 없으면 내역서 날짜가 상차일 */
+function kkDays(x){const t=String(x.mm||'').replace(/\s+/g,''),m0=+x.d.slice(5,7);
+ const d0=+x.d.slice(8,10);
+ /* 월이 안 적혀 있으면 내역서 달 — 날이 내역서 날보다 작으면 다음 달(10/30 상차 → «3일도착» = 11/3) */
+ const dd=function(re){const m=t.match(re);if(!m)return '';if(m[1])return (+m[1])+'/'+(+m[2]);
+  const mo=(+m[2]<d0-7)?(m0%12)+1:m0;return mo+'/'+(+m[2])};
+ const up=dd(/(?:(\d{1,2})\/)?(\d{1,2})일?상차/)||md(x.d);
+ const dn=dd(/(?:(\d{1,2})\/)?(\d{1,2})일?(?:도착|하차)/);
+ return {up:up,dn:dn}}
+function kkDraw(x,items){
+ const W=760,H=1060,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+ const F=function(s,b){return (b?'bold ':'')+s+'px "Malgun Gothic","맑은 고딕",sans-serif'};
+ g.fillStyle='#fff';g.fillRect(0,0,W,H);
+ const R='#c0392b',B='#222',BL='#1b4fa8';
+ /* 맨 위 — 상차·하차·차종 (손글씨 자리) */
+ const dy=kkDays(x),tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
+ g.fillStyle=BL;g.font=F(26,1);
+ g.fillText(dy.up+' 상차'+(dy.dn?'  ·  '+dy.dn+' 하차':''),40,52);
+ if(tk){g.font=F(24,1);const tw=g.measureText(tk).width;g.strokeStyle=BL;g.lineWidth=2.5;
+  g.beginPath();g.ellipse(W-60-tw/2,44,tw/2+18,22,0,0,Math.PI*2);g.stroke();g.fillText(tk,W-60-tw,53)}
+ /* 틀 */
+ const X0=30,X1=W-30;g.strokeStyle=R;g.lineWidth=2;g.strokeRect(X0,78,X1-X0,H-110);
+ g.fillStyle=R;g.font=F(40,1);const T='거  래  명  세  표';g.fillText(T,(W-g.measureText(T).width)/2,128);
+ g.beginPath();g.moveTo(X0,148);g.lineTo(X1,148);g.stroke();
+ /* 왼쪽 — 날짜·거래처 */
+ g.fillStyle=B;g.font=F(22);
+ g.fillText(x.d.slice(0,4)+' 년  '+(+x.d.slice(5,7))+' 월  '+(+x.d.slice(8,10))+' 일',50,190);
+ const cn=String(x.n||'').replace(/\d*\*?$/,'').trim();
+ g.font=F(cn.length>12?18:22,1);g.fillText(cn,50,240);g.font=F(20,1);g.fillStyle=R;g.fillText('귀하',300,240);
+ g.fillStyle=B;g.font=F(17);g.fillText('아래와 같이 계산합니다.',50,285);
+ /* 오른쪽 — 공급자 */
+ const SX=370;g.strokeStyle=R;g.strokeRect(SX,148,X1-SX,150);
+ const rows=[['등록번호','137-81-50515'],['상    호','(주)광일체어   성명 오상현'],['주    소','인천시 서구 건지로109번길 21(석남동)'],['업    태','제조        종목  의자']];
+ rows.forEach(function(r,i){const y=148+i*37.5;if(i){g.beginPath();g.moveTo(SX,y);g.lineTo(X1,y);g.stroke()}
+  g.fillStyle=R;g.font=F(14);g.fillText(r[0],SX+8,y+24);g.fillStyle=B;g.font=F(i?15:20,!i);g.fillText(r[1],SX+82,y+25)});
+ g.beginPath();g.moveTo(SX+74,148);g.lineTo(SX+74,298);g.stroke();
+ g.beginPath();g.moveTo(X0,298);g.lineTo(X1,298);g.stroke();
+ /* 품목 표 — 금액 칸은 비운다 */
+ const cols=[X0,290,410,480,560,660,X1],hy=340;
+ g.fillStyle='#fdecea';g.fillRect(X0+1,300,X1-X0-2,38);
+ g.fillStyle=R;g.font=F(16,1);['품    명','규 격','수 량','단 가','공급가액','세 액'].forEach(function(t,i){g.fillText(t,cols[i]+(cols[i+1]-cols[i]-g.measureText(t).width)/2,325)});
+ g.beginPath();g.moveTo(X0,hy-2);g.lineTo(X1,hy-2);g.stroke();
+ const RH=36,NR=14;
+ for(let i=1;i<=NR;i++){g.strokeStyle='#e8b4ae';g.lineWidth=1;g.beginPath();g.moveTo(X0,hy+i*RH);g.lineTo(X1,hy+i*RH);g.stroke()}
+ g.strokeStyle=R;g.lineWidth=1.5;cols.slice(1,-1).forEach(function(cx){g.beginPath();g.moveTo(cx,300);g.lineTo(cx,hy+NR*RH);g.stroke()});
+ g.fillStyle=B;let r=0;
+ items.slice(0,7).forEach(function(it){r++;const y=hy+r*RH-11;
+  g.font=F(16);let p=it.p;while(p.length>1&&g.measureText(p).width>cols[1]-cols[0]-12)p=p.slice(0,-1);g.fillText(p,X0+8,y);
+  g.font=F(14);let s=it.s;while(s.length>1&&g.measureText(s).width>cols[2]-cols[1]-10)s=s.slice(0,-1);g.fillText(s,cols[1]+6,y);
+  g.font=F(18,1);const q=String(it.q);g.fillText(q,cols[2]+(cols[3]-cols[2]-g.measureText(q).width)/2,y)});
+ if(items.length>7){r++;g.font=F(15);g.fillText('외 '+(items.length-7)+'가지',X0+8,hy+r*RH-11)}
+ /* 도착지 — 적요(주소·전화) 손글씨 자리 */
+ const mm=String(x.mm||'').trim();
+ g.fillStyle=BL;g.font=F(20,1);
+ const words=mm.split(/(?<=[\s,\/)])/);let line='',ly=hy+(Math.max(r,3)+1.4)*RH;
+ words.forEach(function(w){if(g.measureText(line+w).width>X1-X0-60){g.fillText(line.trim(),X0+30,ly);ly+=RH;line=w}else line+=w});
+ if(line.trim()){g.fillText(line.trim(),X0+30,ly);ly+=RH}
+ const ph=(mm.match(/01\d[-\s.]?\d{3,4}[-\s.]?\d{4}/)||[])[0];
+ if(ph&&mm.indexOf(ph)<0){g.fillText(ph,X0+30,ly);ly+=RH}
+ g.font=F(22,1);const sg='— 거래명세서 꼭 사인 받아주세요 —';g.fillText(sg,(W-g.measureText(sg).width)/2,hy+NR*RH-14);
+ /* 아래 칸 */
+ g.strokeStyle=R;g.lineWidth=1.5;g.beginPath();g.moveTo(X0,hy+NR*RH);g.lineTo(X1,hy+NR*RH);g.stroke();
+ g.fillStyle=R;g.font=F(15);g.fillText('인수자',X1-160,hy+NR*RH+40);g.fillText('(인)',X1-50,hy+NR*RH+40);
+ g.fillStyle=B;g.font=F(14);g.fillText('TEL:(032)576-5361    FAX:(032)575-5783',X0+10,H-14);
+ return c}
+function ycbKkOpen(co,k){
+ const x=ycbRows(co)[k];if(!x)return;
+ const items=kkItems(x);
+ KKX={co:co,k:k,img:kkDraw(x,items).toDataURL('image/jpeg',0.88)};
+ let el=document.getElementById('kkbox');
+ if(!el){el=document.createElement('div');el.id='kkbox';document.body.appendChild(el)}
+ el.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(15,25,40,.55);display:flex;align-items:center;justify-content:center;padding:12px';
+ el.innerHTML='<div style="background:#fff;border-radius:14px;max-width:880px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;gap:14px;flex-wrap:wrap">'
+  +'<img src="'+KKX.img+'" style="width:360px;max-width:100%;border:1px solid #dde3ea;border-radius:8px">'
+  +'<div style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:8px">'
+  +'<b style="font-size:16px">📷 수기전표 카톡 — '+esc(co)+'</b>'
+  +'<label style="font-size:13px;color:#5b6b7c">보낼 카톡방 (찾는 말)<input id="kkroom" value="'+esc(KK_ROOM[co]||co)+'" style="width:100%;padding:7px;border:1px solid #cfd8e3;border-radius:8px;margin-top:3px"></label>'
+  +'<label style="font-size:13px;color:#5b6b7c">같이 보낼 메시지<textarea id="kktxt" rows="8" style="width:100%;padding:7px;border:1px solid #cfd8e3;border-radius:8px;margin-top:3px">'+esc(ycbTxt1(x))+'</textarea></label>'
+  +(items.length?'':'<div style="color:#c0392b;font-size:12.5px">⚠ 이 날짜 판매명세서에서 품목을 못 찾았습니다 — 그림의 품목 칸이 비어 있습니다.</div>')
+  +'<div id="kkst" style="font-size:13px;color:#5b6b7c"></div>'
+  +'<div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap"><button class="btn" id="kkgo" onclick="ycbKkSend()" style="flex:1 1 140px">📨 전송</button>'
+  +'<button class="btn g" onclick="ycbKkSave()">그림 저장</button>'
+  +'<button class="btn g" onclick="document.getElementById(\'kkbox\').remove()">닫기</button></div>'
+  +'<div style="font-size:11.5px;color:#8b9aab">전송을 누르면 사무실 PC 카카오톡이 «찾는 말»로 방을 찾아 그림 → 메시지 순서로 보냅니다. 그 PC 에 카톡보내기 프로그램이 켜져 있어야 합니다.</div>'
+  +'</div></div>';
+}
+function ycbKkSave(){if(!KKX)return;const a=document.createElement('a');a.href=KKX.img;a.download='수기전표_'+KKX.co+'.jpg';document.body.appendChild(a);a.click();a.remove()}
+async function ycbKkSend(){
+ if(!KKX)return;const room=(document.getElementById('kkroom').value||'').trim(),text=document.getElementById('kktxt').value||'';
+ if(!room)return toast('보낼 카톡방을 적어 주세요');
+ const st=document.getElementById('kkst'),bt=document.getElementById('kkgo');
+ const id=Date.now()+'-'+Math.random().toString(36).slice(2,6);
+ const H={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'};
+ bt.disabled=true;st.textContent='보내는 중… (사무실 PC 가 받기를 기다립니다)';
+ try{
+  const r=await fetch(SB_URL+'/rest/v1/board',{method:'POST',headers:H,body:JSON.stringify([{id:14,data:{req:{id:id,ts:Date.now(),room:room,text:text,img:KKX.img,who:ME||''}},updated_at:new Date().toISOString()}])});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+ }catch(e){bt.disabled=false;st.textContent='❌ 요청을 못 올렸습니다: '+e.message;return}
+ const t0=Date.now();
+ (function poll(){setTimeout(async function(){
+  try{const j=await fetch(SB_URL+'/rest/v1/board?id=eq.14&select=st:data->st',{headers:H}).then(function(r){return r.json()});
+   const s=j&&j[0]&&j[0].st;
+   if(s&&s.id===id){
+    if(s.state==='끝'){st.textContent='✅ '+room+' 방으로 보냈습니다';toast('📨 카톡 보냈습니다 — '+room);bt.disabled=false;return}
+    if(s.state==='실패'){st.textContent='❌ 못 보냈습니다: '+(s.msg||'');bt.disabled=false;return}
+    st.textContent='… '+(s.msg||s.state)}
+  }catch(e){}
+  if(Date.now()-t0>90000){st.textContent='⚠ 90초 안에 답이 없습니다 — 사무실 PC 카톡보내기 프로그램이 켜져 있는지 확인하세요';bt.disabled=false;return}
+  poll()},2000)})();
+}
 /* 그 주 전체를 카톡용으로 — 줄 사이는 빈 줄 */
 function ycbKakaoWeek(co,mon){
  const a=ycbRows(co).filter(function(x){return ycbMon(x.d||ycbDate())===mon});
@@ -4425,7 +4547,7 @@ function ycbSignWeek(){
  for(let i=0;i<W.length;i++)if(W[i]<cur)return W[i];
  return W[0];
 }
-function ycbSetSub(v){YCSUB=(v==='sign'||v==='jc')?v:'list';render()}
+function ycbSetSub(v){YCSUB=(v==='sign'||v==='jc'||v==='uj')?v:'list';render()}
 function ycbSetSw(v){YCSW=v||'';localStorage.setItem(KEY+'_ycsw',YCSW);render()}
 function ycbSetSc(v){YCSC=v||'둘 다';localStorage.setItem(KEY+'_ycsc',YCSC);render()}
 /* 지역 이름 맞춰 보기 — '평택' '평택시' '경기 평택' 을 같은 곳으로 본다 */
@@ -4726,6 +4848,7 @@ function ycbBlock(co){
     +'<td style="text-align:right'+((x.link||x.co==='착불')?';color:#8b9aab':'')+'">'+((x.link||x.co==='착불')?'—':won(v))+'</td><td style="text-align:right">'+won(acc)+'</td>'
     +'<td style="white-space:nowrap">'
      +'<button class="btn g kkb" onclick="ycbKakao(\''+co+'\','+k+')" title="카톡으로 보낼 내용만 복사합니다 (금액 제외)">💬</button> '
+     +(x.link?'':'<button class="btn g kkb" onclick="ycbKkOpen(\''+co+'\','+k+')" title="수기전표 그림을 만들어 운송업체 카톡방으로 보냅니다">📷</button> ')
      +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차로 묶기 — 운임은 한 번만 잡습니다">🔗</button> ':'')
      +ycbMoveBtns(co,k,true)+' '
      +'<button class="btn g" onclick="ycbDel(\''+co+'\','+k+')" title="빼기">✕</button></td></tr>';
@@ -5503,7 +5626,9 @@ function tabYcb(){
  const sub='<div class="sgtabs">'
   +'<button class="'+(YCSUB==='list'?'on':'')+'" onclick="ycbSetSub(\'list\')">🚚 용차 내역서</button>'
   +'<button class="'+(YCSUB==='sign'?'on':'')+'" onclick="ycbSetSub(\'sign\')">🖨️ 결재 올리기</button>'
-  +'<button class="'+(YCSUB==='jc'?'on':'')+'" onclick="ycbSetSub(\'jc\')">🧾 지출결의서</button></div>';
+  +'<button class="'+(YCSUB==='jc'?'on':'')+'" onclick="ycbSetSub(\'jc\')">🧾 지출결의서</button>'
+  +'<button class="'+(YCSUB==='uj'?'on':'')+'" onclick="ycbSetSub(\'uj\')">🧾 운임지출결의서</button></div>';
+ if(YCSUB==='uj')return '<div class="ycwrap">'+sub+tabUj().replace(/^<div class="ycwrap">/,'');
  if(YCSUB==='sign')return '<div class="ycwrap">'+sub+tabYcbSign()+'</div>';
  if(YCSUB==='jc')return '<div class="ycwrap">'+sub+tabYcbJc()+'</div>';
  const cand=ycbCand(YCBALL);window._YCB=cand;
