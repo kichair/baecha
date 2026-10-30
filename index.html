@@ -1551,7 +1551,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261029h';
+const APPVER='20261030a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5175,16 +5175,20 @@ async function msbBuild(bytes,groups){
     /* 적요(맨 아래 인수자 줄 밑에 찍히던 것)를 왼쪽 위 도장 밑에도 — 위·아래 반쪽 다 (2026-10-27 사장님)
        자리: 도장 칸(y792~815)과 「일 자」 줄(y755) 사이, 제목 [공급자 보관용] 앞(x≤255)까지. 길면 글자를 줄이고 그래도 길면 자른다
        «회수되면차감» 은 <<회수되면차감>> 으로 감싸 눈에 띄게 (2026-10-29 사장님) */
-    const memo=String(u.memo||'').trim().replace(/회수\s*\S{0,2}\s*차감/g,function(s){return '<<'+s.replace(/\s+/g,'')+'>>'});
+    let memo=String(u.memo||'').trim().replace(/회수\s*\S{0,2}\s*차감/g,function(s){return '<<'+s.replace(/\s+/g,'')+'>>'});
+    /* 일찍은 동그라미로 찍으므로 왼쪽 위 검은 적요 줄에서는 뺀다 (2026-10-30) */
+    if(u.early)memo=memo.replace(/오전\s*일찍|오전\s*배송|일찍/g,'').replace(/^[\s\/,·.-]+|[\s\/,·.-]+$/g,'').replace(/\s*\/\s*\/\s*/g,' / ').trim();
     /* 일찍·오전일찍·오전배송 — 글씨 키워 동그라미 안에. 자리: 일자·거래처 줄 오른쪽 빈칸(공급자 칸 x298 앞). 위·아래 반쪽 다 */
-    if(u.early){const es=14,ew=tw(u.early,es),rx=Math.max(24,ew/2+10),cx=292-rx;
-     [0,413].forEach(function(dy){
-      pg.drawEllipse({x:cx,y:748-dy,xScale:rx,yScale:15,color:WHT,borderColor:RED,borderWidth:2});
-      pg.drawText(u.early,{x:cx-ew/2,y:743-dy,size:es,font:font,color:RED})})}
     if(memo){let ms=10;while(ms>6&&tw(memo,ms)>232)ms-=0.5;
      [0,413].forEach(function(dy){pg.drawText(fit(memo,ms,232),{x:22,y:773-dy,size:ms,font:font,color:BLK})})}
     /* 선입금·ERP수시 도장은 공급자 보관용(위)에만 — 거래처가 가져가는 공급받는자용에는 안 찍는다 (2026-10-27 사장님) */
     let fx=22;
+    /* 일찍·오전일찍·오전배송 — 왼쪽 맨 위(도장 줄 맨 앞)에 큰 글씨 동그라미. 위·아래 반쪽 다 (2026-10-30 «왼쪽 위로») */
+    if(u.early){const es=14,ew=tw(u.early,es),rx=Math.max(24,ew/2+10),cx=22+rx;
+     [0,413].forEach(function(dy){
+      pg.drawEllipse({x:cx,y:803.5-dy,xScale:rx,yScale:14,color:WHT,borderColor:RED,borderWidth:2});
+      pg.drawText(u.early,{x:cx-ew/2,y:798.5-dy,size:es,font:font,color:RED})});
+     fx=22+rx*2+8}
     u.flags.forEach(function(f){const w=tw(f,11)+12;
      pg.drawRectangle({x:fx,y:792,width:w,height:23,borderColor:RED,borderWidth:1.5});
      pg.drawText(f,{x:fx+6,y:799,size:11,font:font,color:RED});fx+=w+6});
