@@ -1233,6 +1233,8 @@ let JBN=LSU('_jbn',{});   /* 거래처 → 지번주소 (GPS 대조용) */
 /* 용차 계산기 화면 상태 — 앱이 켜질 때 render() 가 바로 쓰므로 위쪽에 선언해 둔다.
    (2026-08-28: 아래쪽에 있어서 마지막 탭이 '용차'면 켜자마자 오류가 났다) */
 let YCT='1',YCR='',YCQ=1,YCC=0,YCF=0;
+/* 용차 계산기 거래처 고르기 — 날짜(비면 보고 있는 날)·전체 보기 (2026-10-30) */
+let YCCD='',YCCALL=false;
 /* 용차계산기 입력 방식 — 0: 개수로(신부장님 기준) / 1: 직접 재서(가로×세로×높이) */
 let YCMD=0,YCBW=60,YCBD=60,YCBH=90,YCBQ=0,YCBT=0;
 function ycMode(m){YCMD=+m||0;render()}
@@ -1551,7 +1553,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261030a';
+const APPVER='20261030b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5541,6 +5543,9 @@ function tabYcb(){
  return h+'</div>';
 }
 function tabYc(today){
+ /* 계산기에서 날짜를 골랐으면 아래 표(넘는 곳·직납)도 그날로 (2026-10-30) */
+ const YD=YCCD||SEL;
+ if(YD!==SEL)today=ORDERS.filter(function(o){return o.d===YD});
  /* ① 오늘 한 차를 넘는 곳 — 용차로 빼야 하는 물량 */
  const over=[];
  today.forEach(function(o){
@@ -5554,25 +5559,32 @@ function tabYc(today){
  const jn=today.filter(function(o){return ASSIGN[o.i]==='jn'&&(o.load||0)>0.5});
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
- h+='<div class="ycnote"><b>의자·장 개수를 넣으면 몇 톤·몇 m 차를 불러야 하는지</b> 나옵니다. 거래처를 고르면 오늘 물량이 자동으로 들어갑니다.<br>'
+ h+='<div class="ycnote"><b>의자·장 개수를 넣으면 몇 톤·몇 m 차를 불러야 하는지</b> 나옵니다. 날짜를 고르면 그날 <b>용차·직납 건</b>이 거래처 목록에 뜨고, 고르면 물량이 자동으로 들어갑니다.<br>'
   +'우리 <b>3.5톤 대형</b> 동선의 적재 기준은 <b>신부장님 기준 그대로 1톤의 1.2배</b>로 두었습니다 — 바꾸지 않았습니다.<br>'
   +'<b>직접 재서 넣기</b>를 누르면 가로×세로×높이(cm)와 개수로 CBM·적재길이를 계산합니다. 합바차는 이 <b>적재길이(m)</b>가 곧 부르는 단위입니다.</div>';
 
  /* ---- 물량 넣으면 어떤 차를 불러야 하는지 ---- */
  h+='<div class="dcard yccalc"><b>어떤 차를 불러야 하나</b>'
   +'<div class="ycrow"><label>지역</label><input id="ycreg" value="'+(YCR||'').replace(/"/g,'')+'" placeholder="평택 · 강남구 · 대전 …" oninput="YCR=this.value;drawYcOne()"></div>'
-  +'<div class="ycrow"><label>거래처</label><select id="yccu" onchange="ycPick2(this.value)">'
-  +'<option value="">— 오늘 배차에서 고르기 —</option>'
   +(function(){
+     /* 2026-10-30: 오늘 배차 말고 날짜를 골라, 그날 용차·직납 건만 불러온다 (적요 용차·상차·직납·화물…, 다른 시·구 주소, 직납 칸).
+        «전체» 를 켜면 그날 전부. */
+     const cd=YCCD||SEL;
+     const tag=function(o){if(ASSIGN&&ASSIGN[o.i]==='jn')return '직납';const m=String(o.memo||'').match(YCB_RE);if(m)return m[0];return o.dst?'직납':''};
      /* 2026-09-03: 목록은 물량 순으로 정렬해 뿌리면서 window._YCT 에는
         정렬 안 한 배열을 넣어 두는 바람에 번호가 어긋나 엉뚱한 거래처가 잡히거나
         아무 반응이 없었다. 정렬한 배열을 그대로 저장한다. */
-     const L=today.slice().sort(function(a,b){return b.load-a.load});
+     const L=ORDERS.filter(function(o){return o.d===cd&&ST[o.i]!=='del'&&(YCCALL||tag(o))}).sort(function(a,b){return b.load-a.load});
      window._YCT=L;
-     return L.map(function(o,k){
-      return '<option value="'+k+'">'+o.n.slice(0,18)+' · 의자 '+o.qty+'개</option>'}).join('');
+     return '<div class="ycrow"><label>날짜</label><input type="date" value="'+cd+'" onchange="YCCD=this.value;render()">'
+      +'<label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCCALL?' checked':'')
+      +' onchange="YCCALL=this.checked;render()"> 전체</label></div>'
+      +'<div class="ycrow"><label>거래처</label><select id="yccu" onchange="ycPick2(this.value)">'
+      +'<option value="">— '+cd.slice(5).replace('-','/')+' '+(YCCALL?'전체':'용차·직납')+' '+L.length+'건 —</option>'
+      +L.map(function(o,k){const t=tag(o);
+       return '<option value="'+k+'">'+o.n.slice(0,18)+' · 의자 '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대'+(t?' ['+t+']':'')+'</option>'}).join('')
+      +'</select></div>';
    })()
-  +'</select></div>'
   +'<div class="ycmode"><button class="'+(YCMD?'':'on')+'" onclick="ycMode(0)">개수로 넣기</button>'
   +'<button class="'+(YCMD?'on':'')+'" onclick="ycMode(1)">직접 재서 넣기</button></div>'
   +(YCMD?(
@@ -5587,10 +5599,9 @@ function tabYc(today){
      +'<div class="ycrow"><label>장·캐비닛</label><input type="number" id="ycf" min="0" value="'+(YCF||0)+'" oninput="YCF=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개 (800×600 기준)</span></div>'
    ))
   +'<div id="ycone"></div></div>';
- if(!window._YCT)window._YCT=today;
 
  /* ---- 오늘 넘치는 물량 ---- */
- h+='<div class="hd2">🚨 한 차를 넘는 곳 — 용차 검토 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+SEL+'</span></div>';
+ h+='<div class="hd2">🚨 한 차를 넘는 곳 — 용차 검토 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+YD+'</span></div>';
  if(!over.length)h+='<div class="dcard" style="color:#8b9aab">한 차를 넘는 곳이 없습니다.</div>';
  else{
   let sum=0;
@@ -5646,7 +5657,8 @@ function ycPick2(k){
   if(c&&/캐비닛|사물함|장 |책장|800\*600/.test(c.l||''))fu+=it.q;else ch+=it.q;
  });
  YCC=ch;YCF=fu;
- const ad=(ADDR[o.n]||'')+' '+(o.memo||'')+' '+o.n;
+ /* 직납은 적요의 배송지(dst)가 먼저 — 거래처 매장 주소로 지역을 잡으면 틀린다 */
+ const ad=(o.dst?o.dst+' ':'')+(o.memo||'')+' '+(ADDR[o.n]||'')+' '+o.n;
  YCR=ycRegion(ad)||YCR;
  render();
 }
