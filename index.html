@@ -559,6 +559,19 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .ujpage{width:297mm;height:210mm;background:#fff;margin:0 auto 12px;display:flex;box-shadow:0 2px 10px rgba(0,0,0,.15);box-sizing:border-box;color:#000}
 .ujhalf{width:148.5mm;height:210mm;box-sizing:border-box;padding:9mm 0 0 5.25mm;position:relative}
 .ujhalf+.ujhalf{border-left:1px dashed #c3ccd6}
+/* 용차 세트 인쇄 — A4 세로, 위·아래 반쪽 (2026-10-30) */
+.ujsp{width:210mm;height:297mm;background:#fff;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;color:#000}
+.ujsp:last-child,.ujsl:last-child{page-break-after:auto;break-after:auto}
+.ujsh{width:210mm;height:148.5mm;box-sizing:border-box;padding:5mm;display:flex;align-items:center;justify-content:center}
+.ujsh+.ujsh{border-top:1px dashed #bbb}
+.ujsh img{max-width:100%;max-height:100%;object-fit:contain}
+.ujsno{font-size:14pt;color:#888;text-align:center;line-height:1.7}
+.ujsl{width:297mm;height:210mm;background:#fff;display:flex;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;color:#000}
+.ujsl .ujhalf+.ujhalf{border-left:1px dashed #c3ccd6}
+.ujkk{padding:6mm!important;display:flex;align-items:center;justify-content:center}
+.ujkk img{max-width:100%;max-height:100%;object-fit:contain}
+.ujsr{padding:0!important}
+.ujsr img{width:210mm;height:148.5mm;max-width:none;max-height:none;object-fit:fill}
 .ujf{width:138mm;font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#000;font-size:11pt}
 .ujf table{border-collapse:collapse;width:100%;table-layout:fixed}
 .ujf td{border:1px solid #000;text-align:center;vertical-align:middle;padding:0 2mm;word-break:keep-all;overflow-wrap:anywhere}
@@ -1552,7 +1565,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261030e';
+const APPVER='20261030g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5605,7 +5618,8 @@ function tabUj(){
  h+='<div class="dcard" style="cursor:default">'
   +'<div class="ycrow"><label style="white-space:nowrap">① 날짜</label><select onchange="ujSetD(this.value)">'
   +ds.map(function(d){const n=ujList(d).length;return '<option value="'+d+'"'+(d===UJD?' selected':'')+'>'+md(d)+' ('+'일월화수목금토'[new Date(d+'T00:00:00').getDay()]+') · '+n+'대</option>'}).join('')+'</select>'
-  +'<button class="btn" style="margin-left:10px" onclick="ujPrint()"'+(L.length?'':' disabled')+'>🖨️ 인쇄 ('+L.length+'장 → A4 '+Math.ceil(L.length/2)+'장)</button></div>'
+  +'<button class="btn" style="margin-left:10px" onclick="ujPrint()"'+(L.length?'':' disabled')+'>🖨️ 인쇄 ('+L.length+'장 → A4 '+Math.ceil(L.length/2)+'장)</button>'
+  +'<button class="btn" style="margin-left:8px;background:#1e8a4b" onclick="ujSetPrint()"'+(L.length?'':' disabled')+' title="용차 한 대마다 — A4 가로: 운임지출결의서 | 수기전표, A4 세로: sERP 거래명세표(공급자용)">🧾 세트 인쇄 ('+L.length+'세트)</button></div>'
   +'<div class="ujpick">'+(all.length?all.map(function(e){const key=e.co+'|'+e.k,cb=e.y.co==='착불',on=ujOn(e);
     return '<label class="'+(on?'on':'')+'"><input type="checkbox"'+(on?' checked':'')+' onchange="ujTog(\''+esc(key)+'\',this.checked,'+(cb?1:0)+')"> '
      +'<b style="color:'+(YC_COLOR[e.co]||'#555')+'">'+esc(e.co.replace('물류',''))+'</b> '+esc(e.names[0].slice(0,14))+(e.names.length>1?' 외 '+(e.names.length-1):'')
@@ -5613,10 +5627,8 @@ function tabUj(){
  h+='<div class="ujprev" id="ujprev">'+(L.length?ujPages(L):'')+'</div></div>';
  return h}
 /* ===== 🖨️ 용차 한 세트 인쇄 (2026-10-30) =====
-   용차 한 대 = A4 세로 2장.
-   1장: 위 = 수기전표(금액 없음, 가로판) / 아래 = sERP 거래명세표 «공급자 보관용» 반쪽 (그날 statements PDF 에서 그 거래처 쪽)
-        같은 차에 거래처가 여럿이면 거래처마다 1장씩.
-   2장: 운임지출결의서 (위쪽). */
+   용차 한 대 = A4 가로 1장(왼쪽 운임지출결의서 | 오른쪽 수기전표) + A4 세로(위 반쪽 sERP 거래명세표 «공급자 보관용»).
+   sERP 쪽은 그날 statements PDF 에서 그 거래처 전표를 찾아 위 반쪽만 자른다. */
 const UJS_PDF={};   /* 날짜별로 읽은 sERP PDF — {doc, units} */
 async function ujsPdf(d){
  if(UJS_PDF[d])return UJS_PDF[d];
@@ -5646,25 +5658,31 @@ async function ujSetPrint(){
  const L=ujList(UJD).filter(ujOn);if(!L.length)return toast('뽑을 용차가 없습니다');
  toast('세트 만드는 중… (sERP 명세서 PDF 읽는 중)');
  try{await msbLibs()}catch(e){return alert('PDF 도구를 못 불러왔습니다: '+e.message)}
+ /* 2026-10-30 사장님 사진대로: 1장 = A4 가로, 왼쪽 운임지출결의서 | 오른쪽 수기전표(세로판).
+    그다음 장 = A4 세로, 위 반쪽에 sERP 거래명세표 공급자용 (원본과 같은 크기·자리). 거래처·전표마다 한 장씩. */
  let h='',miss=[];
  for(const e of L){
-  for(const y of e.ys){
-   const kk=kkDraw(y,kkItems(y),true).toDataURL('image/jpeg',0.9);
+  const ys=e.ys,kks=[],sps=[];
+  for(const y of ys){
+   kks.push(kkDraw(y,kkItems(y)).toDataURL('image/jpeg',0.9));
    let sp=[];try{sp=await ujsSerp(y)}catch(er){console.warn(er)}
    if(!sp.length)miss.push(y.n);
-   h+='<div class="ujsp"><div class="ujsh"><img src="'+kk+'"></div><div class="ujsh">'
-    +(sp.length?'<img src="'+sp[0]+'">':'<div class="ujsno">sERP 거래명세표를 못 찾았습니다<br>'+esc(y.n)+' · '+md(y.d)+'<br><small>명세서묶기 탭에서 그날 PDF 를 먼저 뽑아 주세요</small></div>')+'</div></div>';
-   /* 같은 거래처 전표가 여러 장이면 공급자용만 이어서 반쪽씩 */
-   for(let i=1;i<sp.length;i+=2)h+='<div class="ujsp"><div class="ujsh"><img src="'+sp[i]+'"></div><div class="ujsh">'+(sp[i+1]?'<img src="'+sp[i+1]+'">':'')+'</div></div>';
+   sps.push({y:y,sp:sp});
   }
-  h+='<div class="ujsp"><div class="ujsj">'+ujForm(e,false)+'</div></div>';
+  /* 가로 장: 결의서 + 첫 거래처 수기전표, 같은 차에 거래처가 더 있으면 수기전표를 둘씩 이어서 */
+  h+='<div class="ujsl"><div class="ujhalf">'+ujForm(e,false)+'</div><div class="ujhalf ujkk"><img src="'+kks[0]+'"></div></div>';
+  for(let i=1;i<kks.length;i+=2)h+='<div class="ujsl"><div class="ujhalf ujkk"><img src="'+kks[i]+'"></div><div class="ujhalf ujkk">'+(kks[i+1]?'<img src="'+kks[i+1]+'">':'')+'</div></div>';
+  sps.forEach(function(s){
+   if(!s.sp.length){h+='<div class="ujsp"><div class="ujsh"><div class="ujsno">sERP 거래명세표를 못 찾았습니다<br>'+esc(s.y.n)+' · '+md(s.y.d)+'<br><small>명세서묶기 탭에서 그날 PDF 를 먼저 뽑아 주세요</small></div></div></div>';return}
+   s.sp.forEach(function(src){h+='<div class="ujsp"><div class="ujsh ujsr"><img src="'+src+'"></div></div>'})});
  }
  let el=document.getElementById('ycbprt');
  if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
  el.innerHTML='<div class="ujsset">'+h+'</div>';
  el.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable')});
+ /* 가로 장과 세로 장이 섞인다 — 크롬의 이름 붙인 @page 로 장마다 방향을 정한다 */
  const st=document.createElement('style');
- st.textContent='@media print{@page{size:A4 portrait;margin:0}}';
+ st.textContent='@media print{@page{size:A4 portrait;margin:0}@page ujland{size:A4 landscape;margin:0}@page ujport{size:A4 portrait;margin:0}#ycbprt .ujsl{page:ujland}#ycbprt .ujsp{page:ujport}}';
  document.head.appendChild(st);
  document.body.classList.add('ycbprint');
  const off=function(){document.body.classList.remove('ycbprint');if(st.parentNode)st.parentNode.removeChild(st);window.removeEventListener('afterprint',off)};
