@@ -1552,7 +1552,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261030d';
+const APPVER='20261030e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4279,8 +4279,10 @@ function kkDays(x){const t=String(x.mm||'').replace(/\s+/g,''),m0=+x.d.slice(5,7
  const up=dd(/(?:(\d{1,2})\/)?(\d{1,2})일?상차/)||md(x.d);
  const dn=dd(/(?:(\d{1,2})\/)?(\d{1,2})일?(?:도착|하차)/);
  return {up:up,dn:dn}}
-function kkDraw(x,items){
- const W=760,H=1060,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+/* land=true → A4 반쪽(가로로 긴 A5)에 꽉 차게 찍는 가로판 (2026-10-30 세트 인쇄) */
+function kkDraw(x,items,land){
+ const W=land?1120:760,H=land?790:1060,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+ const kx=(W-60)/700,XS=function(v){return Math.round(30+(v-30)*kx)};
  const F=function(s,b){return (b?'bold ':'')+s+'px "Malgun Gothic","맑은 고딕",sans-serif'};
  g.fillStyle='#fff';g.fillRect(0,0,W,H);
  const R='#c0392b',B='#222',BL='#1b4fa8';
@@ -4298,33 +4300,34 @@ function kkDraw(x,items){
  g.fillStyle=B;g.font=F(22);
  g.fillText(x.d.slice(0,4)+' 년  '+(+x.d.slice(5,7))+' 월  '+(+x.d.slice(8,10))+' 일',50,190);
  const cn=String(x.n||'').replace(/\d*\*?$/,'').trim();
- g.font=F(cn.length>12?18:22,1);g.fillText(cn,50,240);g.font=F(20,1);g.fillStyle=R;g.fillText('귀하',300,240);
+ g.font=F(cn.length>12?18:22,1);g.fillText(cn,50,240);g.font=F(20,1);g.fillStyle=R;g.fillText('귀하',XS(300),240);
  g.fillStyle=B;g.font=F(17);g.fillText('아래와 같이 계산합니다.',50,285);
  /* 오른쪽 — 공급자 */
- const SX=370;g.strokeStyle=R;g.strokeRect(SX,148,X1-SX,150);
+ const SX=XS(370);g.strokeStyle=R;g.strokeRect(SX,148,X1-SX,150);
  const rows=[['등록번호','137-81-50515'],['상    호','(주)광일체어   성명 오상현'],['주    소','인천시 서구 건지로109번길 21(석남동)'],['업    태','제조        종목  의자']];
  rows.forEach(function(r,i){const y=148+i*37.5;if(i){g.beginPath();g.moveTo(SX,y);g.lineTo(X1,y);g.stroke()}
   g.fillStyle=R;g.font=F(14);g.fillText(r[0],SX+8,y+24);g.fillStyle=B;g.font=F(i?15:20,!i);g.fillText(r[1],SX+82,y+25)});
  g.beginPath();g.moveTo(SX+74,148);g.lineTo(SX+74,298);g.stroke();
  g.beginPath();g.moveTo(X0,298);g.lineTo(X1,298);g.stroke();
  /* 품목 표 — 금액 칸은 비운다 */
- const cols=[X0,290,410,480,560,660,X1],hy=340;
+ const cols=[X0,XS(290),XS(410),XS(480),XS(560),XS(660),X1],hy=340;
  g.fillStyle='#fdecea';g.fillRect(X0+1,300,X1-X0-2,38);
  g.fillStyle=R;g.font=F(16,1);['품    명','규 격','수 량','단 가','공급가액','세 액'].forEach(function(t,i){g.fillText(t,cols[i]+(cols[i+1]-cols[i]-g.measureText(t).width)/2,325)});
  g.beginPath();g.moveTo(X0,hy-2);g.lineTo(X1,hy-2);g.stroke();
- const RH=36,NR=14;
+ const RH=36,NR=land?10:14;
  for(let i=1;i<=NR;i++){g.strokeStyle='#e8b4ae';g.lineWidth=1;g.beginPath();g.moveTo(X0,hy+i*RH);g.lineTo(X1,hy+i*RH);g.stroke()}
  g.strokeStyle=R;g.lineWidth=1.5;cols.slice(1,-1).forEach(function(cx){g.beginPath();g.moveTo(cx,300);g.lineTo(cx,hy+NR*RH);g.stroke()});
  g.fillStyle=B;let r=0;
- items.slice(0,7).forEach(function(it){r++;const y=hy+r*RH-11;
+ const MI=land?5:7;
+ items.slice(0,MI).forEach(function(it){r++;const y=hy+r*RH-11;
   g.font=F(16);let p=it.p;while(p.length>1&&g.measureText(p).width>cols[1]-cols[0]-12)p=p.slice(0,-1);g.fillText(p,X0+8,y);
   g.font=F(14);let s=it.s;while(s.length>1&&g.measureText(s).width>cols[2]-cols[1]-10)s=s.slice(0,-1);g.fillText(s,cols[1]+6,y);
   g.font=F(18,1);const q=String(it.q);g.fillText(q,cols[2]+(cols[3]-cols[2]-g.measureText(q).width)/2,y)});
- if(items.length>7){r++;g.font=F(15);g.fillText('외 '+(items.length-7)+'가지',X0+8,hy+r*RH-11)}
+ if(items.length>MI){r++;g.font=F(15);g.fillText('외 '+(items.length-MI)+'가지',X0+8,hy+r*RH-11)}
  /* 도착지 — 적요(주소·전화) 손글씨 자리 */
  const mm=String(x.mm||'').trim();
  g.fillStyle=BL;g.font=F(20,1);
- const words=mm.split(/(?<=[\s,\/)])/);let line='',ly=hy+(Math.max(r,3)+1.4)*RH;
+ const words=mm.split(/(?<=[\s,\/)])/);let line='',ly=hy+(Math.max(r,land?2:3)+1.4)*RH;
  words.forEach(function(w){if(g.measureText(line+w).width>X1-X0-60){g.fillText(line.trim(),X0+30,ly);ly+=RH;line=w}else line+=w});
  if(line.trim()){g.fillText(line.trim(),X0+30,ly);ly+=RH}
  const ph=(mm.match(/01\d[-\s.]?\d{3,4}[-\s.]?\d{4}/)||[])[0];
@@ -4353,7 +4356,7 @@ function ycbKkOpen(co,k){
   +'<div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap"><button class="btn" id="kkgo" onclick="ycbKkSend()" style="flex:1 1 140px">📨 전송</button>'
   +'<button class="btn g" onclick="ycbKkSave()">그림 저장</button>'
   +'<button class="btn g" onclick="document.getElementById(\'kkbox\').remove()">닫기</button></div>'
-  +'<div style="font-size:11.5px;color:#8b9aab">전송을 누르면 사무실 PC 카카오톡이 «찾는 말»로 방을 찾아 그림 → 메시지 순서로 보냅니다. 그 PC 에 카톡보내기 프로그램이 켜져 있어야 합니다.</div>'
+  +'<div style="font-size:11.5px;color:#8b9aab">전송을 누르면 사무실 PC 카카오톡이 «찾는 말»로 방을 열고, 메시지는 입력칸에 넣고 그림은 복사해 둡니다. 카톡 창에서 <b>Ctrl+V → Enter</b>(그림), <b>Enter</b>(글)만 누르세요. (은행 보안프로그램이 자동 키 입력을 막아 마지막은 사람이 누릅니다)</div>'
   +'</div></div>';
 }
 function ycbKkSave(){if(!KKX)return;const a=document.createElement('a');a.href=KKX.img;a.download='수기전표_'+KKX.co+'.jpg';document.body.appendChild(a);a.click();a.remove()}
@@ -4368,16 +4371,19 @@ async function ycbKkSend(){
   const r=await fetch(SB_URL+'/rest/v1/board',{method:'POST',headers:H,body:JSON.stringify([{id:14,data:{req:{id:id,ts:Date.now(),room:room,text:text,img:KKX.img,who:ME||''}},updated_at:new Date().toISOString()}])});
   if(!r.ok)throw new Error('HTTP '+r.status);
  }catch(e){bt.disabled=false;st.textContent='❌ 요청을 못 올렸습니다: '+e.message;return}
- const t0=Date.now();
+ const t0=Date.now();let seen=0;
  (function poll(){setTimeout(async function(){
   try{const j=await fetch(SB_URL+'/rest/v1/board?id=eq.14&select=st:data->st',{headers:H}).then(function(r){return r.json()});
    const s=j&&j[0]&&j[0].st;
    if(s&&s.id===id){
-    if(s.state==='끝'){st.textContent='✅ '+room+' 방으로 보냈습니다';toast('📨 카톡 보냈습니다 — '+room);bt.disabled=false;return}
+    if(s.state==='끝'){st.textContent='✅ 보냈습니다 — '+(s.msg||room);toast('📨 카톡 보냈습니다 — '+room);bt.disabled=false;return}
     if(s.state==='실패'){st.textContent='❌ 못 보냈습니다: '+(s.msg||'');bt.disabled=false;return}
-    st.textContent='… '+(s.msg||s.state)}
+    /* 준비 = 방이 열리고 메시지가 입력칸에 들어감, 그림은 복사돼 있음 → 사람이 Ctrl+V·Enter (nProtect 때문에 반자동) */
+    if(s.state==='준비'){st.innerHTML='📋 <b>'+esc(s.msg||'')+'</b>';bt.disabled=false;seen=1}
+    else st.textContent='… '+(s.msg||s.state)}
   }catch(e){}
-  if(Date.now()-t0>90000){st.textContent='⚠ 90초 안에 답이 없습니다 — 사무실 PC 카톡보내기 프로그램이 켜져 있는지 확인하세요';bt.disabled=false;return}
+  if(!seen&&Date.now()-t0>90000){st.textContent='⚠ 90초 안에 답이 없습니다 — 사무실 PC 카톡보내기 프로그램이 켜져 있는지 확인하세요';bt.disabled=false;return}
+  if(Date.now()-t0>330000)return;
   poll()},2000)})();
 }
 /* 그 주 전체를 카톡용으로 — 줄 사이는 빈 줄 */
@@ -5606,6 +5612,68 @@ function tabUj(){
      +' · '+esc(e.y.tnm||'')+' · '+(cb?'<i>착불</i>':won(+e.y.fee||0)+'원')+'</label>'}).join(''):'<span style="color:#8b9aab">그날 용차가 없습니다.</span>')+'</div></div>';
  h+='<div class="ujprev" id="ujprev">'+(L.length?ujPages(L):'')+'</div></div>';
  return h}
+/* ===== 🖨️ 용차 한 세트 인쇄 (2026-10-30) =====
+   용차 한 대 = A4 세로 2장.
+   1장: 위 = 수기전표(금액 없음, 가로판) / 아래 = sERP 거래명세표 «공급자 보관용» 반쪽 (그날 statements PDF 에서 그 거래처 쪽)
+        같은 차에 거래처가 여럿이면 거래처마다 1장씩.
+   2장: 운임지출결의서 (위쪽). */
+const UJS_PDF={};   /* 날짜별로 읽은 sERP PDF — {doc, units} */
+async function ujsPdf(d){
+ if(UJS_PDF[d])return UJS_PDF[d];
+ const b=await msbFile(d);if(!b)return (UJS_PDF[d]={doc:null,units:[]});
+ const units=await msbParse(b);
+ const doc=await pdfjsLib.getDocument({data:new Uint8Array(b.slice(0))}).promise;
+ return (UJS_PDF[d]={doc:doc,units:units})}
+/* 그 거래처 전표의 위 반쪽(공급자 보관용)을 그림으로 */
+async function ujsSerp(y){
+ const nz=function(s){return String(s||'').replace(/\s+/g,'')},un=nz(y.n);
+ const same=function(n){const a=nz(n);return a===un||(a.length>=6&&un.indexOf(a)===0)||(un.length>=6&&a.indexOf(un)===0)};
+ /* 그 거래처의 판매명세서 거래일자들 — 상차일(y.d)과 다를 수 있다 */
+ const ds=[];ORDERS.forEach(function(o){if(o.n!==y.n||ST[o.i]==='del')return;
+  let sd='';if(o.d!==y.d){try{sd=shipDate(o)||''}catch(e){}if(sd!==y.d)return}
+  (o.items||[]).forEach(function(it){if(it.d&&ds.indexOf(it.d)<0)ds.push(it.d)})});
+ if(ds.indexOf(y.d)<0)ds.push(y.d);
+ const out=[];
+ for(const d of ds){const P=await ujsPdf(d);if(!P.doc)continue;
+  for(const u of P.units){if(!u.ok||!same(u.n))continue;
+   const pg=await P.doc.getPage(u.pages[0]),vp=pg.getViewport({scale:2.2});
+   const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+   await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+   const h=document.createElement('canvas');h.width=c.width;h.height=Math.round(c.height/2);
+   h.getContext('2d').drawImage(c,0,0);out.push(h.toDataURL('image/jpeg',0.85))}}
+ return out}
+async function ujSetPrint(){
+ const L=ujList(UJD).filter(ujOn);if(!L.length)return toast('뽑을 용차가 없습니다');
+ toast('세트 만드는 중… (sERP 명세서 PDF 읽는 중)');
+ try{await msbLibs()}catch(e){return alert('PDF 도구를 못 불러왔습니다: '+e.message)}
+ let h='',miss=[];
+ for(const e of L){
+  for(const y of e.ys){
+   const kk=kkDraw(y,kkItems(y),true).toDataURL('image/jpeg',0.9);
+   let sp=[];try{sp=await ujsSerp(y)}catch(er){console.warn(er)}
+   if(!sp.length)miss.push(y.n);
+   h+='<div class="ujsp"><div class="ujsh"><img src="'+kk+'"></div><div class="ujsh">'
+    +(sp.length?'<img src="'+sp[0]+'">':'<div class="ujsno">sERP 거래명세표를 못 찾았습니다<br>'+esc(y.n)+' · '+md(y.d)+'<br><small>명세서묶기 탭에서 그날 PDF 를 먼저 뽑아 주세요</small></div>')+'</div></div>';
+   /* 같은 거래처 전표가 여러 장이면 공급자용만 이어서 반쪽씩 */
+   for(let i=1;i<sp.length;i+=2)h+='<div class="ujsp"><div class="ujsh"><img src="'+sp[i]+'"></div><div class="ujsh">'+(sp[i+1]?'<img src="'+sp[i+1]+'">':'')+'</div></div>';
+  }
+  h+='<div class="ujsp"><div class="ujsj">'+ujForm(e,false)+'</div></div>';
+ }
+ let el=document.getElementById('ycbprt');
+ if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
+ el.innerHTML='<div class="ujsset">'+h+'</div>';
+ el.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable')});
+ const st=document.createElement('style');
+ st.textContent='@media print{@page{size:A4 portrait;margin:0}}';
+ document.head.appendChild(st);
+ document.body.classList.add('ycbprint');
+ const off=function(){document.body.classList.remove('ycbprint');if(st.parentNode)st.parentNode.removeChild(st);window.removeEventListener('afterprint',off)};
+ window.addEventListener('afterprint',off);
+ if(miss.length)toast('sERP 명세서 못 찾음: '+miss.join(', '));
+ const imgs=[].slice.call(el.querySelectorAll('img'));
+ await Promise.all(imgs.map(function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r})}));
+ setTimeout(function(){window.print();setTimeout(off,400)},120);
+}
 function ujPrint(){
  const src=document.getElementById('ujprev');if(!src||!src.querySelector('.ujpage'))return toast('뽑을 결의서가 없습니다');
  let el=document.getElementById('ycbprt');
