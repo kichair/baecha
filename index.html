@@ -1565,7 +1565,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261102i';
+const APPVER='20261102k';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3822,6 +3822,12 @@ function onOrders(fs){
       같은 파일을 두 번 올리거나, 적요만 채워진 다른 명세서를 겹쳐 올리는 경우까지 잡는다 */
    const key=function(l){return [l.d,l.n,l.p,l.s,l.q,l.m,l.sj||''].join(RSEP)};
    const bkey=function(l){return [l.d,l.n,l.p,l.s,l.q].join(RSEP)};
+   /* 2026-11-02 사장님 «판매명세서를 직접 올렸는데 용차내역서에 수정이 안 됨»: 합치기는 새 줄만 보태서
+      수량을 고친 전표(10→12)는 옛 10 줄이 그대로 남고 12 줄이 더해졌다 → 같은 날·거래처·품목·규격이 올린 파일에 있는데
+      그 수량은 없으면 수량이 바뀐 것으로 보고 옛 줄을 지운다 (같은 쪽 광일/삼정만). 품목이 아예 빠진 건 합치기로는 못 알고 «교체» 로 */
+   const gk=function(l){return [l.d,l.n,l.p,l.s,l.sj||''].join(RSEP)};
+   const inG={},inB={};ALL.forEach(function(l){inG[gk(l)]=1;inB[bkey(l)+RSEP+(l.sj||'')]=1});
+   RAW=RAW.filter(function(l){return !(nd.indexOf(l.d)>=0&&inG[gk(l)]&&!inB[bkey(l)+RSEP+(l.sj||'')])});
    const seen={},bag={};
    RAW.forEach(function(l){seen[key(l)]=1;(bag[bkey(l)]=bag[bkey(l)]||[]).push((l.m||'').trim())});
    const add=ALL.filter(function(l){
@@ -4363,17 +4369,18 @@ function kkDraw(x,items,land){
 function ycbKkOpen(co,k){
  const x=ycbRows(co)[k];if(!x)return;
  const items=kkItems(x);
- KKX={co:co,k:k,img:kkDraw(x,items).toDataURL('image/jpeg',0.88)};
+ KKX={co:co,k:k,x:x,items:items,img:kkDraw(x,items).toDataURL('image/jpeg',0.88)};
  let el=document.getElementById('kkbox');
  if(!el){el=document.createElement('div');el.id='kkbox';document.body.appendChild(el)}
  el.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(15,25,40,.55);display:flex;align-items:center;justify-content:center;padding:12px';
  el.innerHTML='<div style="background:#fff;border-radius:14px;max-width:880px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;gap:14px;flex-wrap:wrap">'
-  +'<img src="'+KKX.img+'" style="width:360px;max-width:100%;border:1px solid #dde3ea;border-radius:8px">'
+  +'<div style="width:360px;max-width:100%"><img id="kkimg" src="'+KKX.img+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px">'
+  +'<div id="kkrows" style="margin-top:6px">'+kkRowsHtml()+'</div></div>'
   +'<div style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:8px">'
   +'<div style="display:flex;align-items:center"><b style="font-size:16px;flex:1">📷 수기전표 카톡 — '+esc(co)+'</b>'
   +'<button onclick="kkClose()" title="닫기 (Esc)" style="border:0;background:#eef2f7;color:#334155;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer">✕</button></div>'
   +'<label style="font-size:13px;color:#5b6b7c">보낼 카톡방 (찾는 말)<input id="kkroom" value="'+esc(KK_ROOM[co]||co)+'" style="width:100%;padding:7px;border:1px solid #cfd8e3;border-radius:8px;margin-top:3px"></label>'
-  +'<label style="font-size:13px;color:#5b6b7c">같이 보낼 메시지<textarea id="kktxt" rows="8" style="width:100%;padding:7px;border:1px solid #cfd8e3;border-radius:8px;margin-top:3px">'+esc(ycbTxt1(x))+'</textarea></label>'
+  +'<label style="font-size:13px;color:#5b6b7c">같이 보낼 메시지<textarea id="kktxt" rows="8" oninput="kkTxtIn()" style="width:100%;padding:7px;border:1px solid #cfd8e3;border-radius:8px;margin-top:3px">'+esc(ycbTxt1(x))+'</textarea></label>'
   +(items.length?'':'<div style="color:#c0392b;font-size:12.5px">⚠ 이 날짜 판매명세서에서 품목을 못 찾았습니다 — 그림의 품목 칸이 비어 있습니다.</div>')
   +'<div id="kkst" style="font-size:13px;color:#5b6b7c"></div>'
   +'<div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap"><button class="btn" id="kkgo" onclick="ycbKkSend()" style="flex:1 1 140px">📨 전송</button>'
@@ -4384,6 +4391,29 @@ function ycbKkOpen(co,k){
  el.onclick=function(ev){if(ev.target===el)kkClose()};
  document.addEventListener('keydown',kkEsc);
 }
+/* 그림의 품목·수량 고치기 (2026-11-02 사장님 «의자 10개에서 12개로 수정했는데 … 수정 안 되니») —
+   그림 아래 줄마다 품목·규격·수량 칸. 고치면 그림을 다시 그리고 메시지의 «의자 N개» 도 맞춘다.
+   메시지 쪽에서 «의자 N개» 를 고쳐도 광일 품목이 한 줄이면 그 수량을 따라간다. */
+function kkRowsHtml(){const L=(KKX&&KKX.items)||[];
+ return '<div style="font-size:12px;color:#5b6b7c;margin-bottom:3px">그림 품목 — 고치면 그림이 바로 바뀝니다</div>'
+  +L.map(function(it,i){return '<div style="display:flex;gap:4px;margin-bottom:3px">'
+   +'<input value="'+esc(it.p)+'" onchange="kkRowIn('+i+',\'p\',this.value)" placeholder="품목" style="flex:3;min-width:0;padding:4px;border:1px solid #cfd8e3;border-radius:6px;font-size:12.5px">'
+   +'<input value="'+esc(it.s)+'" onchange="kkRowIn('+i+',\'s\',this.value)" placeholder="규격" style="flex:2;min-width:0;padding:4px;border:1px solid #cfd8e3;border-radius:6px;font-size:12.5px">'
+   +'<input type="number" min="0" id="kkq'+i+'" value="'+(it.q||0)+'" oninput="kkRowIn('+i+',\'q\',this.value)" style="width:58px;padding:4px;border:1px solid #cfd8e3;border-radius:6px;font-size:13px;font-weight:700;text-align:right">'
+   +'<button onclick="kkRowDel('+i+')" title="줄 빼기" style="border:0;background:#eef2f7;border-radius:6px;width:26px;cursor:pointer">✕</button></div>'}).join('')
+  +'<button onclick="kkRowAdd()" style="border:1px dashed #b8c4d2;background:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:#334155">+ 줄 추가</button>'}
+function kkRedraw(){if(!KKX)return;KKX.img=kkDraw(KKX.x,KKX.items).toDataURL('image/jpeg',0.88);const im=document.getElementById('kkimg');if(im)im.src=KKX.img}
+function kkChairs(){return (KKX.items||[]).reduce(function(a,it){return a+(sjItem({p:it.p,s:it.s})?0:(+it.q||0))},0)}
+/* 메시지의 «의자 N개» 를 그림 수량 합에 맞춘다 */
+function kkTxtSync(){const ta=document.getElementById('kktxt');if(!ta)return;const n=kkChairs();
+ if(/의자\s*\d+\s*개/.test(ta.value))ta.value=ta.value.replace(/의자\s*\d+\s*개/,'의자 '+n+'개')}
+function kkRowIn(i,f,v){const it=KKX.items[i];if(!it)return;if(f==='q')it.q=+v||0;else it[f]=v;kkRedraw();if(f==='q')kkTxtSync()}
+function kkRowDel(i){KKX.items.splice(i,1);document.getElementById('kkrows').innerHTML=kkRowsHtml();kkRedraw();kkTxtSync()}
+function kkRowAdd(){KKX.items.push({p:'',s:'',q:1});document.getElementById('kkrows').innerHTML=kkRowsHtml();kkRedraw();kkTxtSync()}
+function kkTxtIn(){const m=(document.getElementById('kktxt').value||'').match(/의자\s*(\d+)\s*개/);if(!m||!KKX)return;
+ const ch=KKX.items.map(function(it,i){return {it:it,i:i}}).filter(function(z){return !sjItem({p:z.it.p,s:z.it.s})});
+ if(ch.length!==1)return;   /* 광일 품목이 여러 줄이면 어느 줄인지 모른다 — 그림 아래 칸에서 고친다 */
+ const n=+m[1];if(ch[0].it.q===n)return;ch[0].it.q=n;const q=document.getElementById('kkq'+ch[0].i);if(q)q.value=n;kkRedraw()}
 /* 닫기 — ✕ · 닫기 단추 · Esc · 바깥 어두운 곳 누르기 (2026-10-30 «닫기 버튼 어디 있어») */
 function kkClose(){const el=document.getElementById('kkbox');if(el)el.remove();document.removeEventListener('keydown',kkEsc)}
 function kkEsc(ev){if(ev.key==='Escape')kkClose()}
