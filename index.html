@@ -950,7 +950,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 
 <div class="top">
  <h1>광일체어 배차</h1>
- <select id="dsel" onchange="SEL=this.value;save();render()"></select>
+ <select id="dsel" onchange="SEL=this.value;SEL_TMR=0;save();render()"></select>
  <div class="sp"></div>
  <input type="file" id="f1" accept=".xls,.xlsx,.xlsm,.csv" multiple hidden onchange="onOrders(this.files)">
  <button class="btn g" onclick="f1.value='';f1.click()" title="광일·삼정 파일을 한 번에 여러 개 선택할 수 있습니다">📁 명세서</button>
@@ -1565,7 +1565,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261102c';
+const APPVER='20261102f';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2234,10 +2234,13 @@ function build(fresh){
  DATES=[];ORDERS.forEach(o=>{if(o.d&&DATES.indexOf(o.d)<0)DATES.push(o.d)});DATES.sort();
  /* 2026-11-02 사이트를 열면 내일 날짜로 — 내일 명세서가 없으면(주말 등) 그 뒤 첫 날, 그것도 없으면 맨 끝 날.
     처음 한 번(명세서가 들어온 뒤)만 정하고, 그 뒤 손으로 바꾼 날짜는 그대로 둔다 */
- if(SEL_TMR&&DATES.length){SEL_TMR=0;
+ if(SEL_TMR&&DATES.length){
   const t=new Date();t.setDate(t.getDate()+1);
   const tm=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
-  SEL=DATES.filter(function(d){return d>=tm})[0]||DATES[DATES.length-1]}
+  const nx=DATES.filter(function(d){return d>=tm})[0];
+  /* 2026-11-02 사고: 처음 build 는 IndexedDB 명세서가 오기 전 기본 자료(7월)로 돌아 07-29 로 굳었다
+     → 내일 이후 날짜를 찾았을 때만 «정했다» 로 치고, 못 찾으면 다음 build 에서 다시 본다 */
+  if(nx){SEL=nx;SEL_TMR=0}else SEL=DATES[DATES.length-1]}
  if(!SEL||DATES.indexOf(SEL)<0)SEL=DATES[DATES.length-1]||'';
  if(!CARD[SEL])CARD[SEL]=Object.assign({},DAY_DRV[SEL]||autoRotate(SEL));
  CAR=CARD[SEL];
@@ -5179,6 +5182,7 @@ async function msbLibs(){
 }
 function msbSt(t){MSB.st=t;const e=document.getElementById('msbst');if(e)e.textContent=t}
 function msbNum(s){s=String(s||'').replace(/[^-0-9]/g,'');return s?+s:null}
+function msbHash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;return h.toString(36)}
 /* 한 쪽의 글자를 줄(y)별로 모아 거래처·주소·일자·PAGE·전미수잔액·적요를 읽는다 — 공급자 보관용(위 반쪽)만 본다 */
 async function msbReadPage(p){
  const H=p.getViewport({scale:1}).height;
@@ -5194,6 +5198,8 @@ async function msbReadPage(p){
  u.adw=line(720,70);   /* 주소 줄 끝까지(잘리지 않게) — «명세표주지마세요» 찾기용 */
  u.pre=msbNum(line(487,100,320));
  u.memo=line(446,0).replace(/10만 기업이 선택한 sERP/,'').trim();
+ /* 전표 지문 — 위 반쪽 글자 전부(품목·수량·금액·적요)로. 같은 거래처라도 품목이 바뀌면 지문이 달라져 «추가분» 에 잡힌다 (2026-11-02) */
+ u.sig=msbHash(tc.items.filter(function(it){return it.str.trim()&&it.transform[5]>=H*0.5}).map(function(it){return it.str.trim()}).join('|'));
  return u;
 }
 /* 쪽을 전표 단위로 묶는다 — PAGE 2/2 처럼 이어지는 쪽은 앞 전표에 붙인다 */
@@ -5203,8 +5209,8 @@ async function msbParse(bytes){
  for(let i=1;i<=doc.numPages;i++){msbSt('읽는 중 '+i+'/'+doc.numPages+'쪽');
   const u=await msbReadPage(await doc.getPage(i));
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
-  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
-  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,ok:/거래명세표/.test(u.title)&&!!u.n,pages:[i],sugi:/수기\s*전표/.test(u.ad||'')};units.push(last)}
+  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.sig+='+'+u.sig;if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
+  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,pages:[i],sugi:/수기\s*전표/.test(u.ad||'')};units.push(last)}
  try{doc.destroy()}catch(e){}
  return units;
 }
@@ -5371,19 +5377,40 @@ async function msbBuild(bytes,groups){
  msbSt('PDF 만드는 중…');
  return await out.save();
 }
-async function msbRun(bytes,name){
- try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:''};
+/* 이미 묶어 내려받은 전표 지문 — board id=15 {<날짜>:{sig:[…],ts,who}} (전 직원 공용). «추가분만 묶기» 가 이걸 빼고 묶는다 (2026-11-02 사장님
+   «12시 마감 후에 다운받고 2시반 3시 … 추가로 되는거는 추가로만») */
+async function msbDoneAll(){try{const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.15&select=data',{headers:msbH()});const j=await r.json();return (j&&j[0]&&j[0].data)||{}}catch(e){return {}}}
+async function msbDoneGet(d){const a=await msbDoneAll();return ((a[d]||{}).sig)||[]}
+async function msbDoneSet(d,sigs,replace){
+ const a=await msbDoneAll();const old=replace?[]:(((a[d]||{}).sig)||[]);
+ const s=old.slice();sigs.forEach(function(x){if(s.indexOf(x)<0)s.push(x)});
+ a[d]={sig:s,ts:Date.now(),who:ME||'사이트'};
+ const lim=new Date(Date.now()-14*86400000).toISOString().slice(0,10);Object.keys(a).forEach(function(k){if(k<lim)delete a[k]});
+ await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:15,data:a,updated_at:new Date().toISOString()}])});
+}
+async function msbRun(bytes,name,onlyNew){
+ try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew};
   msbSt('준비 중 (PDF 도구·글꼴 받기)…');await msbLibs();
   await sjnLoad();
-  const units=await msbParse(bytes);
+  let units=await msbParse(bytes);
   if(!units.some(function(u){return u.ok}))throw new Error('거래명세표 PDF 가 아닌 것 같습니다 (거래처를 못 읽음)');
+  const d=(units.find(function(u){return u.date})||{}).date||SEL;
+  const all=units.filter(function(u){return u.ok}).length;
+  if(onlyNew){
+   const done=await msbDoneGet(d);
+   if(!done.length){msbSt('⚠ '+d+' 은 아직 한 번도 묶지 않았습니다 — 먼저 «이 날짜 명세서 묶기» 를 누르세요');return}
+   units=units.filter(function(u){return u.ok&&done.indexOf(u.sig)<0});
+   MSB.newN=units.length;
+   if(!units.length){msbSt('➕ '+d+' — 지난 묶기 뒤 새로 들어오거나 바뀐 전표가 없습니다 (전체 '+all+'건)');return}
+  }
   const groups=msbClass(units);
   const pdf=await msbBuild(bytes,groups);
-  const d=(units.find(function(u){return u.date})||{}).date||SEL;
-  MSB.units=units;MSB.groups=groups;MSB.outName='거래명세표_동선별_'+d+'.pdf';
+  MSB.units=units;MSB.groups=groups;MSB.outName='거래명세표_동선별_'+d+(onlyNew?'_추가':'')+'.pdf';
   if(MSB.out)URL.revokeObjectURL(MSB.out);
   MSB.out=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
   msbSt('');render();msbDown();
+  /* 내려받은 뒤 지문을 적어 둔다 — 전체 묶기는 새로 쓰고, 추가분은 보탠다 */
+  try{await msbDoneSet(d,units.filter(function(u){return u.ok}).map(function(u){return u.sig}),!onlyNew)}catch(e){console.warn('묶은 기록 저장 실패',e)}
  }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
 }
 function msbPick(inp){const f=inp.files&&inp.files[0];if(!f)return;const fr=new FileReader();fr.onload=function(){msbRun(fr.result,f.name)};fr.readAsArrayBuffer(f)}
@@ -5395,15 +5422,16 @@ function msbDown(){if(!MSB.out)return;const a=document.createElement('a');a.href
    없으면 board id=12 에 {req:{d,ts,who}} 를 써서 뽑아 달라 하고, st 가 «끝» 이 될 때까지 기다린다. */
 const MSB_SB=(typeof SB_URL!=='undefined'&&SB_URL)||'https://eirnudzaysvvqfjzhwni.supabase.co';
 const MSB_KEY=(typeof SB_KEY!=='undefined'&&SB_KEY)||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
-let MSBD='';try{MSBD=localStorage.getItem(KEY+'_msbd')||''}catch(e){}
+let MSBD='';   /* 2026-11-02 열 때마다 내일(다음 평일)로 — 전에 고른 날짜는 기억하지 않는다 */
 function msbH(){return {apikey:MSB_KEY,Authorization:'Bearer '+MSB_KEY}}
 async function msbBoard12(){const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.12&select=data',{headers:msbH()});const j=await r.json();return (j&&j[0]&&j[0].data)||{}}
 async function msbFile(d){const r=await fetch(MSB_SB+'/storage/v1/object/statements/'+d+'.pdf?t='+Date.now(),{headers:msbH(),cache:'no-store'});if(!r.ok)return null;return await r.arrayBuffer()}
 function msbSetD(v){MSBD=v;try{localStorage.setItem(KEY+'_msbd',v)}catch(e){}}
-async function msbByDate(force){
- const d=(document.getElementById('msbd')||{}).value||MSBD||SEL;if(!/^\d{4}-\d\d-\d\d$/.test(d)){msbSt('⚠ 날짜를 고르세요');return}
+async function msbByDate(force,onlyNew){
+ const d=(document.getElementById('msbd')||{}).value||MSBD||mnNextBiz();if(!/^\d{4}-\d\d-\d\d$/.test(d)){msbSt('⚠ 날짜를 고르세요');return}
  msbSetD(d);
  try{
+  if(onlyNew){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf',true)}else msbSt('⚠ '+d+' 명세표 PDF 가 아직 없습니다 — 먼저 «이 날짜 명세서 묶기» 를 누르세요');return}
   if(!force){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf');return}}
   /* 자동실행컴에 뽑아 달라고 한다 */
   const cur=await msbBoard12();const ts=Date.now();
@@ -5425,20 +5453,21 @@ async function msbByDate(force){
 }
 function tabMsb(){
  let h='<div class="hd2">📄 명세서 묶기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">sERP 거래명세표 PDF → 동선·기사 찍고 동선별로 다시 묶기</span></div>';
- h+='<div class="ycnote"><b>날짜를 고르고 「📥 이 날짜 명세서 묶기」</b>를 누르면 자동실행컴이 sERP 에서 뽑아 둔 그날 거래명세표를 가져와 묶습니다(없으면 그 자리에서 뽑아 달라고 합니다, 2~5분). 평일 15:40 에는 다음 영업일 것이 저절로 뽑혀 있습니다. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
+ h+='<div class="ycnote"><b>날짜를 고르고 「📥 이 날짜 명세서 묶기」</b>를 누르면 자동실행컴이 sERP 에서 뽑아 둔 그날 거래명세표를 가져와 묶습니다(없으면 그 자리에서 뽑아 달라고 합니다, 2~5분). 평일 <b>12:05 · 14:30 · 15:06</b> 에 다음 영업일 것이 저절로 뽑힙니다(수집이 돌고 있으면 끝난 뒤). 한 번 묶은 뒤 들어온 것은 <b>「➕ 추가분만 묶기」</b> — 지난 묶기에 없던 전표와 품목·금액이 바뀐 전표만 묶습니다.장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
   +'적요에 <b>택배·용차·상차·화물·차량입고·퀵</b> 이 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴</b>은 따로 모읍니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
   +'<b>배차를 다 마친 뒤</b> 올려야 동선·기사가 다 채워집니다.</div>';
- const md0=MSBD||SEL||'';
+ const md0=MSBD||mnNextBiz();
  h+='<div style="margin:10px 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
   +'<b>📅 날짜</b><input type="date" id="msbd" value="'+esc(md0)+'" onchange="msbSetD(this.value)" style="font-size:15px;padding:4px 6px">'
   +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbByDate(0)">📥 이 날짜 명세서 묶기</button>'
-  +'<button class="btn g" onclick="msbByDate(1)" title="오늘 명세서가 더 들어왔으면 sERP 에서 새로 뽑습니다">🔄 sERP 에서 새로 뽑기</button></div>';
+  +'<button class="btn" style="background:#0f8a5f;color:#fff" onclick="msbByDate(0,1)" title="지난 묶기 뒤 새로 들어오거나 바뀐 전표만 묶습니다 (자동실행컴이 뽑아 둔 가장 새 PDF 기준)">➕ 추가분만 묶기</button>'
+  +'<button class="btn g" onclick="msbByDate(1)" title="지금 바로 sERP 에서 새로 뽑습니다 (2~5분)">🔄 sERP 에서 새로 뽑기</button></div>';
  h+='<div style="margin:6px 2px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#6b7c90;font-size:12.5px">또는 파일로: <input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)">'
   +(MSB.out?'<button class="btn" onclick="msbDown()">⬇ 다시 내려받기 — '+esc(MSB.outName)+'</button>':'')
   +'<span id="msbst" style="font-weight:700;color:#2F7FE8">'+esc(MSB.st)+'</span></div>';
  if(MSB.groups){
   const G=MSB.groups,tot=MSB.units.length;
-  h+='<div class="hd2">묶은 결과 <span style="font-weight:600;color:#8b9aab">'+esc(MSB.name)+' · 전표 '+tot+'건 · 뺀 것 '+G.x.length+'건</span></div><table class="yctb"><tr><th>묶음</th><th>기사</th><th>건</th><th>거래처 (순서대로)</th></tr>';
+  h+='<div class="hd2">묶은 결과 <span style="font-weight:600;color:#8b9aab">'+esc(MSB.name)+(MSB.only?' · <b style="color:#0f8a5f">추가분만 '+MSB.newN+'건</b>':' · 전표 '+tot+'건')+' · 뺀 것 '+G.x.length+'건</span></div><table class="yctb"><tr><th>묶음</th><th>기사</th><th>건</th><th>거래처 (순서대로)</th></tr>';
   G.forEach(function(g){const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
    h+='<tr><td><span style="display:inline-block;padding:2px 8px;border-radius:6px;color:#fff;font-weight:800;background:'+msbCL(g.id)+'">'+esc(msbRL(g.id))+'</span></td><td>'+esc(drvs.join('·'))+'</td><td style="text-align:right">'+g.units.length+'</td>'
     +'<td style="text-align:left;font-weight:500">'+g.units.map(function(u){return esc(u.n)+u.flags.map(function(f){return ' <b style="color:#c0392b">'+f+'</b>'}).join('')+(g.id==='un'&&u.why?' <i style="color:#8b9aab">'+esc(u.why)+'</i>':'')}).join(' · ')+'</td></tr>'});
