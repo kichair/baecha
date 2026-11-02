@@ -1461,7 +1461,7 @@ function isRain(d){
  if(rs.length)return rainRts(d).length>0;
  const w=WXD[d];return !!(w&&(w.p>=60||w.m>=1));
 }
-let SEL=localStorage.getItem(KEY+'_sel')||'';
+let SEL=localStorage.getItem(KEY+'_sel')||'';let SEL_TMR=1;   /* 열 때 내일 날짜로 (build 에서) */
 let TAB=+(localStorage.getItem(KEY+'_tab')||0);
 /* 동선별 보기 — 0: 카드(가로 여러 칸) · 1: 목록(1·2·3 세로, 주소·품명 다 보임) */
 let RLIST=(function(){const v=localStorage.getItem(KEY+'_rlist');return v==null?1:+v})();
@@ -1565,7 +1565,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261030k';
+const APPVER='20261102b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2232,6 +2232,12 @@ function build(fresh){
   o.urg=/일찍|오전|새벽|아침/.test(o.memo||'')?0:1;
   o.sk=o.urg+'|'+((ADDR[o.n]||'힣힣').slice(0,14))});
  DATES=[];ORDERS.forEach(o=>{if(o.d&&DATES.indexOf(o.d)<0)DATES.push(o.d)});DATES.sort();
+ /* 2026-11-02 사이트를 열면 내일 날짜로 — 내일 명세서가 없으면(주말 등) 그 뒤 첫 날, 그것도 없으면 맨 끝 날.
+    처음 한 번(명세서가 들어온 뒤)만 정하고, 그 뒤 손으로 바꾼 날짜는 그대로 둔다 */
+ if(SEL_TMR&&DATES.length){SEL_TMR=0;
+  const t=new Date();t.setDate(t.getDate()+1);
+  const tm=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  SEL=DATES.filter(function(d){return d>=tm})[0]||DATES[DATES.length-1]}
  if(!SEL||DATES.indexOf(SEL)<0)SEL=DATES[DATES.length-1]||'';
  if(!CARD[SEL])CARD[SEL]=Object.assign({},DAY_DRV[SEL]||autoRotate(SEL));
  CAR=CARD[SEL];
@@ -5202,7 +5208,7 @@ async function msbParse(bytes){
  try{doc.destroy()}catch(e){}
  return units;
 }
-function msbRL(id){if(/^r\d$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split('.')[0].trim():id}
+function msbRL(id){if(/^r\d$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
 function msbCL(id){if(id==='pick')return '#475569';if(id==='un')return '#9CA3AF';return (RID[id]||{}).cl||'#94A3B8'}
 /* 전표마다 그날 배차와 맞춰 동선·기사·도장을 정하고, 동선별(배차 방문순서)로 묶는다 */
 function msbClass(units){
@@ -5448,7 +5454,7 @@ function tabMsb(){
    주의사항·입금확인 체크는 board id=13 {notes:[{n,note,who,at}], paid:{"날짜|거래처":{by,at}}} — 전 직원 공유.
    명세서묶기 도장: 입금 확인 안 된 곳은 공급자용 왼쪽 위 «입금 전», 출고정지는 «출고정지». */
 let SJN={notes:[],paid:{}};
-let MND='';try{MND=localStorage.getItem(KEY+'_mnd')||''}catch(e){}
+let MND='';   /* 2026-11-02 열 때마다 내일(다음 평일)로 — 전에 고른 날짜는 기억하지 않는다 */
 function mnNextBiz(d){const x=d?new Date(d+'T00:00:00'):new Date();x.setDate(x.getDate()+1);while(x.getDay()===0||x.getDay()===6)x.setDate(x.getDate()+1);
  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
 function mnToday(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
@@ -5486,8 +5492,36 @@ function mnList(D){
   const o=e.os.find(function(o){const r=ASSIGN[o.i];return r&&r!=='_'&&!offRoute(r)})||e.os[0];
   e.rid=o?ASSIGN[o.i]:'';e.drv=o?effDrv(o):'';
   out.push(e)});
- out.sort(function(a,b){return (b.stop-a.stop)||((a.paid?1:0)-(b.paid?1:0))||(b.amt-a.amt)});
+ out.sort(function(a,b){return mnNm(a.n).localeCompare(mnNm(b.n),'ko')});   /* 기본 = 거래처 이름순 (2026-11-02) */
  return out}
+/* 수금확인 정렬·거르기 (2026-11-02 «이름순으로 하고 까닭별·금액별·동선별 필터») — 화면 안에서만 기억 */
+let MNF={s:'n',d:1,why:'',rt:'',amt:'',pd:'',q:''};
+function mnSort(k){if(MNF.s===k)MNF.d=-MNF.d;else{MNF.s=k;MNF.d=(k==='amt'?-1:1)}render()}
+function mnSet(k,v){MNF[k]=v;render()}
+function mnWhyK(e){return e.stop?0:e.erp?1:2}
+function mnRtK(e){const i=ROUTES.findIndex(function(r){return r.id===e.rid});return e.rid&&RID[e.rid]&&!offRoute(e.rid)?i:999}
+function mnView(L){
+ const q=mnNm(MNF.q);
+ const a=L.filter(function(e){
+  if(MNF.why==='stop'&&!e.stop)return false;
+  if(MNF.why==='erp'&&!e.erp)return false;
+  if(MNF.why==='pay'&&!e.pay)return false;
+  if(MNF.rt==='_'&&mnRtK(e)!==999)return false;
+  if(MNF.rt&&MNF.rt!=='_'&&e.rid!==MNF.rt)return false;
+  if(MNF.amt==='100'&&e.amt<1000000)return false;
+  if(MNF.amt==='50'&&(e.amt<500000||e.amt>=1000000))return false;
+  if(MNF.amt==='0'&&e.amt>=500000)return false;
+  if(MNF.pd==='no'&&e.paid)return false;
+  if(MNF.pd==='yes'&&!e.paid)return false;
+  if(q&&mnNm(e.n).indexOf(q)<0)return false;
+  return true});
+ const d=MNF.d,nm=function(a,b){return mnNm(a.n).localeCompare(mnNm(b.n),'ko')};
+ const f={n:function(a,b){return d*nm(a,b)},
+  why:function(a,b){return d*(mnWhyK(a)-mnWhyK(b))||nm(a,b)},
+  amt:function(a,b){return d*(a.amt-b.amt)||nm(a,b)},
+  rt:function(a,b){return d*(mnRtK(a)-mnRtK(b))||String(a.drv).localeCompare(String(b.drv),'ko')||nm(a,b)},
+  pd:function(a,b){return d*((a.paid?1:0)-(b.paid?1:0))||nm(a,b)}}[MNF.s]||function(){return 0};
+ return a.sort(f)}
 /* 명세서묶기에서 쓴다 — 그 거래처가 입금 전인지·출고정지인지 */
 function mnFlag(D,n){const ns=mnNotes(n);const stop=ns.some(function(x){return MN_STOP_RE.test(x.note)});
  const pay=ns.some(function(x){return MN_PAY_RE.test(x.note)});return {stop:stop,pay:pay,paid:!!mnPaid(D,n)}}
@@ -5511,12 +5545,28 @@ function tabMoney(){
  const nPaid=L.filter(function(e){return e.paid}).length,nStop=L.filter(function(e){return e.stop}).length;
  let h='<div class="hd2">💰 수금확인 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">내일 나갈 것 가운데 돈 받고 실어야 할 곳 · 4시 상차 전에 확인</span></div>';
  h+='<div class="ycnote"><b>ERP수시</b> 거래처(주소 끝 # 과 같음)와 <b>주의사항</b>에 「입금확인·선입금·송금확인」이 적힌 곳을 모읍니다. 판매명세서가 저절로 들어올 때마다 늘어납니다. '
-  +'입금을 확인하면 <b>「입금 확인」</b>을 체크하세요 — 전 직원 화면에 바로 보이고, 3시 명세서 묶음에서 체크 안 된 곳은 <b>「입금 전」</b> 도장이 찍힙니다. <b style="color:#c0392b">출고정지</b> 곳은 맨 위에 빨갛게.</div>';
+  +'입금을 확인하면 <b>「입금 확인」</b>을 체크하세요 — 전 직원 화면에 바로 보이고, 3시 명세서 묶음에서 체크 안 된 곳은 <b>「입금 전」</b> 도장이 찍힙니다. <b style="color:#c0392b">출고정지</b> 곳은 빨갛게. 기본은 거래처 이름순 — 표 머리(입금 확인·거래처·까닭·금액·동선)를 누르면 그 순서로 정렬됩니다.</div>';
  h+='<div style="margin:10px 2px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>📅 나가는 날</b><input type="date" value="'+D+'" onchange="mnSetD(this.value)" style="font-size:15px;padding:4px 6px">'
   +'<span style="font-weight:700">'+L.length+'곳 · 입금 확인 '+nPaid+' · 남음 <span style="color:#c0392b">'+(L.length-nPaid)+'</span>'+(nStop?' · 출고정지 <span style="color:#c0392b">'+nStop+'</span>':'')+'</span></div>';
- h+='<table class="yctb"><tr><th>입금 확인</th><th>거래처</th><th>까닭</th><th style="text-align:right">금액(부가세 포함)</th><th>동선·기사</th><th>주의사항 · 적요</th></tr>';
- window._MNL=L;window._MND=D;
- L.forEach(function(e,ix){
+ /* 거르기 줄 */
+ const V=mnView(L);
+ const sel=function(k,opts){return '<select onchange="mnSet(\''+k+'\',this.value)" style="font-size:13px;padding:3px 4px;border-radius:6px">'
+  +opts.map(function(o){return '<option value="'+o[0]+'"'+(MNF[k]===o[0]?' selected':'')+'>'+esc(o[1])+'</option>'}).join('')+'</select>'};
+ const rts=[];L.forEach(function(e){const k=mnRtK(e)===999?'_':e.rid;if(rts.indexOf(k)<0)rts.push(k)});
+ rts.sort(function(a,b){return (a==='_'?999:ROUTES.findIndex(function(r){return r.id===a}))-(b==='_'?999:ROUTES.findIndex(function(r){return r.id===b}))});
+ const anyF=MNF.why||MNF.rt||MNF.amt||MNF.pd||MNF.q;
+ h+='<div style="margin:0 2px 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px"><b>🔎 거르기</b>'
+  +sel('why',[['','까닭 전체'],['stop','출고정지'],['erp','ERP수시'],['pay','주의사항(입금확인)']])
+  +sel('amt',[['','금액 전체'],['100','100만 이상'],['50','50만~100만'],['0','50만 미만']])
+  +sel('rt',[['','동선 전체']].concat(rts.map(function(k){return [k,k==='_'?'미배차':msbRL(k)]})))
+  +sel('pd',[['','입금 확인 전체'],['no','확인 안 한 곳'],['yes','확인한 곳']])
+  +'<input type="search" placeholder="거래처 찾기" value="'+esc(MNF.q)+'" onchange="mnSet(\'q\',this.value)" style="font-size:13px;padding:3px 6px;width:120px">'
+  +(anyF?'<button class="btn g" style="padding:3px 10px;font-size:12px;color:#334;border:1px solid #cbd5e1" onclick="MNF.why=MNF.rt=MNF.amt=MNF.pd=MNF.q=\'\';render()">거르기 풀기</button> <span style="color:#6b7c90">'+V.length+'곳 보임</span>':'')
+  +'</div>';
+ const th=function(k,t,st){return '<th style="cursor:pointer;white-space:nowrap;'+(st||'')+'" onclick="mnSort(\''+k+'\')" title="눌러서 정렬">'+t+(MNF.s===k?(MNF.d>0?' ▲':' ▼'):'')+'</th>'};
+ h+='<table class="yctb"><tr>'+th('pd','입금 확인')+th('n','거래처')+th('why','까닭')+th('amt','금액(부가세 포함)','text-align:right')+th('rt','동선·기사')+'<th>주의사항 · 적요</th></tr>';
+ window._MNL=V;window._MND=D;
+ V.forEach(function(e,ix){
   const why=[];if(e.stop)why.push('<b style="color:#fff;background:#c0392b;padding:1px 6px;border-radius:4px">출고정지</b>');
   if(e.erp)why.push('<b style="color:#c0392b">ERP수시</b>');if(e.pay)why.push('<b style="color:#b35c00">주의사항</b>');
   const pd=e.paid;
@@ -5527,6 +5577,7 @@ function tabMoney(){
    +'<td>'+(e.rid&&RID[e.rid]?'<span style="display:inline-block;padding:1px 6px;border-radius:5px;color:#fff;background:'+RID[e.rid].cl+'">'+esc(msbRL(e.rid))+'</span> ':'<span style="color:#8b9aab">미배차</span> ')+esc(e.drv||'')+'</td>'
    +'<td style="font-size:12px">'+e.notes.map(function(x){return '<div>📌 '+esc(x.note)+' <i style="color:#8b9aab">'+esc(x.who||'')+'</i></div>'}).join('')
    +(e.memo.length?'<div style="color:#6b7c90">'+esc(e.memo.join(' / ').slice(0,80))+'</div>':'')+'</td></tr>'});
+ if(L.length&&!V.length)h+='<tr><td colspan="6" style="color:#8b9aab">거르기에 맞는 곳이 없습니다.</td></tr>';
  if(!L.length)h+='<tr><td colspan="6" style="color:#8b9aab">'+D+' 에 돈 받을 곳이 없습니다 (아직 명세서가 안 들어왔을 수도 있습니다).</td></tr>';
  h+='</table>';
  h+='<details style="margin-top:18px"><summary style="cursor:pointer;font-weight:800;color:#6b7c90">📌 거래처 주의사항 '+(SJN.notes||[]).length+'건'+(SJN.notes_at?' · '+esc(SJN.notes_at)+' 바꿈':'')+' — 보기·바꾸기</summary>'
