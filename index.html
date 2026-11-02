@@ -1565,7 +1565,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261102f';
+const APPVER='20261102g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5199,7 +5199,8 @@ async function msbReadPage(p){
  u.pre=msbNum(line(487,100,320));
  u.memo=line(446,0).replace(/10만 기업이 선택한 sERP/,'').trim();
  /* 전표 지문 — 위 반쪽 글자 전부(품목·수량·금액·적요)로. 같은 거래처라도 품목이 바뀌면 지문이 달라져 «추가분» 에 잡힌다 (2026-11-02) */
- u.sig=msbHash(tc.items.filter(function(it){return it.str.trim()&&it.transform[5]>=H*0.5}).map(function(it){return it.str.trim()}).join('|'));
+ /* 전미수잔액·합계·총합계·입금액·총미수잔액 줄(y455~505)은 뺀다 — 입금만 들어와도 지문이 바뀌어 «추가분» 에 잘못 잡히지 않게 */
+ u.sig=msbHash(tc.items.filter(function(it){const y=it.transform[5];return it.str.trim()&&y>=H*0.5&&!(y>=455&&y<=505)}).map(function(it){return it.str.trim()}).join('|'));
  return u;
 }
 /* 쪽을 전표 단위로 묶는다 — PAGE 2/2 처럼 이어지는 쪽은 앞 전표에 붙인다 */
@@ -5413,7 +5414,7 @@ async function msbRun(bytes,name,onlyNew){
   try{await msbDoneSet(d,units.filter(function(u){return u.ok}).map(function(u){return u.sig}),!onlyNew)}catch(e){console.warn('묶은 기록 저장 실패',e)}
  }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
 }
-function msbPick(inp){const f=inp.files&&inp.files[0];if(!f)return;const fr=new FileReader();fr.onload=function(){msbRun(fr.result,f.name)};fr.readAsArrayBuffer(f)}
+function msbPick(inp){const f=inp.files&&inp.files[0];if(!f)return;const only=!!(document.getElementById('msbonly')||{}).checked;const fr=new FileReader();fr.onload=function(){msbRun(fr.result,f.name,only)};fr.readAsArrayBuffer(f)}
 function msbDown(){if(!MSB.out)return;const a=document.createElement('a');a.href=MSB.out;a.download=MSB.outName;document.body.appendChild(a);a.click();a.remove()}
 
 /* ===== 날짜만 눌러 불러오기 (2026-10-27 사장님 «날짜 클릭만으로 되게 해») =====
@@ -5463,6 +5464,7 @@ function tabMsb(){
   +'<button class="btn" style="background:#0f8a5f;color:#fff" onclick="msbByDate(0,1)" title="지난 묶기 뒤 새로 들어오거나 바뀐 전표만 묶습니다 (자동실행컴이 뽑아 둔 가장 새 PDF 기준)">➕ 추가분만 묶기</button>'
   +'<button class="btn g" onclick="msbByDate(1)" title="지금 바로 sERP 에서 새로 뽑습니다 (2~5분)">🔄 sERP 에서 새로 뽑기</button></div>';
  h+='<div style="margin:6px 2px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#6b7c90;font-size:12.5px">또는 파일로: <input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)">'
+  +'<label title="sERP 에서 직접 뽑아 올릴 때도 — 체크하면 지난 묶기에 없던 전표(새 것·바뀐 것)만 묶습니다"><input type="checkbox" id="msbonly"'+(MSB.only?' checked':'')+'> 추가분만</label>'
   +(MSB.out?'<button class="btn" onclick="msbDown()">⬇ 다시 내려받기 — '+esc(MSB.outName)+'</button>':'')
   +'<span id="msbst" style="font-weight:700;color:#2F7FE8">'+esc(MSB.st)+'</span></div>';
  if(MSB.groups){
