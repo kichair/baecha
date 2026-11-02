@@ -1156,8 +1156,11 @@ const ROUTES=[
   k:['수원','용인','성남','광주시','이천','여주','오포','곤지암','초월','의왕','안양','군포','기흥','화서','어정','권선','팔달','영통','오산','상일','도척','분당']},
  {id:'rw',slot:'am',nm:'수요일. 남양주·원주·춘천',cl:'#EC4899',days:[3],zone:'남양주 마석 원주 춘천',
   k:['남양주','마석','원주','춘천','가평','만종','양평']},
- {id:'rc',slot:'am',nm:'화·목. 충청·평택',cl:'#FF7A45',days:[2,4],zone:'오산 평택 아산 천안 홍성 예산 보령 서산 당진 / 음성 진천 청주 대전 안성',
-  k:['평택','천안','아산','당진','청주','음성','대전','진천','홍성','예산','보령','서산','안성','충주','계룡','대덕','유성','세종','청북','지제','공주','논산','서천','태안','제천','금산']},
+ /* 2026-11-02 사장님: 화·목 충청(rc) 하나를 둘로 — 9동선 대전·진천·중부 / 10동선 천안·당진·평택·홍성·충청도 */
+ {id:'r9',slot:'am',nm:'9. 대전·진천·중부',cl:'#FF7A45',days:[2,4],zone:'음성 진천 충주 청주 세종 대전 / 공주 논산 계룡 금산 제천 (충북)',
+  k:['대전','청주','음성','진천','충주','세종','대덕','유성','공주','논산','계룡','금산','제천','충북','오창','증평','괴산','옥천','보은','청원','영동','단양']},
+ {id:'r10',slot:'am',nm:'10. 천안·당진·평택·홍성',cl:'#C2410C',days:[2,4],zone:'오산 평택 안성 아산 천안 홍성 예산 보령 서산 당진 태안 서천 (충남·충청)',
+  k:['평택','천안','아산','당진','홍성','예산','보령','서산','안성','청북','지제','서천','태안','충남','충청','송탄','안중','팽성','둔포','탕정','배방','성환','직산','입장','신창','광덕','청양','부여']},
  {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'지방 위주 · 장·캐비닛 등 가구 위주 · 서울 시내(골목·높이바) 제외 · 1톤의 1.2배 적재',k:[]},
  {id:'as',nm:'A/S 출동',cl:'#F97316',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
  {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]},
@@ -1168,6 +1171,19 @@ const ROUTES=[
  {id:'nb',nm:'실거래명세서 없음',cl:'#8D9BAA',days:[1,2,3,4,5],zone:'실물 명세서 확인 필요 · 배차 제외',k:[]}
 ];
 const RID=Object.fromEntries(ROUTES.map(r=>[r.id,r]));
+/* 2026-11-02 옛 '화·목 충청(rc)' 값이 저장돼 남아 있을 수 있다 — 거래처 이름·주소로 9/10동선에 나눠 넣고, 못 고친 것은 10동선으로 보이게 */
+RID.rc=RID.r10;
+const RC9=/대전|청주|음성|진천|충주|세종|유성|대덕|공주|논산|계룡|금산|제천|충북|옥천|보은|증평|괴산|오창/;
+function rcOf(n){n=String(n||'');return RC9.test(n+' '+((typeof ADDR!=='undefined'&&ADDR[n])||''))?'r9':'r10'}
+function rcMig(){
+ const fix=function(m){if(!m||typeof m!=='object')return;Object.keys(m).forEach(function(k){if(m[k]==='rc')m[k]=rcOf(String(k).split('§')[0])})};
+ try{
+  fix(typeof LEARN!=='undefined'?LEARN:null);fix(typeof LEARN_RT!=='undefined'?LEARN_RT:null);
+  if(typeof DAY_CUST!=='undefined')Object.keys(DAY_CUST).forEach(function(d){fix(DAY_CUST[d])});
+  if(typeof ASSIGN!=='undefined')fix(ASSIGN);
+  [typeof CARD!=='undefined'?CARD:null,typeof DAY_DRV!=='undefined'?DAY_DRV:null].forEach(function(T){if(!T)return;Object.keys(T).forEach(function(d){const c=T[d];if(c&&c.rc){if(!c.r9)c.r9=c.rc;if(!c.r10)c.r10=c.rc;delete c.rc}})});
+ }catch(e){console.warn('rc 옮기기',e)}
+}
 const SH2R={};ROUTES.forEach(r=>(r.sh||[]).forEach(s=>SH2R[s]=r.id));
 
 const EXCL=[['택배','택배'],['차량입고','차량입고'],['상차','상차(용차)'],['퀵','퀵'],['화물','화물'],['찾으러','찾으러옴'],['방문수령','찾으러옴'],['용차','용차'],['입고','입고']];
@@ -1275,7 +1291,7 @@ let YCSC=localStorage.getItem(KEY+'_ycsc')||'둘 다';
 /* 지난 내역에 결재완료 주까지 보일지 — 기본은 안 보임 (2026-09-21) */
 let YCPD=false;
 function ycbSetPd(v){YCPD=!!v;render()}
-const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,rc:0};
+const RT2_DEF={r1:1,r2:1,r3:1,r4:1,r6:1,r7:1,r5:0,rw:0,r9:0,r10:0};
 let RT2=LSU('_rt2',null)||Object.assign({},RT2_DEF);
 /* 회차 수동 지정 — {건열쇠: 1|2|3}. 지정 안 하면 적재량으로 자동 분할 */
 let TRIP=LSU('_trip',{});
@@ -1291,6 +1307,7 @@ const DRV_MAX=TRIP_MAX*1.15;   /* 기사 한 명이 하루에 감당하는 최�
 let ASGK=LSU('_asg',null),STK=LSU('_stk',{});   /* 배차·상태를 거래처+날짜 키로 저장 */
 let ASGV=LSU('_asgv',{});   /* 손으로 바꾼 시각 — 두 컴퓨터가 동시에 켜져 있어도 안 덮이게 */
 let ASSIGN=LS('',null),ST=LS('_s',{}),CARD=LS('_card',{}),CAR={},LEARN=LSU('_l',{}),DOVR=LSU('_do',{}),DRVOV=LSU('_dov',{}),DRV2=LSU('_dv2',{});
+rcMig();
 let CUSTOM=LSU('_cu',[]);
 let SEQ=LSU('_sq',{});
 /* ===== 순서 잠금 (2026-09-03 지시) =====
@@ -1346,7 +1363,11 @@ const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계
 const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  /* 2026-11-02 사장님 «동일사무용/한양듀오백/한국퍼니처/강남퍼니처는 4동선으로» — 적요에 «수원제일로» 같은 배송지가 있어도 4동선 */
  [/동일사무용가구|한양듀오백|한양사무용가구|한국퍼니처|강남퍼니처/,'r4'],
- [/대한사무용가구\(마석/,'r5']];   /* 2026-11-02 사장님 «마석대한은 5동선» (마포·을지·중곡) */
+ [/대한사무용가구\(마석/,'r5'],   /* 2026-11-02 사장님 «마석대한은 5동선» (마포·을지·중곡) */
+ [/스케일에프아이|^스케일/,'r3'],   /* 2026-11-02 사장님 «스케일은 3동선으로» (김포·일산·파주) */
+ [/팀퍼니처/,'r9'],   /* 2026-11-02 사장님 «팀퍼니처 9동선» (대전·진천·중부) */
+ [/이프시스템/,'r5'],
+ [/서해가구\(당진|서해가구백화점\(당진|당진\s*OK|당진OK사무용가구|한솔가구\(홍성|당진가구타운|청송.*청주|청주.*청송|상상\s*OA|네오오피스|그루터기/i,'r10']];   /* 청주 청송 — 청주는 9동선 낱말이지만 이곳은 10 */   /* 2026-11-02 사장님 «서해가구(당진) · 당진OK · 홍성 한솔 · 당진가구타운 → 10» */   /* 2026-11-02 사장님 «이프시스템 5동선» — 5/27·5/28 에 4동선으로 옮긴 기억이 남아 4동선으로 찍히던 것 */
 function rtHard(n){const t=String(n||'');
  for(let i=0;i<RT_HARD.length;i++)if(RT_HARD[i][0].test(t))return RT_HARD[i][1];
  return null}
@@ -1424,7 +1445,7 @@ let WXD=LSU('_wxd',{});  /* 본사 기준 일자별 강수 {날짜:{p,m}} */
 /* 동선별 대표 좌표 — 그날 실제로 가는 동선의 비만 본다 */
 const RT_GEO={r1:[37.48,126.65],r2:[37.50,126.78],r3:[37.68,126.77],r4:[37.49,127.02],
  r5:[37.56,127.01],r6:[37.34,126.74],r7:[37.28,127.01],rw:[37.35,127.95],
- rc:[36.62,127.20],t35:[36.35,127.38],as:[37.48,126.65],etc:[37.48,126.65]};
+ r9:[36.65,127.45],r10:[36.85,127.00],t35:[36.35,127.38],as:[37.48,126.65],etc:[37.48,126.65]};
 let WXR=LSU('_wxr',{});  /* {날짜:{동선id:{p,m}}} */
 let RNO=LSU('_rno',{});  /* 수동 우천 지정 {날짜:1|0} */
 /* 그날 배차가 있는 동선 목록 */
@@ -1568,7 +1589,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261102p';
+const APPVER='20261102u';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1597,7 +1618,7 @@ function snap(){const o={};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
 function applySnap(o){applying=true;try{
- if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];
+ if(o['']!=null)ASSIGN=o[''];if(o['_s'])ST=o['_s'];if(o['_card'])CARD=o['_card'];rcMig();
  /* DRVOV는 통째로 안 바꾼다 — 아래에서 키별 시각 비교로 합친다 */if(o['_l'])LEARN=o['_l'];if(o['_do'])DOVR=o['_do'];
  if(o['_jbn']){JBN=o['_jbn'];_gidx=null;_ginv=null;_dongIdx=null}
  if(o['_drvh'])DRVH=o['_drvh'];if(o['_trph'])TRPH=o['_trph'];
@@ -2140,7 +2161,7 @@ function autoRotate(dateStr){
  for(let i=pool.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const t=pool[i];pool[i]=pool[j];pool[j]=t}
  const dow=new Date(dateStr+'T00:00:00').getDay();
  const rts=['r1','r2','r3','r4','r5','r6','r7'];
- if(dow===3)rts.push('rw');if(dow===2||dow===4)rts.push('rc');
+ if(dow===3)rts.push('rw');if(dow===2||dow===4){rts.push('r9');rts.push('r10')}
  const base=rts.map((r,k)=>pool[k%pool.length]);
  if(isRain(dateStr)){
   /* ☔ 우천: 탑차·호로차 기사를 물량 많은 앞 동선(1.인천 · 2.부천 · 4.강남 …)에 우선 배치 */
@@ -2580,13 +2601,14 @@ function setupHTML(){const a=Object.keys(ADDR).length;
  +'<button class="btn" onclick="f1.value=\'\';f1.click()">📁 명세서 불러오기</button></div></div>'}
 function capFactor(id){return id==='t35'?1.2:1}
 /* 7/29 GPS 실측 보정: 회차당 왕복 주행시간(분) */
-const DRIVE_MIN={r1:87,r2:213,r3:290,r4:233,r5:233,r6:213,r7:327,rw:285,rc:411,t35:300,etc:233};
+const DRIVE_MIN={r1:87,r2:213,r3:290,r4:233,r5:233,r6:213,r7:327,rw:285,r9:411,r10:380,t35:300,etc:233};
 function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h?(h+'시간'+(mm?' '+mm+'분':'')):(mm+'분')}
 /* 회차 시간 = 상차 25분 + 왕복주행 + 곳당 22분(이동+하차) — 7/29 실측 보정 */
 /* 7/1~8/5 GPS 실측(2,478구간) 회귀: [왕복+상차, 곳당] 분 */
 const ZONE_DRV={
  r7:[[/용인|오포|모현|기흥|처인|광주시/,[303,12]],[/이천|여주|곤지암|초월|도척/,[323,24]],[/수원|화성|오산|병점|봉담|권선|영통|팔달|장안구/,[327,17]],[/안양|군포|의왕|과천/,[211,10]]],
- rc:[[/대전|청주|세종|유성|대덕|충주/,[501,14]],[/천안|아산|당진|서산|홍성|예산|보령|계룡/,[411,20]],[/평택|안성|음성|진천/,[205,40]]],
+ r9:[[/대전|청주|세종|유성|대덕|충주|공주|논산|계룡/,[501,14]],[/음성|진천/,[205,40]],[/./,[411,20]]],
+ r10:[[/천안|아산|당진|서산|홍성|예산|보령|태안|서천/,[411,20]],[/평택|안성|오산/,[205,40]],[/./,[380,20]]],
  rw:[[/원주|춘천|횡성|홍천|만종/,[446,22]],[/남양주|마석|덕소|포천|의정부|구리|양주/,[285,29]],[/가평|양평|청평/,[156,34]]],
  r6:[[/화성|발안|남양읍|봉담/,[327,17]],[/안산|시화|정왕|시흥|군자|광명/,[213,20]]],
  r1:[[/./,[87,25]]],
@@ -2873,7 +2895,7 @@ const BUB_LIGHT=['#F5C518','#84CC16','#94A3B8'];
 function bubTx(c){return BUB_LIGHT.indexOf(c)>=0?'#33475c':'#fff'}
 function vehOf(n){const d=DRVS.filter(function(x){return x[0]===n})[0];return d?(d[2]||''):''}
 const VEH_EM={'\ud0d1\ucc28':'\uD83D\uDE9B','\ud638\ub85c':'\uD83D\uDEFB','\uce74\uace0':'\uD83D\uDE9A'};
-const RT_EM={rw:'\uD83D\uDCC5',rc:'\uD83D\uDCC5',t35:'\uD83D\uDE9B',as:'\uD83D\uDD27',etc:'\u2795',nb:'\uD83D\uDCC4',jn:'\uD83C\uDFED'};
+const RT_EM={rw:'\uD83D\uDCC5',r9:'\uD83D\uDCC5',r10:'\uD83D\uDCC5',t35:'\uD83D\uDE9B',as:'\uD83D\uDD27',etc:'\u2795',nb:'\uD83D\uDCC4',jn:'\uD83C\uDFED'};
 function bubItems(kind,o){
  if(kind==='drv'||kind==='gdrv'){
   const a=[{v:'__R',t:'\ub3d9\uc120 \uae30\uc0ac',s:(o&&CAR[ASSIGN[o.i]])||'\uc9c0\uc815 \ub530\ub984',c:'#94A3B8',e:'\uD83D\uDD01'},
@@ -5216,6 +5238,10 @@ function msSjUp(f){if(!f)return;
 const MSB_EXCL=/택배|용차|상차|화물|차량입고|퀵/;
 const MSB_PICK=/찾으러|방문수령/;
 const MSB_DRV=['장세훈','안정수','배진성'];   /* 명세서에 이름을 찍는 기사 — 호로차 둘·3.5톤 */
+/* 2026-11-02 사장님: 전표 아래 «10만 기업이 선택한 sERP» 자리를 지우고 계좌 줄을 찍는다 (종이에 미리 찍혀 있던 것 — 묶음 PDF 는 백지에 뽑으니까). 위·아래 반쪽 다 */
+const MSB_BANK='국민 170001-04-212477   신한 140-007-999709   외환 630-004685-891   우리 1005-001-929468   기업 032-576-5361   농협 351-0600-978683   예금주 (주)광일체어';
+/* 품목명에 이 말이 있으면 그 말에 빨간 동그라미 (2026-11-02 사장님 «좌판만·링사발·도금사발·코지오발 이런 거») */
+let MSB_CIRC_RE=/좌판만|등판만|링사발|도금사발|코지오발|크롬사발|알루미늄사발|사발만|팔걸이만|다리만/;
 let MSB={name:'',units:null,groups:null,st:'',out:null,outName:''};
 const MSB_LIB={pdfjs:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
  pdflib:'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',fontkit:'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
@@ -5249,6 +5275,16 @@ async function msbReadPage(p){
  /* 전표 지문 — 위 반쪽 글자 전부(품목·수량·금액·적요)로. 같은 거래처라도 품목이 바뀌면 지문이 달라져 «추가분» 에 잡힌다 (2026-11-02) */
  /* 전미수잔액·합계·총합계·입금액·총미수잔액 줄(y455~505)은 뺀다 — 입금만 들어와도 지문이 바뀌어 «추가분» 에 잘못 잡히지 않게 */
  u.sig=msbHash(tc.items.filter(function(it){const y=it.transform[5];return it.str.trim()&&y>=H*0.5&&!(y>=455&&y<=505)}).map(function(it){return it.str.trim()}).join('|'));
+ /* 품목 줄(y501~652, 품목·비고 칸 x<290)에서 동그라미 칠 말의 자리 — 글자 하나 너비는 그 토막 너비를 글자 수로 나눠 어림 */
+ u.circ=[];tc.items.forEach(function(it){const y=it.transform[5],x=it.transform[4],s=it.str;if(y<500||y>652||x>290||!s.trim())return;
+  if(/엠비가구/.test(s))return;   /* 엠비가구 사양 품목은 동그라미 안 친다 (2026-11-02 사장님) */
+  const m=s.match(MSB_CIRC_RE);if(!m)return;
+  /* 글자 폭 —한글은 1, 영문·숫자는 0.55, 빈칸 0.3 으로 무게를 주고 토막 너비를 나눠 가진다 */
+  const wt=function(ch){return /[가-힣一-鿿]/.test(ch)?1:ch===' '?0.3:0.55};
+  let tot=0;for(let i=0;i<s.length;i++)tot+=wt(s[i]);const unit=(it.width||s.length*5)/Math.max(0.1,tot);
+  let pre=0;for(let i=0;i<m.index;i++)pre+=wt(s[i]);let ww=0;for(let i=0;i<m[0].length;i++)ww+=wt(m[0][i]);
+  const cx=x+unit*pre;if(cx>190)return;   /* 비고 칸(x190~)은 안 잡는다 — 품목명 칸만 */
+  u.circ.push({x:cx,y:y,w:unit*ww,s:m[0]})});
  return u;
 }
 /* 쪽을 전표 단위로 묶는다 — PAGE 2/2 처럼 이어지는 쪽은 앞 전표에 붙인다 */
@@ -5258,12 +5294,12 @@ async function msbParse(bytes){
  for(let i=1;i<=doc.numPages;i++){msbSt('읽는 중 '+i+'/'+doc.numPages+'쪽');
   const u=await msbReadPage(await doc.getPage(i));
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
-  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.sig+='+'+u.sig;if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
-  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,pages:[i],sugi:/수기\s*전표/.test(u.ad||'')};units.push(last)}
+  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
+  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test(u.ad||'')};units.push(last)}
  try{doc.destroy()}catch(e){}
  return units;
 }
-function msbRL(id){if(/^r\d$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
+function msbRL(id){if(/^r\d+$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
 function msbCL(id){if(id==='pick')return '#475569';if(id==='un')return '#9CA3AF';return (RID[id]||{}).cl||'#94A3B8'}
 /* 전표마다 그날 배차와 맞춰 동선·기사·도장을 정하고, 동선별(배차 방문순서)로 묶는다 */
 function msbClass(units){
@@ -5350,7 +5386,7 @@ async function msbBuild(bytes,groups){
   /* 표지 */
   const cv=out.addPage([W,H]);
   cv.drawRectangle({x:30,y:H-120,width:W-60,height:80,color:col});
-  cv.drawText(lab+(r&&/^r\d$/.test(g.id)?'  '+r.nm.replace(/^\d+\.\s*/,''):''),{x:48,y:H-78,size:26,font:font,color:WHT});
+  cv.drawText(lab+(r&&/^r\d+$/.test(g.id)?'  '+r.nm.replace(/^\d+\.\s*/,''):''),{x:48,y:H-78,size:26,font:font,color:WHT});
   cv.drawText((drvs.length?'기사 '+drvs.join('·')+' · ':'')+dtxt(g.units[0].date||d0)+' · '+g.units.length+'건 '+np+'장',{x:48,y:H-108,size:13,font:font,color:WHT});
   let y=H-160,x=40;const lh=17,perCol=38;
   g.units.forEach(function(u,i){
@@ -5366,8 +5402,16 @@ async function msbBuild(bytes,groups){
   if(g.id==='un')cv.drawText('※ 배차 사이트에서 이 날짜 배차가 안 된 거래처입니다. 배차를 마친 뒤 다시 올리면 동선에 들어갑니다.',{x:40,y:40,size:10,font:font,color:GRY});
   /* 전표들 — 공급자 보관용 오른쪽 위: 동선(색) + 기사 / 왼쪽 위: 선입금·ERP 도장 */
   g.units.forEach(function(u){
-   u.pages.forEach(function(){
+   u.pages.forEach(function(_p,pi){
     const pg=copied[ci++];out.addPage(pg);
+    /* 아래 «10만 기업이 선택한 sERP» 를 지우고, 칸 밑·절취선 위(y432)에 계좌 줄 — 위·아래 반쪽 다 (2026-11-02) */
+    [0,413].forEach(function(dy){
+     pg.drawRectangle({x:460,y:441-dy,width:116,height:15,color:WHT});
+     let bs=7.5;while(bs>5&&tw(MSB_BANK,bs)>548)bs-=0.25;
+     pg.drawText(MSB_BANK,{x:(W-tw(MSB_BANK,bs))/2,y:432-dy,size:bs,font:font,color:BLK})});
+    /* 품목명의 좌판만·링사발… 에 빨간 동그라미 — 위·아래 반쪽 다 (2026-11-02) */
+    (u.circs&&u.circs[pi]||[]).forEach(function(c){[0,413].forEach(function(dy){
+     pg.drawEllipse({x:c.x+c.w/2,y:c.y+3.2-dy,xScale:c.w/2+4,yScale:7.5,borderColor:RED,borderWidth:1.3})})});
     const lb=labOf(u),bw=Math.max(66,tw(lb,13)+16);
     pg.drawRectangle({x:396,y:789,width:bw,height:27,color:col});
     pg.drawText(lb,{x:396+(bw-tw(lb,13))/2,y:797,size:13,font:font,color:WHT});
@@ -6510,7 +6554,7 @@ function runGps(){
 const LBL_C={
  r1:['#E03131','#fff'], r2:['#F76707','#fff'], r3:['#F2B705','#1a1a1a'],
  r4:['#2F9E44','#fff'], r5:['#1971C2','#fff'], r6:['#7048E8','#fff'],
- r7:['#D6336C','#fff'], rw:['#0B7285','#fff'], rc:['#5F3DC4','#fff'],
+ r7:['#D6336C','#fff'], rw:['#0B7285','#fff'], r9:['#5F3DC4','#fff'], r10:['#B45309','#fff'],
  t35:['#8D6E28','#fff'], as:['#C2255C','#fff'], etc:['#495057','#fff'],
  jn:['#ADB5BD','#1a1a1a'], nb:['#CED4DA','#1a1a1a'], '_':['#DEE2E6','#1a1a1a']};
 function lblC(rid){return LBL_C[rid]||LBL_C['_']}
