@@ -1589,7 +1589,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261102v';
+const APPVER='20261102x';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5476,17 +5476,27 @@ async function msbBuild(bytes,groups){
    «12시 마감 후에 다운받고 2시반 3시 … 추가로 되는거는 추가로만») */
 async function msbDoneAll(){try{const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.15&select=data',{headers:msbH()});const j=await r.json();return (j&&j[0]&&j[0].data)||{}}catch(e){return {}}}
 function msbDoneTxt(d){const x=(MSB.doneAll||{})[d];if(!x||!x.ts)return MSB.doneAll?'🕒 '+d+' 은 아직 묶지 않았습니다 — 추가분은 전체를 한 번 묶은 뒤부터':'';
- const t=new Date(x.ts);return '🕒 '+d+' 마지막 묶기: '+String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+' '+esc(x.who||'')+' · 전표 '+(x.sig||[]).length+'건 — «추가분만» 은 이 뒤에 들어오거나 바뀐 전표만'}
-async function msbDoneGet(d){const a=await msbDoneAll();return ((a[d]||{}).sig)||[]}
+ const fm=function(ts){const t=new Date(ts);return String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')};
+ let sel='';
+ if(x.hist&&x.hist.length>1){const cur=(MSB.base!=null?MSB.base:'');
+  sel='<div style="margin-top:3px">«추가분만» 기준 — 어느 묶기까지를 이미 묶은 것으로 볼까요: <select id="msbbase" style="font-size:12.5px;padding:2px 4px">'
+   +'<option value=""'+(cur===''?' selected':'')+'>마지막 묶기까지 ('+fm(x.ts)+')</option>'
+   +x.hist.map(function(h,i){return '<option value="'+i+'"'+(String(cur)===String(i)?' selected':'')+'>'+fm(h.ts)+' '+esc(h.who||'')+' · '+(h.full?'전체':'추가')+' '+h.n+'건 묶은 때까지</option>'}).join('')+'</select></div>'}
+ return '🕒 '+d+' 마지막 묶기: '+fm(x.ts)+' '+esc(x.who||'')+' · 전표 '+(x.sig||[]).length+'건 — «추가분만» 은 이 뒤에 들어오거나 바뀐 전표만'+sel}
+/* base='' → 마지막 묶기까지 다 / base=i → 그 번째 묶기까지(그때까지 묶은 전표 전부, hist[i].cum) (2026-11-02 사장님 «내가 묶은 시간을 입력하면 추가분만») */
+async function msbDoneGet(d,base){const a=await msbDoneAll();const x=a[d]||{};
+ if(base!==''&&base!=null&&x.hist&&x.hist[+base])return x.hist[+base].cum||[];return x.sig||[]}
 async function msbDoneSet(d,sigs,replace){
- const a=await msbDoneAll();const old=replace?[]:(((a[d]||{}).sig)||[]);
+ const a=await msbDoneAll();const cur=a[d]||{};const old=replace?[]:(cur.sig||[]);
  const s=old.slice();sigs.forEach(function(x){if(s.indexOf(x)<0)s.push(x)});
- a[d]={sig:s,ts:Date.now(),who:ME||'사이트'};
+ const hist=(cur.hist||[]).slice(-9);hist.push({ts:Date.now(),who:ME||'사이트',n:sigs.length,full:replace?1:0,cum:s});
+ a[d]={sig:s,ts:Date.now(),who:ME||'사이트',hist:hist};
  const lim=new Date(Date.now()-14*86400000).toISOString().slice(0,10);Object.keys(a).forEach(function(k){if(k<lim)delete a[k]});
  await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:15,data:a,updated_at:new Date().toISOString()}])});
 }
 async function msbRun(bytes,name,onlyNew){
- try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew};
+ const base=(document.getElementById('msbbase')||{}).value||'';   /* 어느 묶기까지를 «이미 묶은 것» 으로 볼지 */
+ try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew,base:base};
   msbSt('준비 중 (PDF 도구·글꼴 받기)…');await msbLibs();
   await sjnLoad();
   let units=await msbParse(bytes);
@@ -5494,7 +5504,7 @@ async function msbRun(bytes,name,onlyNew){
   const d=(units.find(function(u){return u.date})||{}).date||SEL;
   const all=units.filter(function(u){return u.ok}).length;
   if(onlyNew){
-   const done=await msbDoneGet(d);
+   const done=await msbDoneGet(d,base);
    if(!done.length){msbSt('⚠ '+d+' 은 아직 한 번도 묶지 않았습니다 — 먼저 «이 날짜 명세서 묶기» 를 누르세요');return}
    units=units.filter(function(u){return u.ok&&done.indexOf(u.sig)<0});
    MSB.newN=units.length;
@@ -5528,7 +5538,7 @@ async function msbByDate(force,onlyNew){
  const d=(document.getElementById('msbd')||{}).value||MSBD||mnNextBiz();if(!/^\d{4}-\d\d-\d\d$/.test(d)){msbSt('⚠ 날짜를 고르세요');return}
  msbSetD(d);
  try{
-  if(onlyNew){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf',true)}else msbSt('⚠ '+d+' 명세표 PDF 가 아직 없습니다 — 먼저 «이 날짜 명세서 묶기» 를 누르세요');return}
+  if(onlyNew){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf',true)}else msbSt('⚠ 자동실행컴이 뽑아 둔 '+d+' 명세표 PDF 가 아직 없습니다 (평일 12:05·14:20·15:06 자동 — 일괄 팩스 중이면 끝난 뒤). sERP 에서 직접 받은 파일이면 «추가분만» 체크하고 「파일 선택」으로 올리세요');return}
   if(!force){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf');return}}
   /* 자동실행컴에 뽑아 달라고 한다 */
   const cur=await msbBoard12();const ts=Date.now();
