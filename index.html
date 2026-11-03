@@ -965,6 +965,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
  <button id="tb9" onclick="go(9)"><em>🚛</em>운반비연락처</button>
  <button id="tb6" onclick="go(6)"><em>💰</em>용차계산기</button>
  <button id="tb7" onclick="go(7)"><em>🚚</em>용차내역서</button>
+ <button id="tb15" onclick="go(15)"><em>🏭</em>직납내역서</button>
  <button id="tb12" onclick="go(12)"><em>📄</em>명세서묶기</button>
  <button id="tb13" onclick="go(13)"><em>💰</em>수금확인</button>
  <button id="tb0" onclick="go(0)" style="display:none"><em>🗂️</em>배차<span class="bdg" id="bd0" style="display:none"></span></button>
@@ -1143,15 +1144,15 @@ const ROUTES=[
  {id:'r1',slot:'pm',nm:'1. 인천',cl:'#2D7FF9',days:[1,2,3,4,5],zone:'서구 주안 남동구 계산 가좌 석남',
   k:['인천','서구','주안','남동','계양','부평','미추홀','연수','송도','구월','가좌','계산','석남','만수','고잔','학익','부개']},
  {id:'r2',slot:'pm',nm:'2. 부천·구로·영등포',cl:'#0FA958',days:[1,2,3,4,5],zone:'계산동 부천 구로 독산동 영등포 대림 가산디지털',
-  k:['부천','구로','독산','영등포','대림동','대림','가산','신월','오류','금천','강서','양천','가양','화곡','광명시','광명','철산','하안','소하','일직','가학','학온']},
+  k:['부천','구로','독산','영등포','대림동','대림','가산','신월','오류','금천','강서','양천','가양','화곡']},   /* 광명은 6동선으로 옮김 (2026-11-03 사장님 «광명은 시흥안산동선») */
  {id:'r3',slot:'pm',nm:'3. 김포·일산·파주',cl:'#17B8BE',days:[1,2,3,4,5],zone:'김포 일산 맥 오류동 파주',
   k:['김포','일산','고양','파주','덕양','덕은']},
  {id:'r4',nm:'4. 영등포·사당·강남',cl:'#F0453A',days:[1,2,3,4,5],zone:'당산쪽영등포 사당 강남 과천',
-  k:['사당','강남','과천','당산','영등포','문래','양평동','서초','방배','논현','역삼','대치','양재','도곡','석촌','청담','신사','동작','문정','관악','봉천','신림','반포']},
+  k:['사당','강남','과천','당산','영등포','문래','양평동','서초','방배','논현','역삼','대치','양재','도곡','석촌','청담','신사','동작','문정','관악','봉천','신림','반포','송파','가락','잠실','방이','오금','거여','마천','장지','위례']},   /* 송파구(테라타워·으뜸)는 강남·사당 동선 — 2026-11-03 사장님 */
  {id:'r5',nm:'5. 마포·을지·중곡',cl:'#8B5CF6',days:[1,2,3,4,5],zone:'마포 을지 왕십리 중곡 / 의정부 포천 양주',
   k:['마포','을지','왕십리','중곡','의정부','포천','양주','광진','능동','묵동','자양','황학','용두','동대문','성동','중랑','종로','중구','용산','서대문','세검정','성북','노원','도봉','강북']},
  {id:'r6',nm:'6. 시흥·시화·화성',cl:'#0EA5E9',days:[1,2,3,4,5],zone:'시흥 시화 안산 봉담 화성',
-  k:['시흥','시화','안산','봉담','화성','오이도','단원','상록','팔탄','우정','향남','정남','매송','반송']},
+  k:['시흥','시화','안산','봉담','화성','오이도','단원','상록','팔탄','우정','향남','정남','매송','반송','광명시','광명','철산','하안','소하','일직','가학','학온']},
  {id:'r7',nm:'7. 수원·용인·이천',cl:'#6366F1',days:[1,2,3,4,5],zone:'의왕 안양 군포 수원 어정 오포 용인 성남 광주 이천 여주',
   k:['수원','용인','성남','광주시','이천','여주','오포','곤지암','초월','의왕','안양','군포','기흥','화서','어정','권선','팔달','영통','오산','상일','도척','분당']},
  {id:'rw',slot:'am',nm:'수요일. 남양주·원주·춘천',cl:'#EC4899',days:[3],zone:'남양주 마석 원주 춘천',
@@ -1368,6 +1369,8 @@ const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/스케일에프아이|^스케일/,'r3'],   /* 2026-11-02 사장님 «스케일은 3동선으로» (김포·일산·파주) */
  [/팀퍼니처/,'r9'],   /* 2026-11-02 사장님 «팀퍼니처 9동선» (대전·진천·중부) */
  [/이프시스템/,'r5'],
+ [/민트인터내셔/,'r1'],   /* 2026-11-03 사장님 «민트 1동선으로» (부평) */
+ [/가구라인/,'rw'],   /* 2026-11-03 사장님 «가구라인은 수요일동선으로» */
  [/서해가구\(당진|서해가구백화점\(당진|당진\s*OK|당진OK사무용가구|한솔가구\(홍성|당진가구타운|청송.*청주|청주.*청송|상상\s*OA|네오오피스|그루터기/i,'r10']];   /* 청주 청송 — 청주는 9동선 낱말이지만 이곳은 10 */   /* 2026-11-02 사장님 «서해가구(당진) · 당진OK · 홍성 한솔 · 당진가구타운 → 10» */   /* 2026-11-02 사장님 «이프시스템 5동선» — 5/27·5/28 에 4동선으로 옮긴 기억이 남아 4동선으로 찍히던 것 */
 function rtHard(n){const t=String(n||'');
  for(let i=0;i<RT_HARD.length;i++)if(RT_HARD[i][0].test(t))return RT_HARD[i][1];
@@ -1590,7 +1593,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261103l';
+const APPVER='20261103t';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1980,7 +1983,12 @@ function hitRoute(t){
   if(p<bestPos||(p===bestPos&&k.length>bestLen)){bestId=r.id;bestPos=p;bestLen=k.length}
  }
  return bestId}
-function guess(o){
+/* 수요일 동선(남양주·원주·춘천)은 수요일에만 뜬다 — 다른 날 남양주·가평·양평은 5동선에 붙인다 (고정 거래처는 그대로) 2026-11-03 */
+function guess(o){const r=guess0(o);
+ if(r==='rw'&&!rtHard(o.n)){const dow=new Date(o.d+'T00:00:00').getDay();
+  if(dow!==3){const D=destOf(o);const t=((D&&D.src==='적요'?D.t:'')||ADDR[o.n]||'')+' '+o.n;if(/남양주|가평|양평|마석|화도/.test(t))return 'r5'}}
+ return r}
+function guess0(o){
  if(o.ex)return 'x';
  // 0) 무조건 고정 — 적요 직납보다도 우선 (예: 심플즈는 주소가 화성이어도 사당 코스)
  {const _h=rtHard(o.n);if(_h)return _h}
@@ -2007,7 +2015,33 @@ function guess(o){
   const m=String(o.memo||'').match(ADRE);
   if(m){const r=hitRoute(m[0]);if(r)return r}
  }
- return hitRoute(ADDR[o.n]||'')||hitRoute(o.n+' '+(o.memo||''))||'_'}
+ {const r=hitRoute(ADDR[o.n]||'')||hitRoute(o.n+' '+(o.memo||''));if(r)return r}
+ return areaFb(o)||'_'}
+/* 2026-11-03 사장님 «미배차는 왜 미배차야, 다 동선 잡아야지» — 낱말 목록에 없는 동네라도 시·군·구로 가까운 동선에 넣는다 (맨 마지막 수단).
+   원거리(부산·대구·전라·경상·제주)는 용차로 나가야 하니 그대로 미배차로 두고, 주소가 아예 없는 거래처도 못 잡는다. */
+const AREA_FB=[
+ [/인천/,'r1'],
+ [/평택|안성|천안|아산|당진|서산|홍성|예산|보령|태안|서천|청양|부여|충남|충청/,'r10'],
+ [/대전|청주|세종|충주|음성|진천|충북|공주|논산|계룡|금산|제천|옥천|보은|증평|괴산|영동|단양/,'r9'],
+ [/(구로|금천|강서|양천|영등포)구/,'r2'],
+ [/(동작|관악|서초|강남|송파|강동)구|하남/,'r4'],
+ [/(마포|종로|용산|서대문|은평|성동|광진|동대문|중랑|성북|강북|도봉|노원)구|서울.{0,12}중구/,'r5'],
+ [/서울/,'r5'],
+ [/김포|고양|파주|일산/,'r3'],
+ [/의정부|포천|양주|동두천|연천|구리/,'r5'],
+ [/남양주|가평|양평/,'rw'],
+ [/원주|춘천|횡성|홍천|강원|철원|화천|인제|양구|속초|강릉|동해|삼척|태백|정선|영월|평창|고성/,'rw'],
+ [/시흥|안산|화성|광명/,'r6'],
+ [/수원|용인|성남|광주시|이천|여주|의왕|안양|군포|오산|과천/,'r7'],
+ [/경기/,'r7']];
+function areaFb(o){
+ const D=destOf(o);const t=(D&&D.src==='적요'?D.t:'')||ADDR[o.n]||((String(o.memo||'').match(ADRE)||[''])[0]);
+ if(!t||FAR_RE.test(t))return null;
+ const dow=new Date(o.d+'T00:00:00').getDay();
+ for(let i=0;i<AREA_FB.length;i++)if(AREA_FB[i][0].test(t)){const r=AREA_FB[i][1];
+  /* 수요일 동선은 수요일에만 — 다른 날의 남양주·가평·양평은 5동선에 붙인다 (원주·춘천 같은 먼 곳은 그대로) */
+  if(r==='rw'&&dow!==3&&/남양주|가평|양평/.test(t))return 'r5';return r}
+ return null}
 /* 삼정퍼니처 물량 판별
    1) 삼정 명세서 파일에서 온 줄 (sj===1)
    2) 규격이 [삼정가구]  /  적요가 '삼정)' 로 시작
@@ -2583,7 +2617,7 @@ function render(){
  ds.innerHTML=DATES.length?DATES.map(d=>'<option value="'+d+'"'+(d===SEL?' selected':'')+'>'
   +d.slice(5)+' ('+'일월화수목금토'[new Date(d).getDay()]+') · '+ORDERS.filter(o=>o.d===d).length+'건</option>').join('')
   :'<option>날짜 없음</option>';
- [0,1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
+ [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15].forEach(i=>{const e=document.getElementById('tb'+i);if(e)e.className=(TAB===i?'on':'')});
  drawWx();drawRw();drawDiff();drawUpd();
  /* 알림줄은 맨 위에 띄우지 않고 [공지·메모] 탭 안에만 둔다 */
  const NB=['rainbar','rwbar','dfbar'].filter(function(id){var e=document.getElementById(id);return e&&e.style.display!=='none'});
@@ -2594,7 +2628,7 @@ function render(){
  const bd=document.getElementById('bd0');bd.style.display=un?'':'none';bd.textContent=un;
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
- app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():TAB===11?tabUj():TAB===12?tabMsb():TAB===13?tabMoney():tabStat(today);
+ app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():TAB===11?tabUj():TAB===12?tabMsb():TAB===13?tabMoney():TAB===15?tabJn():tabStat(today);
  bind();if(TAB===6)drawYcOne();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
@@ -4365,7 +4399,8 @@ function kkDays(x){const t=String(x.mm||'').replace(/\s+/g,''),m0=+x.d.slice(5,7
  const dn=dd(/(?:(\d{1,2})\/)?(\d{1,2})일?(?:도착|하차)/);
  return {up:up,dn:dn}}
 /* land=true → A4 반쪽(가로로 긴 A5)에 꽉 차게 찍는 가로판 (2026-10-30 세트 인쇄) */
-function kkDraw(x,items,land){
+/* who = '공급자 보관용' / '공급받는자 보관용' — 제목 밑에 작게 (2026-11-03 사장님 «수기전표가 짝으로 공급자용·공급받는자용으로») */
+function kkDraw(x,items,land,who){
  const W=land?1120:760,H=land?790:1060,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
  const kx=(W-60)/700,XS=function(v){return Math.round(30+(v-30)*kx)};
  const F=function(s,b){return (b?'bold ':'')+s+'px "Malgun Gothic","맑은 고딕",sans-serif'};
@@ -4380,6 +4415,7 @@ function kkDraw(x,items,land){
  /* 틀 */
  const X0=30,X1=W-30;g.strokeStyle=R;g.lineWidth=2;g.strokeRect(X0,78,X1-X0,H-110);
  g.fillStyle=R;g.font=F(40,1);const T='거  래  명  세  표';g.fillText(T,(W-g.measureText(T).width)/2,128);
+ if(who){g.font=F(15,1);const wt='[ '+who+' ]';g.fillText(wt,(W-g.measureText(wt).width)/2,145)}
  g.beginPath();g.moveTo(X0,148);g.lineTo(X1,148);g.stroke();
  /* 왼쪽 — 날짜·거래처 */
  g.fillStyle=B;g.font=F(22);
@@ -4427,7 +4463,7 @@ function kkDraw(x,items,land){
 function kkGroup(co,k){const rows=ycbRows(co);const g=[rows[k]];for(let j=k+1;j<rows.length&&rows[j]&&rows[j].link;j++)g.push(rows[j]);return g.filter(Boolean)}
 function ycbKkOpen(co,k){
  const x=ycbRows(co)[k];if(!x)return;
- const forms=kkGroup(co,k).map(function(r){const it=kkItems(r);return {x:r,items:it,img:kkDraw(r,it).toDataURL('image/jpeg',0.88)}});
+ const forms=kkGroup(co,k).map(function(r){const it=kkItems(r);return {x:r,items:it,img:kkDraw(r,it,false,'공급자 보관용').toDataURL('image/jpeg',0.88),img2:kkDraw(r,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88)}});
  KKX={co:co,k:k,x:x,forms:forms,items:forms[0].items,img:forms[0].img};
  const items=forms[0].items;
  let el=document.getElementById('kkbox');
@@ -4436,6 +4472,7 @@ function ycbKkOpen(co,k){
  el.innerHTML='<div style="background:#fff;border-radius:14px;max-width:880px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;gap:14px;flex-wrap:wrap">'
   +'<div style="width:360px;max-width:100%">'+forms.map(function(f,i){return '<div style="font-size:12.5px;font-weight:700;color:#334155;margin:'+(i?'10px':'0')+' 0 3px">'+(forms.length>1?(i+1)+'장 · ':'')+esc(f.x.n)+'</div>'
    +'<img id="kkimg'+i+'" src="'+f.img+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px">'
+   +'<img id="kkimg'+i+'b" src="'+f.img2+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px;margin-top:4px">'
    +'<div id="kkrows'+i+'" style="margin-top:6px">'+kkRowsHtml(i)+'</div>'}).join('')+'</div>'
   +'<div style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:8px">'
   +'<div style="display:flex;align-items:center"><b style="font-size:16px;flex:1">📷 수기전표 카톡 — '+esc(co)+'</b>'
@@ -4464,7 +4501,9 @@ function kkRowsHtml(f){f=f||0;const L=((KKX&&KKX.forms&&KKX.forms[f])||{}).items
    +'<input type="number" min="0" id="kkq'+f+'_'+i+'" value="'+(it.q||0)+'" oninput="kkRowIn('+f+','+i+',\'q\',this.value)" style="width:58px;padding:4px;border:1px solid #cfd8e3;border-radius:6px;font-size:13px;font-weight:700;text-align:right">'
    +'<button onclick="kkRowDel('+f+','+i+')" title="줄 빼기" style="border:0;background:#eef2f7;border-radius:6px;width:26px;cursor:pointer">✕</button></div>'}).join('')
   +'<button onclick="kkRowAdd('+f+')" style="border:1px dashed #b8c4d2;background:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:#334155">+ 줄 추가</button>'}
-function kkRedraw(f){if(!KKX)return;f=f||0;const F=KKX.forms[f];if(!F)return;F.img=kkDraw(F.x,F.items).toDataURL('image/jpeg',0.88);if(!f){KKX.img=F.img;KKX.items=F.items}const im=document.getElementById('kkimg'+f);if(im)im.src=F.img}
+function kkRedraw(f){if(!KKX)return;f=f||0;const F=KKX.forms[f];if(!F)return;
+ F.img=kkDraw(F.x,F.items,false,'공급자 보관용').toDataURL('image/jpeg',0.88);F.img2=kkDraw(F.x,F.items,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88);
+ if(!f){KKX.img=F.img;KKX.items=F.items}const im=document.getElementById('kkimg'+f);if(im)im.src=F.img;const im2=document.getElementById('kkimg'+f+'b');if(im2)im2.src=F.img2}
 function kkChairs(f){const F=KKX.forms[f||0];return ((F&&F.items)||[]).reduce(function(a,it){return a+(sjItem({p:it.p,s:it.s})?0:(+it.q||0))},0)}
 /* 메시지의 «의자 N개» 를 그림 수량 합에 맞춘다 — f 번째 장은 메시지의 f 번째 «의자 N개» */
 function kkTxtSync(f){f=f||0;const ta=document.getElementById('kktxt');if(!ta)return;const n=kkChairs(f);let k=-1;
@@ -4480,7 +4519,7 @@ function kkTxtIn(){if(!KKX)return;const ms=(document.getElementById('kktxt').val
 /* 닫기 — ✕ · 닫기 단추 · Esc · 바깥 어두운 곳 누르기 (2026-10-30 «닫기 버튼 어디 있어») */
 function kkClose(){const el=document.getElementById('kkbox');if(el)el.remove();document.removeEventListener('keydown',kkEsc)}
 function kkEsc(ev){if(ev.key==='Escape')kkClose()}
-function ycbKkSave(){if(!KKX)return;(KKX.forms||[{img:KKX.img,x:KKX.x}]).forEach(function(F,i){const a=document.createElement('a');a.href=F.img;a.download='수기전표_'+KKX.co+(KKX.forms&&KKX.forms.length>1?'_'+(i+1)+'_'+String(F.x.n||'').replace(/[\\/:*?"<>|]/g,''):'')+'.jpg';document.body.appendChild(a);a.click();a.remove()})}
+function ycbKkSave(){if(!KKX)return;(KKX.forms||[{img:KKX.img,x:KKX.x}]).forEach(function(F,i){[[F.img,'공급자용'],[F.img2,'공급받는자용']].forEach(function(p){if(!p[0])return;const a=document.createElement('a');a.href=p[0];a.download='수기전표_'+KKX.co+'_'+(i+1)+'_'+String(F.x.n||'').replace(/[\\/:*?"<>|]/g,'')+'_'+p[1]+'.jpg';document.body.appendChild(a);a.click();a.remove()})})}
 async function ycbKkSend(){
  if(!KKX)return;const room=(document.getElementById('kkroom').value||'').trim(),text=document.getElementById('kktxt').value||'';
  if(!room)return toast('보낼 카톡방을 적어 주세요');
@@ -4489,7 +4528,7 @@ async function ycbKkSend(){
  const H={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'};
  bt.disabled=true;st.textContent='보내는 중… (사무실 PC 가 받기를 기다립니다)';
  try{
-  const r=await fetch(SB_URL+'/rest/v1/board',{method:'POST',headers:H,body:JSON.stringify([{id:14,data:{req:{id:id,ts:Date.now(),room:room,text:text,img:KKX.img,imgs:(KKX.forms||[]).map(function(F){return F.img}),who:ME||''}},updated_at:new Date().toISOString()}])});
+  const r=await fetch(SB_URL+'/rest/v1/board',{method:'POST',headers:H,body:JSON.stringify([{id:14,data:{req:{id:id,ts:Date.now(),room:room,text:text,img:KKX.img,imgs:(KKX.forms||[]).reduce(function(a,F){return a.concat([F.img,F.img2].filter(Boolean))},[]),who:ME||''}},updated_at:new Date().toISOString()}])});
   if(!r.ok)throw new Error('HTTP '+r.status);
  }catch(e){bt.disabled=false;st.textContent='❌ 요청을 못 올렸습니다: '+e.message;return}
  const t0=Date.now();let seen=0;
@@ -5362,6 +5401,7 @@ function msbClass(units){
    if(mx){u.g='x';u.why='적요 「'+mx[0]+'」';return}
    /* 거래처 «소비자» 는 묶음에서 뺀다 (2026-11-02 사장님) — 맨 뒤 «뺀 전표» 목록에만 */
    if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){u.g='x';u.why='거래처 소비자';return}
+   if(/엠비가구/.test(String(u.n||''))){u.g='x';u.why='거래처 엠비가구';return}   /* 2026-11-03 사장님 «주식회사 엠비가구는 아예 빼» */
    const D=u.date||keepSEL;
    if(D!==SEL){SEL=D;CAR=CARD[D]||DAY_DRV[D]||autoRotate(D)}
    /* 2026-10-29 «으뜸퍼니처(문정동)  메일 꼭 넣어주세요» 처럼 거래처명에 띄어쓰기 두 칸이 있으면 PDF 에는 한 칸·뒤가 잘려 찍혀
@@ -5959,7 +5999,9 @@ async function ujSetPrint(){
  for(const e of L){
   const ys=e.ys,kks=[],sps=[];
   for(const y of ys){
-   kks.push(kkDraw(y,kkItems(y)).toDataURL('image/jpeg',0.9));
+   /* 거래처마다 공급자용·공급받는자용 짝 (2026-11-03) */
+   kks.push(kkDraw(y,kkItems(y),false,'공급자 보관용').toDataURL('image/jpeg',0.9));
+   kks.push(kkDraw(y,kkItems(y),false,'공급받는자 보관용').toDataURL('image/jpeg',0.9));
    let sp=[];try{sp=await ujsSerp(y)}catch(er){console.warn(er)}
    if(!sp.length)miss.push(y.n);
    sps.push({y:y,sp:sp});
@@ -6000,6 +6042,93 @@ function ujPrint(){
  const off=function(){document.body.classList.remove('ycbprint');if(st.parentNode)st.parentNode.removeChild(st);window.removeEventListener('afterprint',off)};
  window.addEventListener('afterprint',off);
  setTimeout(function(){window.print();setTimeout(off,400)},80);
+}
+/* ===== 🏭 직납 내역서 (2026-11-03 사장님 «용차내역서 옆에 직납내역서를 같은 형식으로 — 지결은 필요 없음, 우리 기사가 가니까») =====
+   줄은 YCB['직납'] 에 둔다. 용차 업체 목록(YC_CO)에는 안 넣어 결재 올리기·지출결의서·운임지출결의서·세트 인쇄에는 안 섞인다.
+   담으면 배송지(적요 주소)·기사·동선이 채워지고, 직납비는 받을 게 있을 때만 손으로. 📷 수기전표는 같은 단추. */
+const JN_CO='직납';
+let JNALL=0,JNOLD=0;
+function jnIs(o){return !!(o.dst||/직납|직배|직접\s*배송/.test(String(o.memo||''))||ASSIGN[o.i]==='jn')}
+function jnCand(all){
+ const D=ycbDate();
+ const L=ORDERS.filter(function(o){if(ST[o.i]==='del'||ASSIGN[o.i]==='nb')return false;if(o.d===D)return true;
+  if(Math.abs(new Date(o.d+'T00:00:00')-new Date(D+'T00:00:00'))>40*864e5)return false;return shipDate(o)===D});
+ const hit=L.filter(function(o){return jnIs(o)&&!/용차|상차|화물|택배|퀵/.test(String(o.memo||''))});
+ const use=all?L:hit;
+ const done={};(YCB[JN_CO]||[]).forEach(function(x){if(x&&x.d===D&&x.n)done[x.n]=1});
+ const seen={};const out=use.filter(function(o){if(done[o.n])return false;const k=o.n+'|'+o.qty;if(seen[k])return false;seen[k]=1;return true});
+ jnCand.hid=use.length-out.length;return out}
+function jnAdd(i){
+ if(i===''||i==null)return;const o=window._JNB&&window._JNB[+i];if(!o)return;
+ const DD=destOf(o)||{};
+ const addr=o.dst||(DD.src==='적요'?DD.t:'');
+ const reg=(addr?ycRegionAny(addr):null)||ycRegion(o.memo)||ycRegion(ADDR[o.n]||'')||'';
+ const r=ASSIGN[o.i];
+ const a=ycbRows(JN_CO).slice();
+ a.push({d:ycbDate(),n:o.n,reg:reg,drv:effDrv(o)||'',rt:(r&&RID[r]&&r!=='jn')?msbRL(r):'',
+  mm:(addr?addr+(o.memo?' / ':''):'')+String(o.memo||'').slice(0,120),co:'광일',fee:0,est:0,hw:''});
+ ycbPut(JN_CO,a)}
+function jnBlank(){const a=ycbRows(JN_CO).slice();a.push({d:ycbDate(),n:'',reg:'',drv:'',rt:'',mm:'',co:'광일',fee:0});ycbPut(JN_CO,a)}
+/* 직납 줄 고치기 — 용차의 ycbSet 은 지역을 바꾸면 운임을 다시 셈하니 여기서는 그냥 적기만 */
+function jnSet(k,f,v){const a=ycbRows(JN_CO).slice();if(!a[k])return;
+ if(f==='fee')a[k].fee=Math.max(0,Math.round(+String(v).replace(/[^0-9]/g,'')||0));else a[k][f]=v;ycbPut(JN_CO,a)}
+function jnBlock(){
+ const co=JN_CO,rows=ycbRows(co);
+ if(!rows.length)return '<div class="dcard" style="color:#8b9aab">담은 직납이 없습니다.</div>';
+ const t=new Date();t.setDate(t.getDate()-35);const lim=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+ const wk={};let hidden=0;
+ rows.forEach(function(x,k){const m=ycbMon(x.d||ycbDate());if(!JNOLD&&m<lim){hidden++;return}(wk[m]=wk[m]||[]).push({x:x,k:k})});
+ let h='';
+ Object.keys(wk).sort().reverse().forEach(function(m){
+  const g=wk[m];g.sort(function(p,q){return String(p.x.d).localeCompare(String(q.x.d))||p.k-q.k});
+  let acc=0,last='';
+  h+='<div style="margin:10px 0 4px;font-weight:800;color:#5b6b7c;font-size:12.5px">'
+   +'<span style="display:inline-block;padding:2px 9px;border-radius:7px;margin-right:8px;color:#fff;background:#0f8a5f">직납</span>'
+   +md(m)+' ~ '+ycbSun(m)+' 주 · '+g.length+'건'
+   +' <button class="btn g" style="margin-left:8px" onclick="ycbCopyWeek(\''+co+'\',\''+m+'\')">📋 이 주 복사</button>'
+   +' <button class="btn g" onclick="ycbPrintWeek(\''+co+'\',\''+m+'\')" title="이 주 직납만 종이로">🖨️ 이 주 인쇄</button></div>';
+  h+='<div class="dcard ycsc"><table class="yctb wk"><tr><th>일자</th><th>거래처명</th><th>배송지역</th><th>기사 · 동선</th><th>적요 (배송지 주소)</th><th>구분</th>'
+   +'<th style="text-align:right">직납비</th><th style="text-align:right">누계</th><th></th></tr>';
+  g.forEach(function(r){const x=r.x,k=r.k;const pay=x.link?0:(+x.fee||0);acc+=pay;
+   const dd=(x.d===last)?'':md(x.d);last=x.d;
+   h+='<tr><td style="white-space:nowrap">'+dd+'</td>'
+    +'<td><input value="'+String(x.n||'').replace(/"/g,'&quot;')+'" onchange="jnSet('+k+',\'n\',this.value)" style="width:165px"></td>'
+    +'<td><input value="'+String(x.reg||'').replace(/"/g,'&quot;')+'" onchange="jnSet('+k+',\'reg\',this.value)" style="width:74px" placeholder="지역"></td>'
+    +(x.link?'<td class="lnk">↳ 위 줄과 <b>같은 차</b></td>'
+     :'<td style="white-space:nowrap"><input value="'+String(x.drv||'').replace(/"/g,'&quot;')+'" onchange="jnSet('+k+',\'drv\',this.value)" style="width:64px" placeholder="기사">'
+      +' <input value="'+String(x.rt||'').replace(/"/g,'&quot;')+'" onchange="jnSet('+k+',\'rt\',this.value)" style="width:58px" placeholder="동선"></td>')
+    +(function(){const tt=String(x.mm||'');const rw=Math.min(5,Math.max(2,Math.ceil(tt.length/28)));
+      return '<td class="mmc"><textarea class="ycmm" rows="'+rw+'" onchange="jnSet('+k+',\'mm\',this.value)" placeholder="배송지 주소 · 전화 · 시간">'+tt.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</textarea></td>'})()
+    +'<td><select class="cosel" onchange="jnSet('+k+',\'co\',this.value)"><option'+(x.co==='광일'?' selected':'')+'>광일</option><option'+(x.co==='삼정'?' selected':'')+'>삼정</option><option'+(x.co==='장부'?' selected':'')+'>장부</option></select></td>'
+    +(x.link?'<td style="text-align:right;color:#8b9aab">—</td>':'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="jnSet('+k+',\'fee\',this.value)" style="width:78px;text-align:right" title="거래처에 받을 직납비가 있으면"></td>')
+    +'<td style="text-align:right">'+won(acc)+'</td>'
+    +'<td style="white-space:nowrap">'
+     +(x.link?'':'<button class="btn g kkb" onclick="ycbKkOpen(\''+co+'\','+k+')" title="수기전표 그림(공급자용·공급받는자용)">📷</button> ')
+     +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차">🔗</button> ':'')
+     +'<button class="btn g" onclick="ycbDel(\''+co+'\','+k+')" title="빼기">✕</button></td></tr>'});
+  h+='<tr style="background:#f1f8f4;font-weight:800"><td colspan="6">합계</td><td style="text-align:right">'+won(acc)+'</td><td colspan="2"></td></tr>';
+  h+='</table></div>'});
+ if(hidden)h+='<div style="margin:8px 2px;font-size:12.5px;color:#8b9aab">5주 넘은 '+hidden+'건은 감춤 — <label><input type="checkbox" onchange="JNOLD=this.checked;render()"> 지난 것도 보기</label></div>';
+ else if(JNOLD)h+='<div style="margin:8px 2px;font-size:12.5px;color:#8b9aab"><label><input type="checkbox" checked onchange="JNOLD=this.checked;render()"> 지난 것도 보기</label></div>';
+ return h}
+function tabJn(){
+ ycbFix();if(!YCB[JN_CO])YCB[JN_CO]=[];
+ const cand=jnCand(JNALL);window._JNB=cand;
+ let h='<div class="ycwrap">';
+ h+='<div class="hd2">🏭 직납 내역서 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">우리 기사가 거래처 주소가 아닌 곳으로 직접 갖다주는 건 · 결재·지출결의서 없음</span></div>';
+ h+='<div class="ycnote">적요에 <b>직납·직배</b>가 있거나 <b>거래처 주소와 다른 배송지</b>가 적힌 건, 배차에서 <b>직납</b> 동선에 넣은 건을 골라 보여 줍니다(용차·상차·택배 표기가 있는 건은 용차내역서로). <b>이미 담은 건은 목록에서 빠집니다.</b> 담으면 배송지·기사·동선이 자동으로 채워집니다. 📷 로 수기전표(공급자용·공급받는자용)를 만듭니다.</div>';
+ h+='<div class="dcard">'
+  +'<div class="ycrow"><label>① 날짜</label><input type="date" value="'+ycbDate()+'" onchange="ycbSetDate(this.value)"><span style="font-size:12px;color:#8b9aab;white-space:nowrap;margin-left:6px">기본 = 내일 (용차내역서와 같은 날짜)</span></div>'
+  +'<div class="ycrow"><label>② 담을 건</label><select onchange="jnAdd(this.value);this.value=\'\'">'
+   +'<option value="">— '+(JNALL?'그날 전체':'직납')+' '+cand.length+'건'+(jnCand.hid?' · 이미 담은 '+jnCand.hid+'건 뺌':'')+' —</option>'
+   +cand.map(function(o,k){const st=shipTag(o);const DD=destOf(o)||{};
+     return '<option value="'+k+'">'+(st?'★ ':'')+o.n.slice(0,20)+' · '+o.qty+'개'+(st?' ['+st+']':'')+(o.dst||DD.src==='적요'?' → '+String(o.dst||DD.t).slice(0,24):'')+'</option>'}).join('')
+   +'</select><label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(JNALL?' checked':'')+' onchange="JNALL=this.checked;render()"> 전체</label></div>'
+  +'<div style="margin-top:8px"><button class="btn g" onclick="jnBlank()">＋ 빈 줄</button> '
+  +'<button class="btn g" onclick="window.print()">🖨️ 인쇄</button> '
+  +'<button class="btn g" onclick="ycbUndo()" title="이 PC에 남은 직전 상태로 되돌립니다">↩︎ 되돌리기</button></div></div>';
+ h+=jnBlock();
+ return h+'</div>';
 }
 function tabYcb(){
  ycbFix();
