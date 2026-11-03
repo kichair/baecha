@@ -1596,7 +1596,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261103z';
+const APPVER='20261104a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4473,8 +4473,10 @@ function kkDraw(x,items,land,who){
 function kkGroup(co,k){const rows=ycbRows(co);const g=[rows[k]];for(let j=k+1;j<rows.length&&rows[j]&&rows[j].link;j++)g.push(rows[j]);return g.filter(Boolean)}
 function ycbKkOpen(co,k){
  const x=ycbRows(co)[k];if(!x)return;
- const forms=kkGroup(co,k).map(function(r){const it=kkItems(r);return {x:r,items:it,img:kkDraw(r,it,false,'공급자 보관용').toDataURL('image/jpeg',0.88),img2:kkDraw(r,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88)}});
- KKX={co:co,k:k,x:x,forms:forms,items:forms[0].items,img:forms[0].img};
+ /* 짝(공급자용·공급받는자용)은 직납내역서만 — 용차(운송업체 카톡)는 한 장 (2026-11-03 사장님 «용차내역서에는 공급받는자와 공급자 필요없어 1개만») */
+ const pair=(co===JN_CO);
+ const forms=kkGroup(co,k).map(function(r){const it=kkItems(r);return {x:r,items:it,img:kkDraw(r,it,false,pair?'공급자 보관용':'').toDataURL('image/jpeg',0.88),img2:pair?kkDraw(r,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88):''}});
+ KKX={co:co,k:k,x:x,pair:pair,forms:forms,items:forms[0].items,img:forms[0].img};
  const items=forms[0].items;
  let el=document.getElementById('kkbox');
  if(!el){el=document.createElement('div');el.id='kkbox';document.body.appendChild(el)}
@@ -4482,7 +4484,7 @@ function ycbKkOpen(co,k){
  el.innerHTML='<div style="background:#fff;border-radius:14px;max-width:880px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;gap:14px;flex-wrap:wrap">'
   +'<div style="width:360px;max-width:100%">'+forms.map(function(f,i){return '<div style="font-size:12.5px;font-weight:700;color:#334155;margin:'+(i?'10px':'0')+' 0 3px">'+(forms.length>1?(i+1)+'장 · ':'')+esc(f.x.n)+'</div>'
    +'<img id="kkimg'+i+'" src="'+f.img+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px">'
-   +'<img id="kkimg'+i+'b" src="'+f.img2+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px;margin-top:4px">'
+   +(f.img2?'<img id="kkimg'+i+'b" src="'+f.img2+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px;margin-top:4px">':'')
    +'<div id="kkrows'+i+'" style="margin-top:6px">'+kkRowsHtml(i)+'</div>'}).join('')+'</div>'
   +'<div style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:8px">'
   +'<div style="display:flex;align-items:center"><b style="font-size:16px;flex:1">📷 수기전표 카톡 — '+esc(co)+'</b>'
@@ -4512,7 +4514,7 @@ function kkRowsHtml(f){f=f||0;const L=((KKX&&KKX.forms&&KKX.forms[f])||{}).items
    +'<button onclick="kkRowDel('+f+','+i+')" title="줄 빼기" style="border:0;background:#eef2f7;border-radius:6px;width:26px;cursor:pointer">✕</button></div>'}).join('')
   +'<button onclick="kkRowAdd('+f+')" style="border:1px dashed #b8c4d2;background:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:#334155">+ 줄 추가</button>'}
 function kkRedraw(f){if(!KKX)return;f=f||0;const F=KKX.forms[f];if(!F)return;
- F.img=kkDraw(F.x,F.items,false,'공급자 보관용').toDataURL('image/jpeg',0.88);F.img2=kkDraw(F.x,F.items,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88);
+ F.img=kkDraw(F.x,F.items,false,KKX.pair?'공급자 보관용':'').toDataURL('image/jpeg',0.88);F.img2=KKX.pair?kkDraw(F.x,F.items,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88):'';
  if(!f){KKX.img=F.img;KKX.items=F.items}const im=document.getElementById('kkimg'+f);if(im)im.src=F.img;const im2=document.getElementById('kkimg'+f+'b');if(im2)im2.src=F.img2}
 function kkChairs(f){const F=KKX.forms[f||0];return ((F&&F.items)||[]).reduce(function(a,it){return a+(sjItem({p:it.p,s:it.s})?0:(+it.q||0))},0)}
 /* 메시지의 «의자 N개» 를 그림 수량 합에 맞춘다 — f 번째 장은 메시지의 f 번째 «의자 N개» */
@@ -6032,9 +6034,7 @@ async function ujSetPrint(){
  for(const e of L){
   const ys=e.ys,kks=[],sps=[];
   for(const y of ys){
-   /* 거래처마다 공급자용·공급받는자용 짝 (2026-11-03) */
-   kks.push(kkDraw(y,kkItems(y),false,'공급자 보관용').toDataURL('image/jpeg',0.9));
-   kks.push(kkDraw(y,kkItems(y),false,'공급받는자 보관용').toDataURL('image/jpeg',0.9));
+   kks.push(kkDraw(y,kkItems(y)).toDataURL('image/jpeg',0.9));   /* 용차 세트는 한 장 (짝은 직납내역서만, 2026-11-03) */
    let sp=[];try{sp=await ujsSerp(y)}catch(er){console.warn(er)}
    if(!sp.length)miss.push(y.n);
    sps.push({y:y,sp:sp});
