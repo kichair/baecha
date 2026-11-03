@@ -1596,7 +1596,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261103y';
+const APPVER='20261103z';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5474,7 +5474,8 @@ function msbClass(units){
  return groups;
 }
 /* 새 PDF — 동선마다 표지 한 장 + 그 동선 전표들(도장 찍어서), 맨 뒤에 뺀 전표 목록 */
-async function msbBuild(bytes,groups){
+/* coversOnly=true → 맨 앞 보고 장 + 동선 표지 + 뺀 전표 목록만, 전표 쪽은 안 넣는다 (2026-11-03 사장님 «12시에 동선별 앞장만 보고서처럼») */
+async function msbBuild(bytes,groups,coversOnly){
  const PD=PDFLib.PDFDocument,rgb=PDFLib.rgb;
  const src=await PD.load(bytes,{ignoreEncryption:true});
  const out=await PD.create();out.registerFontkit(fontkit);
@@ -5484,7 +5485,7 @@ async function msbBuild(bytes,groups){
  const hex=function(c){c=String(c).replace('#','');return rgb(parseInt(c.slice(0,2),16)/255,parseInt(c.slice(2,4),16)/255,parseInt(c.slice(4,6),16)/255)};
  const tw=function(t,s){try{return font.widthOfTextAtSize(t,s)}catch(e){return t.length*s*0.9}};
  const fit=function(t,s,w){t=String(t||'');while(t.length>1&&tw(t,s)>w)t=t.slice(0,-1);return t};
- const idx=[];groups.forEach(function(g){g.units.forEach(function(u){u.pages.forEach(function(p){idx.push(p-1)})})});
+ const idx=[];if(!coversOnly)groups.forEach(function(g){g.units.forEach(function(u){u.pages.forEach(function(p){idx.push(p-1)})})});
  msbSt('쪽 옮기는 중…');
  const copied=await out.copyPages(src,idx);let ci=0;
  const d0=((groups[0]||{units:[{}]}).units[0]||{}).date||SEL;
@@ -5545,7 +5546,7 @@ async function msbBuild(bytes,groups){
    y-=lh});
   if(g.id==='un')cv.drawText('※ 배차 사이트에서 이 날짜 배차가 안 된 거래처입니다. 배차를 마친 뒤 다시 올리면 동선에 들어갑니다.',{x:40,y:40,size:10,font:font,color:GRY});
   /* 전표들 — 공급자 보관용 오른쪽 위: 동선(색) + 기사 / 왼쪽 위: 선입금·ERP 도장 */
-  g.units.forEach(function(u){
+  if(!coversOnly)g.units.forEach(function(u){
    u.pages.forEach(function(_p,pi){
     const pg=copied[ci++];out.addPage(pg);
     /* 아래 «10만 기업이 선택한 sERP» 를 지우고, 칸 밑·절취선 위(y432)에 계좌 줄 — 위·아래 반쪽 다 (2026-11-02) */
@@ -5645,7 +5646,7 @@ async function msbDoneSet(d,sigs,replace,names){
  const lim=new Date(Date.now()-14*86400000).toISOString().slice(0,10);Object.keys(a).forEach(function(k){if(k<lim)delete a[k]});
  await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:15,data:a,updated_at:new Date().toISOString()}])});
 }
-async function msbRun(bytes,name,onlyNew){
+async function msbRun(bytes,name,onlyNew,coversOnly){
  const base=(document.getElementById('msbbase')||{}).value||'';   /* 어느 묶기까지를 «이미 묶은 것» 으로 볼지 */
  try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew,base:base};
   msbSt('준비 중 (PDF 도구·글꼴 받기)…');await msbLibs();
@@ -5666,17 +5667,17 @@ async function msbRun(bytes,name,onlyNew){
    if(!units.length){msbSt('➕ '+d+' — 지난 묶기 뒤 새로 들어오거나 바뀐 전표가 없습니다 (전체 '+all+'건)');return}
   }
   const groups=msbClass(units);
-  const pdf=await msbBuild(bytes,groups);
-  MSB.units=units;MSB.groups=groups;MSB.outName='거래명세표_동선별_'+d+(onlyNew?'_추가':'')+'.pdf';
+  const pdf=await msbBuild(bytes,groups,coversOnly);
+  MSB.units=units;MSB.groups=groups;MSB.coversOnly=!!coversOnly;MSB.outName=(coversOnly?'거래명세표_보고_':'거래명세표_동선별_')+d+(onlyNew?'_추가':'')+'.pdf';
   if(MSB.out)URL.revokeObjectURL(MSB.out);
   MSB.out=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
   msbSt('');render();msbDown();
-  /* 내려받은 뒤 지문을 적어 둔다 — 전체 묶기는 새로 쓰고, 추가분은 보탠다 */
-  try{const oks=units.filter(function(u){return u.ok});await msbDoneSet(d,oks.map(function(u){return u.sig}),!onlyNew,oks.map(function(u){return String(u.n||'').replace(/\s+/g,'')}))}catch(e){console.warn('묶은 기록 저장 실패',e)}
+  /* 내려받은 뒤 지문을 적어 둔다 — 전체 묶기는 새로 쓰고, 추가분은 보탠다. 보고서만 뽑은 것은 기록 안 함 */
+  if(!coversOnly)try{const oks=units.filter(function(u){return u.ok});await msbDoneSet(d,oks.map(function(u){return u.sig}),!onlyNew,oks.map(function(u){return String(u.n||'').replace(/\s+/g,'')}))}catch(e){console.warn('묶은 기록 저장 실패',e)}
  }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
 }
-function msbPickOpen(only){MSB.pickOnly=!!only;const f=document.getElementById('msbf');if(!f)return;f.value='';f.click()}
-function msbPick(inp){const f=inp.files&&inp.files[0];if(!f)return;const only=!!MSB.pickOnly;const fr=new FileReader();fr.onload=function(){msbRun(fr.result,f.name,only)};fr.readAsArrayBuffer(f)}
+function msbPickOpen(only,covers){MSB.pickOnly=!!only;MSB.pickCovers=!!covers;const f=document.getElementById('msbf');if(!f)return;f.value='';f.click()}
+function msbPick(inp){const f=inp.files&&inp.files[0];if(!f)return;const only=!!MSB.pickOnly,cov=!!MSB.pickCovers;const fr=new FileReader();fr.onload=function(){msbRun(fr.result,f.name,only,cov)};fr.readAsArrayBuffer(f)}
 function msbDown(){if(!MSB.out)return;const a=document.createElement('a');a.href=MSB.out;a.download=MSB.outName;document.body.appendChild(a);a.click();a.remove()}
 
 /* ===== 날짜만 눌러 불러오기 (2026-10-27 사장님 «날짜 클릭만으로 되게 해») =====
@@ -5690,12 +5691,12 @@ function msbH(){return {apikey:MSB_KEY,Authorization:'Bearer '+MSB_KEY}}
 async function msbBoard12(){const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.12&select=data',{headers:msbH()});const j=await r.json();return (j&&j[0]&&j[0].data)||{}}
 async function msbFile(d){const r=await fetch(MSB_SB+'/storage/v1/object/statements/'+d+'.pdf?t='+Date.now(),{headers:msbH(),cache:'no-store'});if(!r.ok)return null;return await r.arrayBuffer()}
 function msbSetD(v){MSBD=v;try{localStorage.setItem(KEY+'_msbd',v)}catch(e){}}
-async function msbByDate(force,onlyNew){
+async function msbByDate(force,onlyNew,coversOnly){
  const d=(document.getElementById('msbd')||{}).value||MSBD||mnNextBiz();if(!/^\d{4}-\d\d-\d\d$/.test(d)){msbSt('⚠ 날짜를 고르세요');return}
  msbSetD(d);
  try{
   if(onlyNew){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf',true)}else msbSt('⚠ 자동실행컴이 뽑아 둔 '+d+' 명세표 PDF 가 아직 없습니다 (평일 12:05·14:20·15:06 자동 — 일괄 팩스 중이면 끝난 뒤). sERP 에서 직접 받은 파일이면 «추가분만» 체크하고 「파일 선택」으로 올리세요');return}
-  if(!force){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf');return}}
+  if(!force){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf',false,coversOnly);return}}
   /* 자동실행컴에 뽑아 달라고 한다 */
   const cur=await msbBoard12();const ts=Date.now();
   cur.req={d:d,ts:ts,who:ME||'사이트'};
@@ -5726,10 +5727,12 @@ function tabMsb(){
   +'<b>📅 날짜</b><input type="date" id="msbd" value="'+esc(md0)+'" onchange="msbSetD(this.value)" style="font-size:15px;padding:4px 6px">'
   +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbByDate(0)">📥 ERP에서 묶기</button>'
   +'<button class="btn" style="background:#0f8a5f;color:#fff" onclick="msbByDate(0,1)" title="자동실행컴이 뽑아 둔 가장 새 PDF 에서, 지난 묶기 뒤 새로 들어오거나 바뀐 전표만 묶습니다">➕ ERP에서 추가분만 묶기</button>'
+  +'<button class="btn" style="background:#5b6b7c;color:#fff" onclick="msbByDate(0,0,1)" title="전표는 빼고 맨 앞 보고 장 + 동선별 표지만 — 12시에 보는 보고서용">📑 ERP에서 보고서만</button>'
   +'<button class="btn g" onclick="msbByDate(1)" title="지금 바로 sERP 에서 새로 뽑습니다 (2~5분)">🔄 sERP 에서 새로 뽑기</button></div>';
  h+='<div style="margin:6px 2px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#6b7c90;font-size:12.5px">또는 직접 받은 PDF 파일로: <input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)" style="display:none">'
   +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbPickOpen(0)" title="sERP 에서 직접 받은 거래명세표 PDF 를 골라 전부 도장 찍습니다">📄 이 파일 도장찍기</button>'
   +'<button class="btn" style="background:#0f8a5f;color:#fff" onclick="msbPickOpen(1)" title="직접 받은 PDF 에서 지난 묶기에 없던 전표(새 것·바뀐 것)만 도장 찍습니다">➕ 이 파일 추가분만 도장찍기</button>'
+  +'<button class="btn" style="background:#5b6b7c;color:#fff" onclick="msbPickOpen(0,1)" title="직접 받은 PDF 로 보고 장 + 동선별 표지만">📑 이 파일 보고서만</button>'
   +(MSB.out?'<button class="btn" onclick="msbDown()">⬇ 다시 내려받기 — '+esc(MSB.outName)+'</button>':'')
   +'<span id="msbst" style="font-weight:700;color:#2F7FE8">'+esc(MSB.st)+'</span></div>'
   +'<div id="msbdone" style="margin:0 2px 10px;font-size:12.5px;color:#0f8a5f">'+msbDoneTxt(md0)+'</div>';
