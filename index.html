@@ -1158,7 +1158,7 @@ const ROUTES=[
   k:['남양주','마석','원주','춘천','가평','만종','양평']},
  /* 2026-11-02 사장님: 화·목 충청(rc) 하나를 둘로 — 9동선 대전·진천·중부 / 10동선 천안·당진·평택·홍성·충청도 */
  {id:'r9',slot:'am',nm:'9. 대전·진천·중부',cl:'#FF7A45',days:[2,4],zone:'음성 진천 충주 청주 세종 대전 / 공주 논산 계룡 금산 제천 (충북)',
-  k:['대전','청주','음성','진천','충주','세종','대덕','유성','공주','논산','계룡','금산','제천','충북','오창','증평','괴산','옥천','보은','청원','영동','단양']},
+  k:['대전','청주','음성','진천','충주','세종','대덕','유성','공주','논산','계룡','금산','제천','충북','오창','증평','괴산','옥천','보은','청원','영동','단양','중부']},
  {id:'r10',slot:'am',nm:'10. 천안·당진·평택·홍성',cl:'#C2410C',days:[2,4],zone:'오산 평택 안성 아산 천안 홍성 예산 보령 서산 당진 태안 서천 (충남·충청)',
   k:['평택','천안','아산','당진','홍성','예산','보령','서산','안성','청북','지제','서천','태안','충남','충청','송탄','안중','팽성','둔포','탕정','배방','성환','직산','입장','신창','광덕','청양','부여']},
  {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'지방 위주 · 장·캐비닛 등 가구 위주 · 서울 시내(골목·높이바) 제외 · 1톤의 1.2배 적재',k:[]},
@@ -1173,7 +1173,7 @@ const ROUTES=[
 const RID=Object.fromEntries(ROUTES.map(r=>[r.id,r]));
 /* 2026-11-02 옛 '화·목 충청(rc)' 값이 저장돼 남아 있을 수 있다 — 거래처 이름·주소로 9/10동선에 나눠 넣고, 못 고친 것은 10동선으로 보이게 */
 RID.rc=RID.r10;
-const RC9=/대전|청주|음성|진천|충주|세종|유성|대덕|공주|논산|계룡|금산|제천|충북|옥천|보은|증평|괴산|오창/;
+const RC9=/대전|청주|음성|진천|충주|세종|유성|대덕|공주|논산|계룡|금산|제천|충북|옥천|보은|증평|괴산|오창|중부/;
 function rcOf(n){n=String(n||'');return RC9.test(n+' '+((typeof ADDR!=='undefined'&&ADDR[n])||''))?'r9':'r10'}
 function rcMig(){
  const fix=function(m){if(!m||typeof m!=='object')return;Object.keys(m).forEach(function(k){if(m[k]==='rc')m[k]=rcOf(String(k).split('§')[0])})};
@@ -1181,6 +1181,7 @@ function rcMig(){
   fix(typeof LEARN!=='undefined'?LEARN:null);fix(typeof LEARN_RT!=='undefined'?LEARN_RT:null);
   if(typeof DAY_CUST!=='undefined')Object.keys(DAY_CUST).forEach(function(d){fix(DAY_CUST[d])});
   if(typeof ASSIGN!=='undefined')fix(ASSIGN);
+  if(typeof ASGK!=='undefined')fix(ASGK);   /* 2026-11-03 사고: 키별 배차(ASGK)의 'rc' 를 안 옮겨 삼성사무용가구(평택삼성)가 묶음에서 통째로 빠짐 */
   [typeof CARD!=='undefined'?CARD:null,typeof DAY_DRV!=='undefined'?DAY_DRV:null].forEach(function(T){if(!T)return;Object.keys(T).forEach(function(d){const c=T[d];if(c&&c.rc){if(!c.r9)c.r9=c.rc;if(!c.r10)c.r10=c.rc;delete c.rc}})});
  }catch(e){console.warn('rc 옮기기',e)}
 }
@@ -1589,7 +1590,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261103c';
+const APPVER='20261103h';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2182,6 +2183,8 @@ let DSTL={};
 const DST_FIX={'명성해운':'인천 중구 항동7가 36-3'};
 function build(fresh){
  ORDERS=[];const g={};DUPN=0;
+ /* 동기화로 내려온 옛 '화·목 충청(rc)' 배차값은 그때그때 9/10동선으로 (2026-11-03) */
+ try{if(typeof ASGK!=='undefined'&&ASGK)Object.keys(ASGK).forEach(function(k){if(ASGK[k]==='rc')ASGK[k]=rcOf(String(k).split('§')[0])})}catch(e){}
  DSTL={};RAW.forEach(function(l){const m=String(l.m||'').match(/([가-힣A-Za-z0-9]{2,12})\s*(?:으로|로)\s*(?:배송|배달)?\s*\(([^)]{6,60})\)/);
   if(m&&looksAddr(m[2]))DSTL[m[1].replace(/\s/g,'')]=trimAd(m[2].replace(/\s+/g,' '))});
  /* 같은 거래처라도 적요에 서로 다른 배송 주소가 적혀 있으면 따로 떼어낸다.
@@ -4027,6 +4030,9 @@ function ycRegion(txt){
  }
  return null;
 }
+/* 요금표에 없는 곳도 주소에서 시·군(또는 구) 이름을 뽑는다 — 운임은 추정치로 (2026-11-03) */
+function ycRegionAny(t){const r=ycRegion(t);if(r)return r;const s=String(t||'').replace(/특별시|광역시|특별자치시|특별자치도/g,'');
+ const m=s.match(/([가-힣]{1,6}?)(시|군)(?![가-힣])/);if(m)return m[1];const g=s.match(/([가-힣]{1,6}?)구(?![가-힣])/);return g?g[1]+'구':null}
 /* 예상 운임 — 그 지역에 그 톤수 실적이 있으면 그대로, 없으면 있는 톤수에서 비례로 민다 */
 function ycFee(reg,t){
  const R=reg&&YC_RATE[reg];
@@ -4201,7 +4207,10 @@ function ycbAdd(i){
  const o=window._YCB&&window._YCB[+i];if(!o)return;
  /* 용차는 적요에 적힌 곳으로 간다 — 거래처 등록 주소보다 적요가 먼저다.
     (피니시: 주소는 서초구인데 적요는 '다마스퀵출고-안산시 단원구') */
- const reg=ycRegion(o.memo)||ycRegion(ADDR[o.n]||'')||ycRegion(o.n)||'';
+ /* 2026-11-03 사장님 «배송지역에 거래처 주소 그대로 들어가면 안 되고 적요의 주소가 들어가야» —
+    적요에 적힌 주소(또는 직납 주소·«○○로 배송»)가 요금표 지역 이름에 없어도 그 시·군·구 이름을 쓴다. 거래처 주소는 맨 마지막 */
+ const DD=destOf(o)||{};
+ const reg=ycRegion(o.memo)||(DD.src==='적요'?ycRegionAny(DD.t):null)||(o.dst?ycRegionAny(o.dst):null)||ycRegion(ADDR[o.n]||'')||ycRegion(o.n)||'';
  const tk=ycbTruckOf(o.memo,o.load), f=ycFee(reg,tk.t);
  /* 장부에 그 지역·그 차 실적이 없으면 추정치 — 화면에 표시해 준다 */
  const co=ycbCo(), a=ycbRows(co).slice();
@@ -5349,9 +5358,12 @@ function msbClass(units){
     else if((u.flags.indexOf('ERP수시')>=0||mf.pay)&&!mf.paid&&!다받음)u.flags.push('입금 전')}
    if(MSB_PICK.test(u.memo||'')){u.g='pick';return}
    if(!o){u.g='un';u.why='배차에 없음';return}
-   const r=ASSIGN[o.i];
+   let r=ASSIGN[o.i];
    if(!r||r==='_'){u.g='un';u.why='아직 미배차';return}
    if(offRoute(r)){u.g='x';u.why=(r==='x'?'배차에서 뺀 건':'실물 명세서 없음');return}
+   /* 모르는 동선 값(예: 옛 'rc')이면 조용히 빠뜨리지 말고 미배차로 (2026-11-03 평택삼성 사고) */
+   if(r==='rc')r=rcOf(o.n);   /* 옛 '화·목 충청' 값 → 9/10동선 (RID.rc 별칭이 있어 아래 검사로는 못 거른다) */
+   if(!ROUTES.some(function(x){return x.id===r})){u.g='un';u.why='동선 값을 모름('+r+')';return}
    u.g=r;u.drv=effDrv(o)||'';u.trip=Math.min(TRIP_MAX,+TRIP[o.key]||1);
    /* 기사 이름은 호로차(장세훈·안정수)·3.5톤(배진성)만 찍는다 (2026-10-29 사장님) */
    if(MSB_DRV.indexOf(u.drv)<0)u.drv='';
