@@ -1371,6 +1371,9 @@ const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/이프시스템/,'r5'],
  [/민트인터내셔/,'r1'],   /* 2026-11-03 사장님 «민트 1동선으로» (부평) */
  [/가구라인/,'rw'],   /* 2026-11-03 사장님 «가구라인은 수요일동선으로» */
+ [/동양사무용가구\(아현/,'r5'],   /* 2026-11-03 사장님 «아현동양 을지로동선» */
+ [/에이원사무용가구\(광주|아이콘가구/,'r7'],   /* «광주에이원 수원동선 · 아이콘 수원동선» */
+ [/월드사무용가구\(남동/,'r1'],   /* «남동월드 1동선» */
  [/서해가구\(당진|서해가구백화점\(당진|당진\s*OK|당진OK사무용가구|한솔가구\(홍성|당진가구타운|청송.*청주|청주.*청송|상상\s*OA|네오오피스|그루터기/i,'r10']];   /* 청주 청송 — 청주는 9동선 낱말이지만 이곳은 10 */   /* 2026-11-02 사장님 «서해가구(당진) · 당진OK · 홍성 한솔 · 당진가구타운 → 10» */   /* 2026-11-02 사장님 «이프시스템 5동선» — 5/27·5/28 에 4동선으로 옮긴 기억이 남아 4동선으로 찍히던 것 */
 function rtHard(n){const t=String(n||'');
  for(let i=0;i<RT_HARD.length;i++)if(RT_HARD[i][0].test(t))return RT_HARD[i][1];
@@ -1593,7 +1596,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261103t';
+const APPVER='20261103v';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -6103,7 +6106,8 @@ function jnBlock(){
     +(x.link?'<td style="text-align:right;color:#8b9aab">—</td>':'<td style="text-align:right"><input value="'+won(x.fee)+'" onchange="jnSet('+k+',\'fee\',this.value)" style="width:78px;text-align:right" title="거래처에 받을 직납비가 있으면"></td>')
     +'<td style="text-align:right">'+won(acc)+'</td>'
     +'<td style="white-space:nowrap">'
-     +(x.link?'':'<button class="btn g kkb" onclick="ycbKkOpen(\''+co+'\','+k+')" title="수기전표 그림(공급자용·공급받는자용)">📷</button> ')
+     +(x.link?'':'<button class="btn g" onclick="jnPrintKk('+k+')" title="이 줄 수기전표를 종이로 — A4 가로 한 장에 공급자용·공급받는자용">🖨️ 수기전표</button> '
+      +'<button class="btn g kkb" onclick="ycbKkOpen(\''+co+'\','+k+')" title="수기전표 그림(공급자용·공급받는자용) — 카톡·저장">📷</button> ')
      +(k>0?'<button class="btn g lnkb'+(x.link?' on':'')+'" onclick="ycbLink(\''+co+'\','+k+')" title="바로 위 줄과 같은 차">🔗</button> ':'')
      +'<button class="btn g" onclick="ycbDel(\''+co+'\','+k+')" title="빼기">✕</button></td></tr>'});
   h+='<tr style="background:#f1f8f4;font-weight:800"><td colspan="6">합계</td><td style="text-align:right">'+won(acc)+'</td><td colspan="2"></td></tr>';
@@ -6111,6 +6115,30 @@ function jnBlock(){
  if(hidden)h+='<div style="margin:8px 2px;font-size:12.5px;color:#8b9aab">5주 넘은 '+hidden+'건은 감춤 — <label><input type="checkbox" onchange="JNOLD=this.checked;render()"> 지난 것도 보기</label></div>';
  else if(JNOLD)h+='<div style="margin:8px 2px;font-size:12.5px;color:#8b9aab"><label><input type="checkbox" checked onchange="JNOLD=this.checked;render()"> 지난 것도 보기</label></div>';
  return h}
+/* 직납 수기전표 종이로 뽑기 (2026-11-03 사장님 «직납내역서는 수기전표 출력칸이 있어야») —
+   한 거래처 = A4 가로 한 장, 왼쪽 공급자 보관용 · 오른쪽 공급받는자 보관용 (세트 인쇄와 같은 @page 가로). k 를 주면 그 줄(같은 차로 묶인 줄 포함), 없으면 그날 전부 */
+async function jnPrintKk(k){
+ const rows=ycbRows(JN_CO);let list=[];
+ if(k!=null){list=kkGroup(JN_CO,k)}else{const D=ycbDate();rows.forEach(function(x){if(x&&x.d===D)list.push(x)})}
+ list=list.filter(function(x){return x&&x.n});
+ if(!list.length)return toast('뽑을 수기전표가 없습니다');
+ let h='';
+ list.forEach(function(y){const it=kkItems(y);
+  h+='<div class="ujsl"><div class="ujhalf ujkk"><img src="'+kkDraw(y,it,false,'공급자 보관용').toDataURL('image/jpeg',0.9)+'"></div>'
+   +'<div class="ujhalf ujkk"><img src="'+kkDraw(y,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.9)+'"></div></div>'});
+ let el=document.getElementById('ycbprt');
+ if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
+ el.innerHTML='<div class="ujsset">'+h+'</div>';
+ const st=document.createElement('style');
+ st.textContent='@media print{@page{size:A4 landscape;margin:0}@page ujland{size:A4 landscape;margin:0}#ycbprt .ujsl{page:ujland}}';
+ document.head.appendChild(st);
+ document.body.classList.add('ycbprint');
+ const off=function(){document.body.classList.remove('ycbprint');if(st.parentNode)st.parentNode.removeChild(st);window.removeEventListener('afterprint',off)};
+ window.addEventListener('afterprint',off);
+ const imgs=[].slice.call(el.querySelectorAll('img'));
+ await Promise.all(imgs.map(function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r})}));
+ setTimeout(function(){window.print();setTimeout(off,400)},120);
+}
 function tabJn(){
  ycbFix();if(!YCB[JN_CO])YCB[JN_CO]=[];
  const cand=jnCand(JNALL);window._JNB=cand;
@@ -6125,7 +6153,8 @@ function tabJn(){
      return '<option value="'+k+'">'+(st?'★ ':'')+o.n.slice(0,20)+' · '+o.qty+'개'+(st?' ['+st+']':'')+(o.dst||DD.src==='적요'?' → '+String(o.dst||DD.t).slice(0,24):'')+'</option>'}).join('')
    +'</select><label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(JNALL?' checked':'')+' onchange="JNALL=this.checked;render()"> 전체</label></div>'
   +'<div style="margin-top:8px"><button class="btn g" onclick="jnBlank()">＋ 빈 줄</button> '
-  +'<button class="btn g" onclick="window.print()">🖨️ 인쇄</button> '
+  +'<button class="btn" style="background:#0f8a5f;color:#fff" onclick="jnPrintKk()" title="이 날짜 직납 전부 — 거래처마다 A4 가로 한 장(공급자용 | 공급받는자용)">🖨️ 이 날 수기전표 전부</button> '
+  +'<button class="btn g" onclick="window.print()">🖨️ 내역서 인쇄</button> '
   +'<button class="btn g" onclick="ycbUndo()" title="이 PC에 남은 직전 상태로 되돌립니다">↩︎ 되돌리기</button></div></div>';
  h+=jnBlock();
  return h+'</div>';
