@@ -1590,7 +1590,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261103h';
+const APPVER='20261103l';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5319,8 +5319,32 @@ async function msbParse(bytes){
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
   if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
   last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test(u.ad||'')};units.push(last)}
+ MSB_NP=doc.numPages;
  try{doc.destroy()}catch(e){}
  return units;
+}
+let MSB_NP=0;   /* 올린 PDF 의 전체 장수 — 묶은 뒤 장수가 맞는지 대조 (2026-11-03 사장님 «몇 건 중 몇 건은 택배… 장수 맞는지 파악») */
+/* 묶은 결과 셈 — 총 건수·장수와 동선/찾으러옴/직납/미배차/뺀 것(택배·상차·화물·퀵·소비자…) 건수, 장수 대조 */
+function msbStats(G,U){
+ const np=function(a){return a.reduce(function(s,u){return s+(u.pages||[]).length},0)};
+ let routed=[],pick=[],un=[];G.forEach(function(g){if(g.id==='pick')pick=pick.concat(g.units);else if(g.id==='un')un=un.concat(g.units);else routed=routed.concat(g.units)});
+ const all=U||routed.concat(pick,un,G.x);
+ const jik=routed.filter(function(u){return u.jik}),trip2=routed.filter(function(u){return (u.trip||1)>1});
+ const xs={};G.x.forEach(function(u){const m=String(u.why||'').match(/「(.+?)」/);const k=m?m[1]:String(u.why||'').replace(/^거래처 /,'');(xs[k]=xs[k]||[]).push(u)});
+ const outPages=np(routed)+np(pick)+np(un)+np(G.x),inPages=MSB_NP||np(all);
+ const badOk=all.length-(routed.length+pick.length+un.length+G.x.length);
+ const flag=function(f){return routed.concat(pick,un).filter(function(u){return (u.flags||[]).indexOf(f)>=0})};
+ return {total:all.length,routed:routed,pick:pick,un:un,x:G.x,jik:jik,trip2:trip2,xs:xs,outPages:outPages,inPages:inPages,badOk:badOk,good:outPages===inPages&&!badOk,np:np,
+  pre:flag('입금 전'),stop:flag('출고정지'),early:routed.concat(pick,un).filter(function(u){return u.early})};
+}
+function msbSummary(){
+ const U=MSB.units||[],G=MSB.groups;if(!G)return '';
+ const S=msbStats(G,U);
+ const xt=Object.keys(S.xs).map(function(k){return k+' '+S.xs[k].length}).join(' · ');
+ return '<div class="ycnote" style="'+(S.good?'':'border-color:#e04b45;background:#fff5f5')+'"><b>📊 거래명세표 총 '+S.total+'건 · '+S.inPages+'장</b> — '
+  +'동선 묶음 <b>'+S.routed.length+'</b>건(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
+  +' — 장수 대조 '+S.outPages+'/'+S.inPages+' '+(S.good?'✅ 다 들어갔습니다':'⚠ <b style="color:#c0392b">'+(S.inPages-S.outPages)+'장이 어디에도 안 들어갔습니다</b>'+(S.badOk?' · 건수도 '+S.badOk+'건 차이':''))
+  +' · 같은 내용이 묶음 PDF 맨 앞 장(보고)에도 찍힙니다</div>';
 }
 function msbRL(id){if(/^r\d+$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
 function msbCL(id){if(id==='pick')return '#475569';if(id==='un')return '#9CA3AF';return (RID[id]||{}).cl||'#94A3B8'}
@@ -5383,6 +5407,11 @@ function msbClass(units){
  const ids=ROUTES.map(function(r){return r.id}).filter(function(id){return id!=='nb'}).concat(['pick','un']);
  const groups=[];ids.forEach(function(id){if(by[id]&&by[id].length)groups.push({id:id,units:by[id]})});
  groups.x=by.x||[];
+ /* 어느 묶음에도 못 들어간 전표가 있으면 조용히 빼먹지 말고 미배차로 (2026-11-03 평택삼성 사고 뒤 안전장치) */
+ {const placed=new Set();groups.forEach(function(g){g.units.forEach(function(u){placed.add(u)})});groups.x.forEach(function(u){placed.add(u)});
+  const lost=units.filter(function(u){return !placed.has(u)});
+  if(lost.length){lost.forEach(function(u){u.why='묶음에 못 넣음('+(u.g||'')+')';u.g='un'});
+   let un=groups.find(function(g){return g.id==='un'});if(!un){un={id:'un',units:[]};groups.push(un)}un.units=un.units.concat(lost)}}
  return groups;
 }
 /* 새 PDF — 동선마다 표지 한 장 + 그 동선 전표들(도장 찍어서), 맨 뒤에 뺀 전표 목록 */
@@ -5401,6 +5430,36 @@ async function msbBuild(bytes,groups){
  const copied=await out.copyPages(src,idx);let ci=0;
  const d0=((groups[0]||{units:[{}]}).units[0]||{}).date||SEL;
  const dtxt=function(d){return d?d+' ('+'일월화수목금토'[new Date(d+'T00:00:00').getDay()]+')':''};
+ /* ===== 맨 앞 장 — 묶음 보고 (2026-11-03 사장님 «파악하는 보고서 프린트를 일자별 맨 앞에») =====
+    총 건수·장수, 동선마다 기사·건·장·거래처, 찾으러옴·미배차·뺀 것(택배·상차·화물…)·직납·2차분·입금 전·출고정지, 장수 대조 */
+ {const S=msbStats(groups);const cv=out.addPage([W,H]);let y=H-56;const LM=36,RM=W-36;
+  const wrap=function(t,s,w){const words=String(t||'').split(/(?<=[,·] )/);const lines=[];let cur='';
+   words.forEach(function(wd){if(cur&&tw(cur+wd,s)>w){lines.push(cur.trim());cur=wd}else cur+=wd});if(cur.trim())lines.push(cur.trim());return lines.length?lines:['']};
+  const P=function(t,x,s,c,w){wrap(t,s,w||(RM-x)).forEach(function(ln){if(y<40)return;cv.drawText(ln,{x:x,y:y,size:s,font:font,color:c||BLK});y-=s+4})};
+  cv.drawText('거래명세표 묶음 보고   '+dtxt(d0),{x:LM,y:y,size:19,font:font,color:BLK});y-=14;
+  cv.drawText('만든 때 '+new Date().toLocaleString('ko-KR',{hour12:false}).replace(/\. /g,'.').replace(/\.$/,''),{x:LM,y:y,size:9,font:font,color:GRY});y-=22;
+  const okc=S.good?rgb(.05,.5,.25):RED;
+  cv.drawRectangle({x:LM,y:y-10,width:RM-LM,height:30,color:S.good?rgb(.92,.98,.94):rgb(1,.94,.94),borderColor:okc,borderWidth:1});
+  cv.drawText('총 '+S.total+'건 · '+S.inPages+'장   →   동선 묶음 '+S.routed.length+'건 · 찾으러옴 '+S.pick.length+'건 · 미배차 '+S.un.length+'건 · 뺀 것 '+S.x.length+'건     장수 대조 '+S.outPages+' / '+S.inPages+(S.good?'  맞음':'  ⚠ '+(S.inPages-S.outPages)+'장 빠짐'),{x:LM+8,y:y,size:11,font:font,color:okc});y-=34;
+  const nm=function(u){return u.n+(u.jik?'(직납)':'')+((u.trip||1)>1?'(2차)':'')};
+  /* 거래처 이름은 열을 맞춰 한 줄에 5개씩 (2026-11-03 사장님 «열 맞춰서 5개 거래처씩») — 칸보다 길면 뒤를 자른다 */
+  const COLS=5,CW=(RM-LM-10)/COLS,FS=8.3;
+  const grid=function(names,c){for(let i=0;i<names.length;i+=COLS){if(y<40)return;
+   for(let j=0;j<COLS&&i+j<names.length;j++)cv.drawText(fit(names[i+j],FS,CW-6),{x:LM+10+j*CW,y:y,size:FS,font:font,color:c||BLK});y-=FS+4.5}};
+  const whyS=function(w){return !w?'':/배차에 없음/.test(w)?'·없음':/아직 미배차/.test(w)?'·미배차':'·'+w.slice(0,6)};
+  groups.forEach(function(g){const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
+   if(y<60)return;cv.drawRectangle({x:LM,y:y-3,width:4,height:12,color:hex(msbCL(g.id))});
+   cv.drawText(msbRL(g.id)+(g.id==='un'?'':drvs.length?'  '+drvs.join('·'):'')+'   '+g.units.length+'건 '+S.np(g.units)+'장',{x:LM+10,y:y,size:10,font:font,color:BLK});y-=15;
+   grid(g.units.map(function(u){return nm(u)+(g.id==='un'?whyS(u.why):'')}));y-=4});
+  y-=4;
+  const sec=function(title,names,c){if(!names.length||y<50)return;cv.drawText(title+'  '+names.length+'건',{x:LM,y:y,size:10,font:font,color:c||BLK});y-=15;grid(names,c);y-=4};
+  Object.keys(S.xs).forEach(function(k){sec('뺀 것 — '+k,S.xs[k].map(function(u){return u.n}),GRY)});
+  sec('직납',S.jik.map(function(u){return u.n}),rgb(.1,.35,.85));
+  sec('2차분',S.trip2.map(function(u){return u.n}));
+  sec('일찍·오전',S.early.map(function(u){return u.n+'('+u.early+')'}),RED);
+  sec('출고정지',S.stop.map(function(u){return u.n}),RED);
+  sec('입금 전',S.pre.map(function(u){return u.n}),RED);
+ }
  groups.forEach(function(g,gi){
   const col=hex(msbCL(g.id)),lab=msbRL(g.id),r=RID[g.id];
   /* 1차·2차 — 그 동선에 2차분이 있는 날만 «1동선-1 / 1동선-2» 로 찍는다 */
@@ -5606,6 +5665,7 @@ function tabMsb(){
   +'<div id="msbdone" style="margin:0 2px 10px;font-size:12.5px;color:#0f8a5f">'+msbDoneTxt(md0)+'</div>';
  if(MSB.groups){
   const G=MSB.groups,tot=MSB.units.length;
+  h+=msbSummary();
   h+='<div class="hd2">묶은 결과 <span style="font-weight:600;color:#8b9aab">'+esc(MSB.name)+(MSB.only?' · <b style="color:#0f8a5f">추가분만 '+MSB.newN+'건</b>':' · 전표 '+tot+'건')+' · 뺀 것 '+G.x.length+'건</span></div><table class="yctb"><tr><th>묶음</th><th>기사</th><th>건</th><th>거래처 (순서대로)</th></tr>';
   G.forEach(function(g){const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
    h+='<tr><td><span style="display:inline-block;padding:2px 8px;border-radius:6px;color:#fff;font-weight:800;background:'+msbCL(g.id)+'">'+esc(msbRL(g.id))+'</span></td><td>'+esc(drvs.join('·'))+'</td><td style="text-align:right">'+g.units.length+'</td>'
