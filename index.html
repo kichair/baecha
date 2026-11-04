@@ -1596,7 +1596,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261104e';
+const APPVER='20261104f';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5362,6 +5362,13 @@ async function msbReadPage(p){
   let pre=0;for(let i=0;i<m.index;i++)pre+=wt(s[i]);let ww=0;for(let i=0;i<m[0].length;i++)ww+=wt(m[0][i]);
   const cx=x+unit*pre;if(cx>190)return;   /* 비고 칸(x190~)은 안 잡는다 — 품목명 칸만 */
   u.circ.push({x:cx,y:y,w:unit*ww,s:m[0]})});
+ /* 의자 수량 — 품목 줄의 수량 칸(x258~286.5) 숫자를 더한다. «수량합계» 줄과 운반비·배송비·택배비 줄은 뺀다
+    (2026-11-04 사장님 «보고서에 의자 몇 개인지 쓰자, 한차 분량 알게») */
+ u.qty=0;tc.items.forEach(function(it){const y=it.transform[5],x=it.transform[4],s=it.str.trim();if(y<500||y>652||x<250||x>=287||!s)return;
+  if(!/^\d[\d,]*$/.test(s))return;
+  const r=rows.find(function(r){return Math.abs(r.y-y)<=3});const left=r?r.a.filter(function(a){return a.x<190}).map(function(a){return a.s}).join(''):'';
+  if(/수량\s*(총|합)\s*계|총\s*계|합\s*계/.test(left)||/운반비|배송비|택배비|퀵비/.test(left))return;   /* sERP 는 «수량총계» 줄 */
+  u.qty+=parseInt(s.replace(/,/g,''),10)||0});
  return u;
 }
 /* 쪽을 전표 단위로 묶는다 — PAGE 2/2 처럼 이어지는 쪽은 앞 전표에 붙인다 */
@@ -5371,8 +5378,8 @@ async function msbParse(bytes){
  for(let i=1;i<=doc.numPages;i++){msbSt('읽는 중 '+i+'/'+doc.numPages+'쪽');
   const u=await msbReadPage(await doc.getPage(i));
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
-  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
-  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test(u.ad||'')};units.push(last)}
+  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;last.qty=(last.qty||0)+(u.qty||0);if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
+  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,qty:u.qty||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
  MSB_NP=doc.numPages;
  try{doc.destroy()}catch(e){}
  return units;
@@ -5381,6 +5388,7 @@ let MSB_NP=0;   /* 올린 PDF 의 전체 장수 — 묶은 뒤 장수가 맞는�
 /* 묶은 결과 셈 — 총 건수·장수와 동선/찾으러옴/직납/미배차/뺀 것(택배·상차·화물·퀵·소비자…) 건수, 장수 대조 */
 function msbStats(G,U){
  const np=function(a){return a.reduce(function(s,u){return s+(u.pages||[]).length},0)};
+ const nq=function(a){return a.reduce(function(s,u){return s+(u.qty||0)},0)};   /* 의자 수량 합 */
  let routed=[],pick=[],un=[];G.forEach(function(g){if(g.id==='pick')pick=pick.concat(g.units);else if(g.id==='un')un=un.concat(g.units);else routed=routed.concat(g.units)});
  const all=U||routed.concat(pick,un,G.x);
  const jik=routed.filter(function(u){return u.jik}),trip2=routed.filter(function(u){return (u.trip||1)>1});
@@ -5388,15 +5396,15 @@ function msbStats(G,U){
  const outPages=np(routed)+np(pick)+np(un)+np(G.x),inPages=MSB_NP||np(all);
  const badOk=all.length-(routed.length+pick.length+un.length+G.x.length);
  const flag=function(f){return routed.concat(pick,un).filter(function(u){return (u.flags||[]).indexOf(f)>=0})};
- return {total:all.length,routed:routed,pick:pick,un:un,x:G.x,jik:jik,trip2:trip2,xs:xs,outPages:outPages,inPages:inPages,badOk:badOk,good:outPages===inPages&&!badOk,np:np,
+ return {total:all.length,routed:routed,pick:pick,un:un,x:G.x,jik:jik,trip2:trip2,xs:xs,outPages:outPages,inPages:inPages,badOk:badOk,good:outPages===inPages&&!badOk,np:np,nq:nq,qty:nq(all),qtyR:nq(routed),
   pre:flag('입금 전'),stop:flag('출고정지'),early:routed.concat(pick,un).filter(function(u){return u.early})};
 }
 function msbSummary(){
  const U=MSB.units||[],G=MSB.groups;if(!G)return '';
  const S=msbStats(G,U);
  const xt=Object.keys(S.xs).map(function(k){return k+' '+S.xs[k].length}).join(' · ');
- return '<div class="ycnote" style="'+(S.good?'':'border-color:#e04b45;background:#fff5f5')+'"><b>📊 거래명세표 총 '+S.total+'건 · '+S.inPages+'장</b> — '
-  +'동선 묶음 <b>'+S.routed.length+'</b>건(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
+ return '<div class="ycnote" style="'+(S.good?'':'border-color:#e04b45;background:#fff5f5')+'"><b>📊 거래명세표 총 '+S.total+'건 · '+S.inPages+'장 · 의자 '+S.qty+'개</b> — '
+  +'동선 묶음 <b>'+S.routed.length+'</b>건 '+S.qtyR+'개(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
   +' — 장수 대조 '+S.outPages+'/'+S.inPages+' '+(S.good?'✅ 다 들어갔습니다':'⚠ <b style="color:#c0392b">'+(S.inPages-S.outPages)+'장이 어디에도 안 들어갔습니다</b>'+(S.badOk?' · 건수도 '+S.badOk+'건 차이':''))
   +' · 같은 내용이 묶음 PDF 맨 앞 장(보고)에도 찍힙니다</div>';
 }
@@ -5505,7 +5513,7 @@ async function msbBuild(bytes,groups,coversOnly){
   cv.drawText('만든 때 '+new Date().toLocaleString('ko-KR',{hour12:false}).replace(/\. /g,'.').replace(/\.$/,''),{x:LM,y:y,size:9,font:font,color:GRY});y-=22;
   const okc=S.good?rgb(.05,.5,.25):RED;
   cv.drawRectangle({x:LM,y:y-10,width:RM-LM,height:30,color:S.good?rgb(.92,.98,.94):rgb(1,.94,.94),borderColor:okc,borderWidth:1});
-  cv.drawText('총 '+S.total+'건 · '+S.inPages+'장   →   동선 묶음 '+S.routed.length+'건 · 찾으러옴 '+S.pick.length+'건 · 미배차 '+S.un.length+'건 · 뺀 것 '+S.x.length+'건     장수 대조 '+S.outPages+' / '+S.inPages+(S.good?'  맞음':'  ⚠ '+(S.inPages-S.outPages)+'장 빠짐'),{x:LM+8,y:y,size:11,font:font,color:okc});y-=34;
+  cv.drawText('총 '+S.total+'건 · '+S.inPages+'장 · 의자 '+S.qty+'개   →   동선 묶음 '+S.routed.length+'건 '+S.qtyR+'개 · 찾으러옴 '+S.pick.length+'건 · 미배차 '+S.un.length+'건 · 뺀 것 '+S.x.length+'건     장수 대조 '+S.outPages+' / '+S.inPages+(S.good?'  맞음':'  ⚠ '+(S.inPages-S.outPages)+'장 빠짐'),{x:LM+8,y:y,size:11,font:font,color:okc});y-=34;
   const nm=function(u){return u.n+(u.jik?'(직납)':'')+((u.trip||1)>1?'(2차)':'')};
   /* 거래처 이름은 열을 맞춰 한 줄에 5개씩 (2026-11-03 사장님 «열 맞춰서 5개 거래처씩») — 칸보다 길면 뒤를 자른다 */
   const COLS=5,CW=(RM-LM-10)/COLS,FS=8.3;
@@ -5514,7 +5522,10 @@ async function msbBuild(bytes,groups,coversOnly){
   const whyS=function(w){return !w?'':/배차에 없음/.test(w)?'·없음':/아직 미배차/.test(w)?'·미배차':'·'+w.slice(0,6)};
   groups.forEach(function(g){const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
    if(y<60)return;cv.drawRectangle({x:LM,y:y-3,width:4,height:12,color:hex(msbCL(g.id))});
-   cv.drawText(msbRL(g.id)+(g.id==='un'?'':drvs.length?'  '+drvs.join('·'):'')+'   '+g.units.length+'건 '+S.np(g.units)+'장',{x:LM+10,y:y,size:10,font:font,color:BLK});y-=15;
+   /* 동선마다 의자 몇 개 — 한차 분량 가늠용 (2026-11-04 사장님). 2차분이 있으면 1차·2차 따로도 */
+   let qt='의자 '+S.nq(g.units)+'개';if(g.id!=='un'&&g.id!=='pick'&&g.units.some(function(u){return (u.trip||1)>1})){
+    const q1=S.nq(g.units.filter(function(u){return (u.trip||1)===1})),q2=S.nq(g.units.filter(function(u){return (u.trip||1)>1}));qt+=' (1차 '+q1+' · 2차 '+q2+')'}
+   cv.drawText(msbRL(g.id)+(g.id==='un'?'':drvs.length?'  '+drvs.join('·'):'')+'   '+g.units.length+'건 '+S.np(g.units)+'장 · '+qt,{x:LM+10,y:y,size:10,font:font,color:BLK});y-=15;
    grid(g.units.map(function(u){return nm(u)+(g.id==='un'?whyS(u.why):'')}));y-=4});
   y-=4;
   const sec=function(title,names,c){if(!names.length||y<50)return;cv.drawText(title+'  '+names.length+'건',{x:LM,y:y,size:10,font:font,color:c||BLK});y-=15;grid(names,c);y-=4};
@@ -5537,7 +5548,7 @@ async function msbBuild(bytes,groups,coversOnly){
   /* 2026-11-04 사장님 «동선보고서 뽑을 때 거래처명 옆에 도착지주소·주의사항·금액» — 한 줄에 한 전표, 둘째 줄에 주소·주의사항. 넘치면 표지를 한 장 더 */
   const head=function(pg2,cont){pg2.drawRectangle({x:30,y:H-120,width:W-60,height:80,color:col});
    pg2.drawText(lab+(r&&/^r\d+$/.test(g.id)?'  '+r.nm.replace(/^\d+\.\s*/,''):'')+(cont?'  (이어서)':''),{x:48,y:H-78,size:26,font:font,color:WHT});
-   pg2.drawText((drvs.length?'기사 '+drvs.join('·')+' · ':'')+dtxt(g.units[0].date||d0)+' · '+g.units.length+'건 '+np+'장',{x:48,y:H-108,size:13,font:font,color:WHT})};
+   pg2.drawText((drvs.length?'기사 '+drvs.join('·')+' · ':'')+dtxt(g.units[0].date||d0)+' · '+g.units.length+'건 '+np+'장 · 의자 '+g.units.reduce(function(s,u){return s+(u.qty||0)},0)+'개',{x:48,y:H-108,size:13,font:font,color:WHT})};
   let cv=out.addPage([W,H]);head(cv,false);
   let y=H-150;const x=40,RX=W-40;
   const wrapC=function(t,s,w){const out2=[];let cur='';String(t||'').split(/(?<=[\s\/·,])/).forEach(function(wd){if(cur&&tw(cur+wd,s)>w){out2.push(cur.trim());cur=wd}else cur+=wd});if(cur.trim())out2.push(cur.trim());return out2};
