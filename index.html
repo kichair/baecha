@@ -1596,7 +1596,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261104c';
+const APPVER='20261104d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1987,7 +1987,8 @@ function hitRoute(t){
  }
  return bestId}
 /* 수요일 동선(남양주·원주·춘천)은 수요일에만 뜬다 — 다른 날 남양주·가평·양평은 5동선에 붙인다 (고정 거래처는 그대로) 2026-11-03 */
-function guess(o){const r=guess0(o);
+function guess(o){let r=guess0(o);
+ if(r==='rc')r=rcOf(o.n);   /* 옛 «화·목 충청» 값이 상습동선 표(LEARN_RT·DAY_CUST)에 남아 있을 때 (2026-11-04 승진(천안) 사고) */
  if(r==='rw'&&!rtHard(o.n)){const dow=new Date(o.d+'T00:00:00').getDay();
   if(dow!==3){const D=destOf(o);const t=((D&&D.src==='적요'?D.t:'')||ADDR[o.n]||'')+' '+o.n;if(/남양주|가평|양평|마석|화도/.test(t))return 'r5'}}
  return r}
@@ -2038,7 +2039,9 @@ const AREA_FB=[
  [/수원|용인|성남|광주시|이천|여주|의왕|안양|군포|오산|과천/,'r7'],
  [/경기/,'r7']];
 function areaFb(o){
- const D=destOf(o);const t=(D&&D.src==='적요'?D.t:'')||ADDR[o.n]||((String(o.memo||'').match(ADRE)||[''])[0]);
+ const D=destOf(o);let t=(D&&D.src==='적요'?D.t:'')||ADDR[o.n]||((String(o.memo||'').match(ADRE)||[''])[0]);
+ /* 주소가 없으면 거래처 이름에 든 시·군 이름으로 — «(조달)경기도 구리시 의회사무과» (2026-11-04) */
+ if(!t)t=String(o.n||'');
  if(!t||FAR_RE.test(t))return null;
  const dow=new Date(o.d+'T00:00:00').getDay();
  for(let i=0;i<AREA_FB.length;i++)if(AREA_FB[i][0].test(t)){const r=AREA_FB[i][1];
@@ -2343,7 +2346,7 @@ function build(fresh){
  }
  ASSIGN={};ST={};
  ORDERS.forEach(function(o){
-  if(ASGK[o.key]===undefined)ASGK[o.key]=guess(o);
+  if(ASGK[o.key]===undefined||ASGK[o.key]==='_'){const g2=guess(o);if(ASGK[o.key]===undefined||(g2&&g2!=='_'))ASGK[o.key]=g2}   /* 미배차로 남은 건은 규칙이 늘면 다시 잡는다 (2026-11-04) */
   ASSIGN[o.i]=ASGK[o.key];
   if(STK[o.key]!==undefined)ST[o.i]=STK[o.key];
  });
