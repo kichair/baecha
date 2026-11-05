@@ -1608,7 +1608,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261105aa';
+const APPVER='20261105ad';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5423,6 +5423,20 @@ function msbSt(t){MSB.st=t;const e=document.getElementById('msbst');if(e)e.textC
 function msbNum(s){s=String(s||'').replace(/[^-0-9]/g,'');return s?+s:null}
 function msbHash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;return h.toString(36)}
 /* 한 쪽의 글자를 줄(y)별로 모아 거래처·주소·일자·PAGE·전미수잔액·적요를 읽는다 — 공급자 보관용(위 반쪽)만 본다 */
+/* 붙여 쓴 주소 띄어 쓰기 — 왼쪽 위 적요 전용, sERP 적요는 안 바꾼다 (2026-11-05)
+   «화성시동탄구삼성1로5길6원희캐슬» → «화성시 동탄구 삼성1로 5길 6 원희캐슬». 안성시청·구청·시간 같은 말은 안 쪼갠다 */
+function msbSpace(t){
+ return String(t||'').split(/\s*\/\s*/).map(function(g){
+  g=g.replace(/\b(01[016789])[-\s.]?(\d{3,4})[-\s.]?(\d{4})\b/g,'$1-$2-$3').replace(/([가-힣)~])(0\d{1,2}-\d)/g,'$1 $2');
+  if(!/[가-힣]{2,}(시|군|구|읍|면)|[가-힣0-9](로|길)\s*\d/.test(g))return g.trim();
+  return g.replace(/(서울특별시|서울|인천광역시|인천|부산광역시|부산|대구광역시|대구|대전광역시|대전|광주광역시|울산광역시|울산|경기도|경기|강원도|강원|충청남도|충남|충청북도|충북|전라남도|전남|전라북도|전북|경상남도|경남|경상북도|경북)(?=[가-힣]{2,}?(?:시|군|구))/g,'$1 ')
+   .replace(/([가-힣]{2,}?(?:시|군|구))(?=[가-힣0-9])(?![청간장작의내외립])/g,'$1 ')
+   .replace(/([가-힣]{2,}(?:읍|면))(?=[가-힣])/g,'$1 ')
+   .replace(/([가-힣]{2,}(?:동|리))(?=\d)/g,'$1 ')
+   .replace(/([가-힣0-9]+?(?:로|길))(?=\d)/g,'$1 ')
+   .replace(/(\d+번길)(?=\d)/g,'$1 ')
+   .replace(/(?<![가-힣]\d*)(\d(?:-\d+)?)(?=[가-힣])(?![층호동번시일개톤차가길로분단대장박월명인층])/g,'$1 ')
+   .replace(/\s{2,}/g,' ').trim()}).filter(Boolean).join(' / ')}
 async function msbReadPage(p){
  const H=p.getViewport({scale:1}).height;
  const tc=await p.getTextContent();
@@ -5727,14 +5741,20 @@ async function msbBuild(bytes,groups,coversOnly){
     if(memo){let ms=10;while(ms>8&&tw(memo,ms)>232)ms-=0.5;
      /* 직납이거나 적요에 주소가 있으면 글자 뒤에 노란 형광펜 — 거래처와 같은 시로 가는 주소도 칠한다 (2026-11-05 피움(아트뱅크) 안성시청) */
      const am0=memo.match(ADRE),hl=u.jik||!!(am0&&looksAddr(am0[0]));
-     /* 길면 두 줄로 — 직납은 주소·전화가 다 보여야 한다 (2026-11-05). 두 줄로도 넘치면 글자를 줄인다 */
+     /* 직납·주소 적요는 붙여 쓴 주소에 띄어쓰기를 넣고, 길면 2~3줄로 — 기사가 보기 좋게 (2026-11-05). 자리: 도장 칸 밑 ~ «일자» 줄 위 */
+     if(hl)memo=msbSpace(memo);
+     ms=10;while(ms>8.5&&tw(memo,ms)>232)ms-=0.5;
      let ls=[memo];
-     if(tw(memo,ms)>232){const cut=function(t){const mid=t.length/2;let b=-1,bd=1e9;for(let i=1;i<t.length-1;i++){if(/[\s\/,·]/.test(t[i])&&Math.abs(i-mid)<bd){b=i;bd=Math.abs(i-mid)}}if(b<0)b=Math.floor(mid);return [t.slice(0,b+1).trim(),t.slice(b+1).trim()]};
-      ls=cut(memo);ms=9;while(ms>5.5&&Math.max(tw(ls[0],ms),tw(ls[1],ms))>232)ms-=0.5}
-     const ys=ls.length>1?[779,769]:[773];
-     [0,413].forEach(function(dy){ls.forEach(function(t,li){const mt=fit(t,ms,232),yy=ys[li]-dy;
-      if(hl)pg.drawRectangle({x:20,y:yy-2.5,width:tw(mt,ms)+4,height:ms+4,color:rgb(1,.92,.3)});
-      pg.drawText(mt,{x:22,y:yy,size:ms,font:font,color:BLK})})})}
+     const wrapM=function(t,sz){const out=[];let cur='';t.split(/(?<=[\s\/,·])/).forEach(function(w){if(cur&&tw(cur+w,sz)>232){out.push(cur.trim());cur=w}else cur+=w});if(cur.trim())out.push(cur.trim());return out};
+     if(tw(memo,ms)>232){let done=false;
+      for(let z=9.5;z>=8&&!done;z-=0.5){const w2=wrapM(memo,z);if(w2.length<=2&&w2.every(function(x){return tw(x,z)<=232})){ls=w2;ms=z;done=true}}
+      for(let z=8;z>=6&&!done;z-=0.5){const w3=wrapM(memo,z);if(w3.length<=3&&w3.every(function(x){return tw(x,z)<=232})){ls=w3;ms=z;done=true}}
+      if(!done){ls=wrapM(memo,6).slice(0,3);ms=6}}
+     const ys=ls.length>2?[782,774,766]:ls.length>1?[779,769]:[773];
+     /* 노란 칸을 먼저 다 칠하고 글자를 찍는다 — 아래 줄 칸이 윗줄 글자를 덮지 않게 */
+     [0,413].forEach(function(dy){
+      if(hl)ls.forEach(function(t,li){const mt=fit(t,ms,232);pg.drawRectangle({x:20,y:ys[li]-dy-2,width:tw(mt,ms)+4,height:ls.length>2?8:ls.length>1?10:ms+4,color:rgb(1,.92,.3)})});
+      ls.forEach(function(t,li){pg.drawText(fit(t,ms,232),{x:22,y:ys[li]-dy,size:ms,font:font,color:BLK})})})}
     /* 선입금·ERP수시 도장은 공급자 보관용(위)에만 — 거래처가 가져가는 공급받는자용에는 안 찍는다 (2026-10-27 사장님) */
     let fx=22;
     /* 추가분 묶기에서 지난 묶기에 있던 거래처의 전표 = 수정된 것 — 왼쪽 맨 위 «수정» 동그라미, 위·아래 반쪽 다 (2026-11-03 사장님) */
