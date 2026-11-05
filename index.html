@@ -1608,7 +1608,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261105z';
+const APPVER='20261105aa';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -6343,7 +6343,7 @@ function jnRowsOf(D){
   const mv=moved[o.key];
   if(!mv&&(!jnIs(o)||/용차|상차|화물|택배|퀵/.test(String(o.memo||''))||ASSIGN[o.i]==='x'))return;
   const DD=destOf(o)||{},addr=o.dst||(DD.src==='적요'?DD.t:'');
-  const reg=(addr?ycRegionAny(addr):null)||ycRegion(o.memo)||ycRegion(ADDR[o.n]||'')||'';
+  const reg=(addr?ycRegionAny(addr):null)||(addr&&!/\s/.test(addr)?addr.slice(0,6):'')||ycRegion(o.memo)||ycRegion(ADDR[o.n]||'')||'';
   const m=String(o.memo||'');const am=m.match(ADRE);
   const hasA=!!(o.dst&&o.dst.length>14)||!!(am&&looksAddr(am[0]))||/[가-힣0-9](로|길)\s*\d+/.test(m);
   const hasT=/0\d{1,2}[-\s.]?\d{3,4}[-\s.]?\d{4}/.test(m);
@@ -6361,14 +6361,25 @@ function jnGroups(D){const R0=jnRowsOf(D);window._JNL=R0;
  if(by._un)order.push('_un');if(by._yc)order.push('_yc');
  return {all:R0,by:by,order:order}}
 function jnGName(g){return g==='_un'?'미배차':g==='_yc'?'용차로 돌린 건':msbRL(g)}
+/* 적요 겹침 빼기 — 품목마다 같은 적요가 « / » 로 이어져 길어지던 것. «삼정)» 은 맨 앞에 한 번만, 다른 토막에 다 들어 있는 토막은 뺀다 (2026-11-05) */
+function jnMemo(m){const t0=String(m||'');const sj=/삼정\)/.test(t0);
+ const parts=t0.split(/\s*\/\s*/).map(function(x){return x.replace(/삼정\)/g,'').replace(/^[\s*~-]+|[\s~-]+$/g,'').trim()}).filter(Boolean);
+ const nm=function(x){return x.replace(/[\s()!*~.,·-]/g,'')};
+ const keep=parts.filter(function(p,i){const a=nm(p);if(!a)return false;
+  return !parts.some(function(q,j){if(j===i)return false;const b=nm(q);return b.length>a.length?b.indexOf(a)>=0:(b===a&&j<i)})});
+ return (sj?'[삼정] ':'')+keep.join(' / ')}
 function jnPrintList(){const D=ycbDate(),G=jnGroups(D);
- let h='<div style="padding:12mm;font-family:Malgun Gothic,sans-serif;color:#000"><h2 style="margin:0 0 8px">직납 내역 — '+md(D)+' ('+'일월화수목금토'[new Date(D+'T00:00:00').getDay()]+') · '+G.all.length+'건</h2>';
- G.order.forEach(function(g){h+='<div style="font-weight:800;margin:10px 0 3px;font-size:14px">'+esc(jnGName(g))+' · '+G.by[g].length+'건</div><table style="width:100%;border-collapse:collapse;font-size:12px">'
-  +'<tr><th style="border:1px solid #888;padding:3px 5px;width:26px">No</th><th style="border:1px solid #888;padding:3px 5px">거래처</th><th style="border:1px solid #888;padding:3px 5px">배송지역</th><th style="border:1px solid #888;padding:3px 5px">기사·동선</th><th style="border:1px solid #888;padding:3px 5px">적요</th><th style="border:1px solid #888;padding:3px 5px">개수</th></tr>';
-  G.by[g].forEach(function(z,i){const dv=z.mv?z.mv.c:(effDrv(z.o)||'');
-   h+='<tr><td style="border:1px solid #888;padding:3px 5px;text-align:center">'+(i+1)+'</td><td style="border:1px solid #888;padding:3px 5px">'+esc(z.o.n)+'</td><td style="border:1px solid #888;padding:3px 5px">'+esc(z.reg)+'</td><td style="border:1px solid #888;padding:3px 5px">'+esc(dv)+' '+esc(jnGName(g))+'</td><td style="border:1px solid #888;padding:3px 5px">'+esc(z.o.memo||'')+'</td><td style="border:1px solid #888;padding:3px 5px;text-align:right">'+z.o.qty+'</td></tr>'});
-  h+='</table>'});
- h+='</div>';
+ const td='border:1px solid #999;padding:2px 4px;vertical-align:middle;';
+ let h='<style>@media print{@page{size:A4 portrait;margin:9mm}}#ycbprt .jnp tr{break-inside:avoid;page-break-inside:avoid}</style>'
+  +'<div class="jnp" style="font-family:Malgun Gothic,sans-serif;color:#000;font-size:10.5px;line-height:1.3">'
+  +'<div style="font-size:15px;font-weight:800;margin-bottom:5px">직납 내역 — '+md(D)+' ('+'일월화수목금토'[new Date(D+'T00:00:00').getDay()]+') · '+G.all.length+'건</div>'
+  +'<table style="width:100%;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:5mm"><col style="width:43mm"><col style="width:15mm"><col style="width:13mm"><col><col style="width:8mm"></colgroup>'
+  +'<thead><tr style="background:#eee;font-weight:800;text-align:center"><td style="'+td+'">No</td><td style="'+td+'">거래처</td><td style="'+td+'">지역</td><td style="'+td+'">기사</td><td style="'+td+'">적요</td><td style="'+td+'">개수</td></tr></thead><tbody>';
+ G.order.forEach(function(g){const q=G.by[g].reduce(function(a,z){return a+(z.o.qty||0)},0);
+  h+='<tr style="background:#f6f6f6;font-weight:800"><td colspan="6" style="'+td+'font-size:11.5px">'+esc(jnGName(g))+' · '+G.by[g].length+'건 · '+q+'개</td></tr>';
+  G.by[g].forEach(function(z,i){const dv=z.mv?ycShort(z.mv.c)+' '+String(z.mv.y.tnm||'').replace(/\s*\(합바차\)/,''):(effDrv(z.o)||'');
+   h+='<tr><td style="'+td+'text-align:center">'+(i+1)+'</td><td style="'+td+'overflow:hidden">'+esc(z.o.n)+'</td><td style="'+td+'">'+esc(z.reg)+'</td><td style="'+td+'">'+esc(dv)+'</td><td style="'+td+'">'+esc(jnMemo(z.o.memo))+'</td><td style="'+td+'text-align:right">'+z.o.qty+'</td></tr>'})});
+ h+='</tbody></table></div>';
  let el=document.getElementById('ycbprt');if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
  el.innerHTML=h;document.body.classList.add('ycbprint');
  const off=function(){document.body.classList.remove('ycbprint');window.removeEventListener('afterprint',off)};window.addEventListener('afterprint',off);
@@ -6392,7 +6403,7 @@ function tabJn(){
    const warn=(z.mv?'':(z.hasA?'':'<span style="color:#d64541;font-weight:800;font-size:11.5px"> 주소 없음</span>')+(z.hasT?'':'<span style="color:#d64541;font-weight:800;font-size:11.5px"> 전번 없음</span>'));
    h+='<tr><td style="text-align:center">'+(i+1)+'</td><td style="font-weight:700">'+esc(o.n)+'</td><td>'+esc(z.reg)+'</td>'
     +'<td style="white-space:nowrap">'+esc(z.mv?z.mv.c:(effDrv(o)||''))+' '+esc(z.mv?(z.mv.y.tnm||''):jnGName(g))+'</td>'
-    +'<td>'+esc(o.memo||'')+warn+'</td><td style="text-align:right">'+o.qty+'</td>'
+    +'<td>'+esc(jnMemo(o.memo))+warn+'</td><td style="text-align:right">'+o.qty+'</td>'
     +'<td style="white-space:nowrap">'+(z.mv?'<button class="btn g" onclick="jnBack('+z.idx+')" title="용차내역서에서 빼고 원래 동선으로">↩︎ 직납으로</button>'
       :YC_CO.map(function(c){return '<button class="btn g" onclick="jnToYc('+z.idx+',\''+c+'\')" title="'+c+' 용차로 돌리기">🚚 '+ycShort(c)+'</button>'}).join(' '))+'</td></tr>'});
   h+='</table></div>'});
