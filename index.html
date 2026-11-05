@@ -1603,7 +1603,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261105h';
+const APPVER='20261105p';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2004,7 +2004,8 @@ function guess(o){let r=guess0(o);
 function guess0(o){
  if(o.ex)return 'x';
  // 0) 무조건 고정 — 적요 직납보다도 우선 (예: 심플즈는 주소가 화성이어도 사당 코스)
- {const _h=rtHard(o.n);if(_h)return _h}
+ /* 10동선 고정(당진·홍성 쪽, 거래처 위치 기준)은 적요에 배송지가 있으면 그 주소 동선으로 (2026-11-05 «주소 동선으로» — 당진OK 봉담 → 6동선) */
+ {const _h=rtHard(o.n);if(_h){if(_h==='r10'){const D0=destOf(o);if(D0&&D0.src==='적요'){const r0=hitRoute(D0.t);if(r0)return r0}}return _h}}
  // 1) 실제 과거 배차가 있는 날짜는 그대로 재현
  if(DAY_CUST[o.d]&&DAY_CUST[o.d][o.n])return DAY_CUST[o.d][o.n];
  // 2) 적요에 목적지 주소/직납이 있으면 거래처 상습동선보다 우선 (그날 실제 배송지)
@@ -2233,7 +2234,7 @@ let DUPN=0;   /* 자동조회 재입력으로 걷어낸 줄 수 */
 let DSTL={};
 /* 적요에 이 말이 있으면 이 주소로 가는 것 (사장님이 정해 준 배송지) — 2026-11-03 «제주보루네오는 명성해운이라고 써져 있으면 인천 중구 항동7가 36-3» */
 /* 2026-11-05 «서울아산병원» — 병원 이름만 있어 거래처 번호표로 5동선에 가던 것. 서울아산병원 = 송파구 풍납동. 강릉·보령 등 다른 아산병원은 뺀다 */
-const DST_FIX={'명성해운':'인천 중구 항동7가 36-3','아산병원':'서울 송파구 올림픽로43길 88'};
+const DST_FIX={'명성해운':'인천 중구 항동7가 36-3','아산병원':'서울 송파구 올림픽로43길 88','광주창고':'경기도 광주시 곤지암읍 경충대로 522'};   /* 광주창고 = 경기 광주 곤지암 → 7동선 (2026-11-05 대성퍼니처) */
 const DST_FIX_NOT=/(강릉|보령|보성|영덕|정읍|홍천|금강)아산병원/g;
 function build(fresh){
  ORDERS=[];const g={};DUPN=0;
@@ -2257,14 +2258,18 @@ function build(fresh){
    {const tz=t.replace(/\s/g,'').replace(DST_FIX_NOT,'');Object.keys(DST_FIX).some(function(k){if(tz.indexOf(k)>=0){hit2=DST_FIX[k];return true}return false})}
    if(!hit2)t.split(/[\/,·]/).some(function(seg){const b=seg.trim().match(/^([가-힣A-Za-z0-9]{2,12})\s*(?:으로|로)\s*(?:배송|배달)?$/);if(!b)return false;
     const nm=b[1].replace(/\s/g,'');if(DSTL[nm]){hit2=DSTL[nm];return true}
-    const c=resolveCust(nm);if(c&&c!==n&&ADDR[c]){hit2=ADDR[c];return true}return false});
+    const c=resolveCust(nm);if(c&&c!==n&&ADDR[c]){hit2=ADDR[c];return true}
+    /* «사당대림프라자로 배송» — 주소는 없어도 말에 지역이 있으면 그 지역 동선으로 (2026-11-05 씨엘사무용가구) */
+    if(hitRoute(nm)){hit2=nm;return true}
+    return false});
    if(!hit2)return '';
    a=[hit2];
   }
   const hit=trimAd(a[0].replace(/\s+/g,' '));
   let g1=guOf(hit), g2=guOf(ADDR[n]||'');
   /* '인천남동구' 처럼 붙여 쓴 것도 '남동구' 와 같게 본다 */
-  const cut=function(t){return String(t||'').replace(/^(서울|인천|경기|부산|대구|광주|대전|울산|세종|충남|충북|전남|전북|경남|경북|강원|제주)/,'')};
+  /* 앞말을 떼서 한 글자만 남으면 그대로 — «광주시» 가 «시» 가 되어 «원주시» 와 같은 곳으로 잘못 보던 것 (2026-11-05 광주창고) */
+  const cut=function(t){const c0=String(t||''),c1=c0.replace(/^(서울|인천|경기|부산|대구|광주|대전|울산|세종|충남|충북|전남|전북|경남|경북|강원|제주)/,'');return c1.length>=2?c1:c0};
   g1=cut(g1);g2=cut(g2);
   if(g1&&g2&&(g1===g2||g1.indexOf(g2)>=0||g2.indexOf(g1)>=0))return '';   /* 같은 구 → 안 나눔 */
   return hit.slice(0,40);
@@ -5372,7 +5377,9 @@ const MSB_BANK='국민 170001-04-212477   신한 140-007-999709   외환 630-004
 /* 품목명에 이 말이 있으면 그 말에 빨간 동그라미 (2026-11-02 사장님 «좌판만·링사발·도금사발·코지오발 이런 거») */
 let MSB_CIRC_RE=/좌판만|등판만|링사발|도금사발|코지오발|크롬사발|알루미늄사발|사발만|팔걸이만|다리만|중심봉\s*\d+\s*A|\d+\s*A\s*중심봉|중심봉/i;   /* 중심봉 100A·60A·80A 도 (2026-11-04 사장님) */
 /* 주소 줄에서 동그라미 칠 말 — [거래처 이름 정규식, 주소 속 말] (2026-11-04 사장님) */
-const MSB_ADDR_CIRC=[[/유성사무용가구\(내곡/,/용인\s*기흥/],[/더블유퍼니처/,/수원\s*대한/]];
+/* PDF 주소 글자는 «광 주시 곤지 암 읍» 처럼 띄어쓰기가 멋대로 끼어 있어 글자마다 \s* */
+const MSB_ADDR_CIRC=[[/유성사무용가구\(내곡/,/용\s*인\s*기\s*흥/],[/더블유퍼니처/,/수\s*원\s*대\s*한/],
+ [/대성퍼니처\(원주만종/,/광\s*주\s*시\s*곤\s*지\s*암\s*읍/,/광\s*주\s*창\s*고/]];   /* 셋째 칸 = 적요에 이 말이 있을 때만 — 대성퍼니처는 «광주창고로 배송» 일 때만 (2026-11-05) */
 let MSB={name:'',units:null,groups:null,st:'',out:null,outName:''};
 const MSB_LIB={pdfjs:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
  pdflib:'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',fontkit:'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
@@ -5421,7 +5428,7 @@ async function msbReadPage(p){
   u.circ.push(c)});
  /* 주소 줄(y720)의 낱말 동그라미 — 거래처마다 정한 말 (2026-11-04 사장님 «내곡유성은 주소줄에 용인기흥 · 더블유퍼니처는 수원대한») */
  const ac=MSB_ADDR_CIRC.find(function(p){return p[0].test(u.n||'')});
- if(ac)tc.items.forEach(function(it){const y=it.transform[5],x=it.transform[4],s=it.str;if(Math.abs(y-720)>4||x<70||x>=296||!s.trim())return;
+ if(ac&&(!ac[2]||ac[2].test(u.memo||'')))tc.items.forEach(function(it){const y=it.transform[5],x=it.transform[4],s=it.str;if(Math.abs(y-720)>4||x<70||x>=296||!s.trim())return;
   const m=s.match(ac[1]);if(m)u.circ.push(spot(it,m))});
  /* 의자 수량 — 품목 줄의 수량 칸(x258~286.5) 숫자를 더한다. «수량합계» 줄과 운반비·배송비·택배비 줄은 뺀다
     (2026-11-04 사장님 «보고서에 의자 몇 개인지 쓰자, 한차 분량 알게») */
@@ -5497,12 +5504,14 @@ function msbClass(units){
    /* 같은 거래처가 배송지별로 나뉘어 있으면 전표 적요가 들어 있는 쪽으로 (2026-11-05 오피스랩: 거래처 주소 / 아산병원) */
    const um=nz(u.memo);const os2=um?os.filter(function(o){return nz(o.memo).indexOf(um)>=0}):[];
    const pickO=function(L){return L.filter(function(o){const r=ASSIGN[o.i];return r&&r!=='_'&&!offRoute(r)})[0]||L[0]||null};
-   const o=pickO(os2)||pickO(os);
+   /* 전표 적요와 맞는 쪽이 없으면 배송지 없는(거래처 주소) 주문으로 — 같은 날 다른 전표의 직납이 옮겨 붙지 않게 (2026-11-05 대한(수원)) */
+   const noD=os.filter(function(o){return !o.dst});
+   const o=pickO(os2)||pickO(noD.length?noD:os);
    u.o=o;
    if((o&&o.erp)||/#\s*\]/.test(u.ad||''))u.flags.push('ERP수시');
    /* 2026-10-29 사장님 — 직납: 적요에 직납·직배, 또는 거래처와 다른 시·구 주소(o.dst, 예: «안산시 …»)가 있으면 직납.
       파란 네모 도장 + 아래 반쪽에도 «직납». 금액은 지우지 않는다(수기 명세서를 따로 써서 같이 감) */
-   u.jik=/직납|직배|직접\s*배송/.test(u.memo||'')||!!(o&&o.dst);
+   u.jik=/직납|직배|직접\s*배송/.test(u.memo||'')||!!(o&&o.dst&&um&&nz(o.memo).indexOf(um)>=0);   /* 직납 = 이 전표 적요의 배송지가 거래처 주소가 아닐 때만 (2026-11-05) */
    const em=String(u.memo||'').match(/오전\s*일찍|오전\s*배송|오전\s*중|오전|일찍/);   /* «오전» 만 있어도 동그라미 (2026-11-02 사장님) */u.early=em?em[0].replace(/\s+/g,''):'';
    /* 수금확인 탭과 잇기 (2026-10-28) — 출고정지 / 돈 받을 곳인데 입금 확인 체크가 없으면 «입금 전» (선입금으로 다 받은 곳은 뺌) */
    {const mf=mnFlag(D,(o&&o.n)||u.n),다받음=(u.pre!=null&&u.tot!=null&&u.pre+u.tot<=0);
@@ -5678,9 +5687,17 @@ async function msbBuild(bytes,groups,coversOnly){
     let memo=String(u.memo||'').trim().replace(/회수\s*\S{0,2}\s*차감/g,function(s){return '<<'+s.replace(/\s+/g,'')+'>>'});
     /* 일찍은 동그라미로 찍으므로 왼쪽 위 검은 적요 줄에서는 뺀다 (2026-10-30) */
     if(u.early)memo=memo.replace(/오전\s*일찍|오전\s*배송|오전\s*중|오전|일찍/g,'').replace(/^[\s\/,·.-]+|[\s\/,·.-]+$/g,'').replace(/\s*\/\s*\/\s*/g,' / ').trim();
+    /* 적요 «추가» — 왼쪽 위 빨간 동그라미, 위·아래 반쪽 다 (2026-11-05). «실측후 추가예정» 은 아니다. «추가» 만 따로 적힌 것은 검은 적요 줄에서 뺀다 */
+    const isAdd=/추가(?!\s*예정)/.test(String(u.memo||''));
+    if(isAdd)memo=memo.replace(/(^|[\s\/,·])추가(?=$|[\s\/,·])/g,'$1').replace(/^[\s\/,·.-]+|[\s\/,·.-]+$/g,'').replace(/\s*\/\s*\/\s*/g,' / ').trim();
     /* 일찍·오전일찍·오전배송 — 글씨 키워 동그라미 안에. 자리: 일자·거래처 줄 오른쪽 빈칸(공급자 칸 x298 앞). 위·아래 반쪽 다 */
     if(memo){let ms=10;while(ms>6&&tw(memo,ms)>232)ms-=0.5;
-     [0,413].forEach(function(dy){pg.drawText(fit(memo,ms,232),{x:22,y:773-dy,size:ms,font:font,color:BLK})})}
+     /* 직납이거나 적요에 주소가 있으면 글자 뒤에 노란 형광펜 — 거래처와 같은 시로 가는 주소도 칠한다 (2026-11-05 피움(아트뱅크) 안성시청) */
+     const mt=fit(memo,ms,232);
+     const am0=memo.match(ADRE),hl=u.jik||!!(am0&&looksAddr(am0[0]));
+     [0,413].forEach(function(dy){
+      if(hl)pg.drawRectangle({x:20,y:773-dy-3,width:tw(mt,ms)+4,height:ms+5,color:rgb(1,.92,.3)});
+      pg.drawText(mt,{x:22,y:773-dy,size:ms,font:font,color:BLK})})}
     /* 선입금·ERP수시 도장은 공급자 보관용(위)에만 — 거래처가 가져가는 공급받는자용에는 안 찍는다 (2026-10-27 사장님) */
     let fx=22;
     /* 추가분 묶기에서 지난 묶기에 있던 거래처의 전표 = 수정된 것 — 왼쪽 맨 위 «수정» 동그라미, 위·아래 반쪽 다 (2026-11-03 사장님) */
@@ -5692,6 +5709,7 @@ async function msbBuild(bytes,groups,coversOnly){
     if(u.mod)circ('수정');
     /* 일찍·오전일찍·오전배송 — 왼쪽 맨 위(도장 줄 맨 앞)에 큰 글씨 동그라미. 위·아래 반쪽 다 (2026-10-30 «왼쪽 위로») */
     if(u.early)circ(u.early);
+    if(isAdd)circ('추가');
     /* 주소란 «명세표주지마세요» — 맨 왼쪽 위, 도장 줄 위에 따로 한 줄 (공급자용에만). 같은 줄에 두면 제목과 겹친다 (2026-10-30) */
     if(u.noms){const t='명세표 주지마세요',w=tw(t,12)+14;
      pg.drawRectangle({x:22,y:818,width:w,height:20,color:RED});
