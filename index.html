@@ -1370,12 +1370,17 @@ const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/나무이야기|한양사무용가구\(천안/,'r9'],   /* 2026-11-04 사장님 «나무이야기 한양사무용가구(천안)은 9동선» — 아래 한양사무용가구→4 보다 먼저 */
  /* 2026-11-04 사장님 받아적은 9동선: 그루터기 · 종합사무용가구(음성) · 청송사무용가구(청주) · 음성우드메탈 · 동양M&F · 모던엔틱 (그루터기·청송은 10 에서 9 로) */
  [/그루터기|종합사무용가구\(음성|청송.*청주|청주.*청송|음성우드메탈|동양\s*M\s*&\s*F|모던엔틱|해밀가구/i,'r9'],   /* 해밀가구(대전) — 번호표는 [5#] 이지만 9동선 고정 (2026-11-04 사장님) */
+ [/새천년사무용가구\(화성/,'r7'],   /* 2026-11-05 사장님 «화성 새천년은 7동선» (번호표는 [6]) */
  [/더블유퍼니처/,'r7'],   /* 2026-11-04 사장님 «더블유퍼니처는 7동선» (주소 끝 [7], 도착지 수원대한) */
  [/동일사무용가구|한양듀오백|한양사무용가구|한국퍼니처|강남퍼니처/,'r4'],
  [/대한사무용가구\(마석/,'r5'],   /* 2026-11-02 사장님 «마석대한은 5동선» (마포·을지·중곡) */
  [/스케일에프아이|^스케일/,'r3'],   /* 2026-11-02 사장님 «스케일은 3동선으로» (김포·일산·파주) */
  [/팀퍼니처/,'r9'],   /* 2026-11-02 사장님 «팀퍼니처 9동선» (대전·진천·중부) */
  [/이프시스템/,'r5'],
+ [/신동양사무용가구\(일산|일산\s*신동양/,'r1'],   /* 2026-11-05 사장님 «일산신동양 1동선» — 신동양사무용가구(일산)·동양사무용가구(구:일산신동양) */
+ [/평화사무용가구\(일산/,'r1'],   /* 2026-11-05 사장님 «평화사무용가구(일산)1* 1동선» (번호표 [3]) */
+ [/^가구마트$/,'r1'],   /* 2026-11-05 사장님 «가구마트 1동선» (김포 운양동, 번호표 [3]) — 테크노가구마트(진천)은 아니다 */
+ [/가구의\s*꿈/,'r1'],   /* 2026-11-05 사장님 «가구의꿈 1동선 · 주식회사가구의꿈도 1동선» */
  [/민트인터내셔/,'r1'],   /* 2026-11-03 사장님 «민트 1동선으로» (부평) */
  [/가구라인/,'rw'],   /* 2026-11-03 사장님 «가구라인은 수요일동선으로» */
  [/동양사무용가구\(아현/,'r5'],   /* 2026-11-03 사장님 «아현동양 을지로동선» */
@@ -1603,7 +1608,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261105p';
+const APPVER='20261105x';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4334,6 +4339,7 @@ function ycbMove(co,k,to){
 }
 function ycbSet(co,k,f,v){
  const a=ycbRows(co).slice();if(!a[k])return;
+ if(a[k].kko){if(f==='mm')delete a[k].kko.mm;if(f==='tk')delete a[k].kko.car}   /* 내역서를 고치면 그 내용이 수기전표에 나오게 */
  if(f==='fee'){a[k].fee=Math.max(0,Math.round(+String(v).replace(/[^0-9]/g,'')||0));a[k].est=0;a[k].hw='손으로 넣음'}
  else if(f==='tk'){const t=YC_TRUCK.filter(function(x){return x.t===v})[0];
    /* 착불 줄은 손으로 적은 실제 금액을 지키기 위해 자동 재계산하지 않는다 (2026-09-09) */
@@ -4417,7 +4423,7 @@ function ycbKakao(co,k){
    카카오톡에서 방을 찾아 그림·메시지를 붙여 넣고 보낸다. 방 찾는 말: 대현=박남 · 나눔=나눔 · 명진=명진로지텍 */
 const KK_ROOM={'대현물류':'박남','나눔물류':'나눔','명진로지텍':'명진로지텍'};   /* «명진» 만 쓰면 세무법인명진 방으로 갔다 (2026-11-05) */
 let KKX=null;
-function kkItems(x){const L=[];const ns=x.ns||[x.n];   /* ns = 한 장으로 합친 거래처들 — 품목·규격이 같으면 수량을 더한다 */
+function kkItems(x){if(x.kko&&x.kko.items)return x.kko.items.map(function(i){return Object.assign({},i)});const L=[];const ns=x.ns||[x.n];   /* ns = 한 장으로 합친 거래처들 — 품목·규격이 같으면 수량을 더한다 */
  ORDERS.forEach(function(o){if(ns.indexOf(o.n)<0||ST[o.i]==='del')return;
   let sd='';if(o.d!==x.d){try{sd=shipDate(o)||''}catch(e){}if(sd!==x.d)return}
   (o.items||[]).forEach(function(it){const p=String(it.p||''),s=String(it.s||''),q=+it.q||0;
@@ -4434,6 +4440,25 @@ function kkDays(x){const t=String(x.mm||'').replace(/\s+/g,''),m0=+x.d.slice(5,7
  return {up:up,dn:dn}}
 /* land=true → A4 반쪽(가로로 긴 A5)에 꽉 차게 찍는 가로판 (2026-10-30 세트 인쇄) */
 /* who = '공급자 보관용' / '공급받는자 보관용' — 제목 밑에 작게 (2026-11-03 사장님 «수기전표가 짝으로 공급자용·공급받는자용으로») */
+/* 그림에 찍을 적요·주소. 적요에 주소가 없으면 거래처 등록 주소의 맨 뒤 것을 붙인다 (2026-11-03) —
+   «영등포로254우성타워» 처럼 붙여 쓴 주소도 주소로 본다, 손으로 고친 글은 그대로 (2026-11-05 대신(사당)에 방배 주소가 붙던 것) */
+function kkMmOf(x){let mm=String(x.mm||'').trim();if(x.noad)return mm;
+ const am=mm.match(ADRE);if(am&&looksAddr(am[0]))return mm;
+ if(/[가-힣0-9](로|길)\s*\d+/.test(mm))return mm;
+ const ad=String(ADDR[x.adn||x.n]||'').split(/\s*\/\s*/).map(function(s){return s.replace(/\[.*?\]|#/g,'').trim()}).filter(Boolean).pop()||'';
+ return ad?(mm?mm+' / ':'')+ad:mm}
+/* 수기전표 창에서 고친 것(kko)을 얹은 복사본 — 인쇄·카톡이 같은 내용으로 나오게 */
+function kkView(r){const x=Object.assign({},r),o=r.kko||{};if(o.n)x.n=o.n;if(o.mm!=null){x.mm=o.mm;x.noad=1}if(o.car)x.kcar=o.car;return x}
+function kkSave(f){if(!KKX)return;const F=KKX.forms[f];if(!F||!F.row)return;const o=F.row.kko||{};
+ if(F.ied)o.items=F.items.map(function(i){return Object.assign({},i)});
+ if(F.x.kcar)o.car=F.x.kcar;if(F.x.noad)o.mm=F.x.mm;if(F.nmEd)o.n=F.x.n;
+ F.row.kko=o;ASGV['yb:'+KKX.co]=Date.now();save()}
+function kkUndo(){if(!KKX)return;const co=KKX.co,k=KKX.k;(KKX.forms||[]).forEach(function(F){if(F.row)delete F.row.kko});ASGV['yb:'+co]=Date.now();save();kkClose();ycbKkOpen(co,k);toast('처음 내용으로 되돌렸습니다')}
+function kkMmIn(f,v){const F=KKX&&KKX.forms[f];if(!F)return;const old=kkMmOf(F.x);const nv=String(v||'').trim();const ta=document.getElementById('kktxt');
+ const base=String(F.x.mm||'').trim();if(ta&&base&&ta.value.indexOf(base)>=0)ta.value=ta.value.replace(base,nv);else if(ta&&old&&ta.value.indexOf(old)>=0)ta.value=ta.value.replace(old,nv);
+ F.x.mm=nv;F.x.noad=1;kkRedraw(f);kkSave(f)}
+function kkCarIn(f,v){const F=KKX&&KKX.forms[f];if(!F)return;const old=F.x.kcar||(YC_TRUCK.filter(function(y){return y.t===F.x.tk})[0]||{}).nm||F.x.tk||'';const nv=String(v||'').trim();F.x.kcar=nv;
+ const ta=document.getElementById('kktxt');if(ta&&old&&nv)ta.value=ta.value.replace(old,nv);kkRedraw(f);kkSave(f)}
 function kkDraw(x,items,land,who){
  const W=land?1120:760,H=land?790:1060,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
  const kx=(W-60)/700,XS=function(v){return Math.round(30+(v-30)*kx)};
@@ -4441,7 +4466,7 @@ function kkDraw(x,items,land,who){
  g.fillStyle='#fff';g.fillRect(0,0,W,H);
  const R='#c0392b',B='#222',BL='#1b4fa8';
  /* 맨 위 — 상차·하차·차종 (손글씨 자리) */
- const dy=kkDays(x),tk=(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
+ const dy=kkDays(x),tk=x.kcar||(YC_TRUCK.filter(function(y){return y.t===x.tk})[0]||{}).nm||x.tk||'';
  let lx=40;
  /* 직납내역서 줄이면 왼쪽 위에 빨간 «직납» 동그라미 (2026-11-03 사장님) */
  if(x.jn){g.font=F(24,1);const t='직납';const w=g.measureText(t).width;g.strokeStyle=R;g.fillStyle=R;g.lineWidth=2.5;
@@ -4490,10 +4515,7 @@ function kkDraw(x,items,land,who){
   g.font=F(18,1);const q=String(it.q);g.fillText(q,cols[2]+(cols[3]-cols[2]-g.measureText(q).width)/2,y)});
  if(items.length>MI){r++;g.font=F(15);g.fillText('외 '+(items.length-MI)+'가지',X0+8,hy+r*RH-11)}
  /* 도착지 — 적요(주소·전화) 손글씨 자리 */
- let mm=String(x.mm||'').trim();
- /* 적요에 주소가 없으면 거래처 등록 주소의 맨 뒤 것(여러 주소면 마지막)을 가져온다 (2026-11-03 사장님) */
- {const am=mm.match(ADRE);if(!(am&&looksAddr(am[0]))){const ad=String(ADDR[x.adn||x.n]||'').split(/\s*\/\s*/).map(function(s){return s.replace(/\[.*?\]|#/g,'').trim()}).filter(Boolean).pop()||'';
-   if(ad)mm=(mm?mm+' / ':'')+ad}}
+ let mm=kkMmOf(x);
  g.fillStyle=BL;g.font=F(20,1);
  const words=mm.split(/(?<=[\s,\/)])/);let line='',ly=hy+(Math.max(r,land?2:3)+1.4)*RH;
  words.forEach(function(w){if(g.measureText(line+w).width>X1-X0-60){g.fillText(line.trim(),X0+30,ly);ly+=RH;line=w}else line+=w});
@@ -4529,8 +4551,8 @@ function ycbKkOpen(co,k){
  /* 짝(공급자용·공급받는자용)은 직납내역서만 — 용차(운송업체 카톡)는 한 장 (2026-11-03 사장님 «용차내역서에는 공급받는자와 공급자 필요없어 1개만») */
  const pair=(co===JN_CO);
  /* 직납은 거래처마다 한 장씩(기사가 거래처마다 준다), 용차는 묶음을 한 장으로 */
- const G0=kkGroup(co,k);const G=pair?G0:[kkMerge(G0)];
- const forms=G.map(function(r){const it=kkItems(r);return {x:r,items:it,img:kkDraw(r,it,false,pair?'공급자 보관용':'').toDataURL('image/jpeg',0.88),img2:pair?kkDraw(r,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88):''}});
+ const G0=kkGroup(co,k);const hd=G0.find(function(r){return !r.link})||G0[0];const G=pair?G0:[kkMerge(G0)];
+ const forms=G.map(function(r0){const r=kkView(r0),it=kkItems(r);return {x:r,row:pair?r0:hd,items:it,img:kkDraw(r,it,false,pair?'공급자 보관용':'').toDataURL('image/jpeg',0.88),img2:pair?kkDraw(r,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88):''}});
  KKX={co:co,k:k,x:x,pair:pair,forms:forms,items:forms[0].items,img:forms[0].img};
  const items=forms[0].items;
  let el=document.getElementById('kkbox');
@@ -4539,6 +4561,8 @@ function ycbKkOpen(co,k){
  el.innerHTML='<div style="background:#fff;border-radius:14px;max-width:880px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;gap:14px;flex-wrap:wrap">'
   +'<div style="width:360px;max-width:100%">'+forms.map(function(f,i){return '<div style="font-size:12.5px;font-weight:700;color:#334155;margin:'+(i?'10px':'0')+' 0 3px">'+(forms.length>1?(i+1)+'장 · ':'')+esc(f.x.n)+'</div>'
    +(f.x.ns?'<label style="font-size:12px;color:#5b6b7c;display:block;margin-bottom:4px">그림에 찍을 거래처명<input value="'+esc(f.x.n)+'" onchange="kkNameIn('+i+',this.value)" style="width:100%;padding:5px;border:1px solid #cfd8e3;border-radius:6px;font-size:13px;font-weight:700;margin-top:2px"></label>':'')
+   +'<label style="font-size:12px;color:#5b6b7c;display:block;margin-bottom:4px">그림의 적요·주소 — 고치면 그림이 바로 바뀌고 인쇄에도 나옵니다<textarea rows="2" onchange="kkMmIn('+i+',this.value)" style="width:100%;padding:5px;border:1px solid #cfd8e3;border-radius:6px;font-size:12.5px;margin-top:2px">'+esc(kkMmOf(f.x))+'</textarea></label>'
+   +'<label style="font-size:12px;color:#5b6b7c;display:block;margin-bottom:4px">그림의 차종<input value="'+esc(f.x.kcar||(YC_TRUCK.filter(function(y){return y.t===f.x.tk})[0]||{}).nm||f.x.tk||'')+'" onchange="kkCarIn('+i+',this.value)" style="width:100%;padding:5px;border:1px solid #cfd8e3;border-radius:6px;font-size:12.5px;margin-top:2px"></label>'
    +'<img id="kkimg'+i+'" src="'+f.img+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px">'
    +(f.img2?'<img id="kkimg'+i+'b" src="'+f.img2+'" style="width:100%;border:1px solid #dde3ea;border-radius:8px;margin-top:4px">':'')
    +'<div id="kkrows'+i+'" style="margin-top:6px">'+kkRowsHtml(i)+'</div>'}).join('')+'</div>'
@@ -4551,6 +4575,7 @@ function ycbKkOpen(co,k){
   +'<div id="kkst" style="font-size:13px;color:#5b6b7c"></div>'
   +'<div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap"><button class="btn" id="kkgo" onclick="ycbKkSend()" style="flex:1 1 140px">📨 전송</button>'
   +'<button class="btn" style="background:#eef2f7;color:#334155" onclick="ycbKkSave()">그림 저장</button>'
+  +(forms.some(function(f){return f.row&&f.row.kko})?'<button class="btn" style="background:#eef2f7;color:#334155" onclick="kkUndo()" title="이 창에서 고친 것을 지우고 명세서·내역서 내용으로">고친 것 되돌리기</button>':'')
   +'<button class="btn" style="background:#eef2f7;color:#334155" onclick="kkClose()">닫기</button></div>'
   +'<div style="font-size:11.5px;color:#8b9aab">전송을 누르면 사무실 PC 카카오톡이 «찾는 말»로 방을 열어 그림 → 메시지를 보냅니다. 그 PC 가 잠겨 있으면 못 보내고, 보내는 몇 초 동안 그 PC 에서 키보드를 치면 글이 섞입니다.</div>'
   +'</div></div>';
@@ -4573,20 +4598,20 @@ function kkRedraw(f){if(!KKX)return;f=f||0;const F=KKX.forms[f];if(!F)return;
  F.img=kkDraw(F.x,F.items,false,KKX.pair?'공급자 보관용':'').toDataURL('image/jpeg',0.88);F.img2=KKX.pair?kkDraw(F.x,F.items,false,'공급받는자 보관용').toDataURL('image/jpeg',0.88):'';
  if(!f){KKX.img=F.img;KKX.items=F.items}const im=document.getElementById('kkimg'+f);if(im)im.src=F.img;const im2=document.getElementById('kkimg'+f+'b');if(im2)im2.src=F.img2}
 /* 합친 거래처명 손으로 고치기 — 그림과 메시지를 같이 바꾼다 */
-function kkNameIn(f,v){const F=KKX&&KKX.forms[f];v=String(v||'').trim();if(!F||!v)return;const old=F.x.n;F.x.n=v;kkRedraw(f);
+function kkNameIn(f,v){const F=KKX&&KKX.forms[f];v=String(v||'').trim();if(!F||!v)return;const old=F.x.n;F.x.n=v;F.nmEd=1;kkRedraw(f);kkSave(f);
  const ta=document.getElementById('kktxt');if(ta)ta.value=ta.value.split(old).join(v)}
 function kkChairs(f){const F=KKX.forms[f||0];return ((F&&F.items)||[]).reduce(function(a,it){return a+(sjItem({p:it.p,s:it.s})?0:(+it.q||0))},0)}
 /* 메시지의 «의자 N개» 를 그림 수량 합에 맞춘다 — f 번째 장은 메시지의 f 번째 «의자 N개» */
 function kkTxtSync(f){f=f||0;const ta=document.getElementById('kktxt');if(!ta)return;const n=kkChairs(f);let k=-1;
  ta.value=ta.value.replace(/의자\s*\d+\s*개/g,function(s){k++;return k===f?'의자 '+n+'개':s})}
-function kkRowIn(f,i,fld,v){const F=KKX.forms[f];const it=F&&F.items[i];if(!it)return;if(fld==='q')it.q=+v||0;else it[fld]=v;kkRedraw(f);if(fld==='q')kkTxtSync(f)}
-function kkRowDel(f,i){KKX.forms[f].items.splice(i,1);document.getElementById('kkrows'+f).innerHTML=kkRowsHtml(f);kkRedraw(f);kkTxtSync(f)}
-function kkRowAdd(f){KKX.forms[f].items.push({p:'',s:'',q:1});document.getElementById('kkrows'+f).innerHTML=kkRowsHtml(f);kkRedraw(f);kkTxtSync(f)}
+function kkRowIn(f,i,fld,v){const F=KKX.forms[f];const it=F&&F.items[i];if(!it)return;if(fld==='q')it.q=+v||0;else it[fld]=v;F.ied=1;kkRedraw(f);kkSave(f);if(fld==='q')kkTxtSync(f)}
+function kkRowDel(f,i){KKX.forms[f].items.splice(i,1);KKX.forms[f].ied=1;kkSave(f);document.getElementById('kkrows'+f).innerHTML=kkRowsHtml(f);kkRedraw(f);kkTxtSync(f)}
+function kkRowAdd(f){KKX.forms[f].items.push({p:'',s:'',q:1});KKX.forms[f].ied=1;kkSave(f);document.getElementById('kkrows'+f).innerHTML=kkRowsHtml(f);kkRedraw(f);kkTxtSync(f)}
 function kkTxtIn(){if(!KKX)return;const ms=(document.getElementById('kktxt').value||'').match(/의자\s*\d+\s*개/g)||[];
  ms.forEach(function(s,f){const F=KKX.forms[f];if(!F)return;const n=+(s.match(/\d+/)||[0])[0];
   const ch=F.items.map(function(it,i){return {it:it,i:i}}).filter(function(z){return !sjItem({p:z.it.p,s:z.it.s})});
   if(ch.length!==1)return;   /* 광일 품목이 여러 줄이면 어느 줄인지 모른다 — 그림 아래 칸에서 고친다 */
-  if(ch[0].it.q===n)return;ch[0].it.q=n;const q=document.getElementById('kkq'+f+'_'+ch[0].i);if(q)q.value=n;kkRedraw(f)})}
+  if(ch[0].it.q===n)return;ch[0].it.q=n;F.ied=1;const q=document.getElementById('kkq'+f+'_'+ch[0].i);if(q)q.value=n;kkRedraw(f);kkSave(f)})}
 /* 닫기 — ✕ · 닫기 단추 · Esc · 바깥 어두운 곳 누르기 (2026-10-30 «닫기 버튼 어디 있어») */
 function kkClose(){const el=document.getElementById('kkbox');if(el)el.remove();document.removeEventListener('keydown',kkEsc)}
 function kkEsc(ev){if(ev.key==='Escape')kkClose()}
@@ -5534,6 +5559,12 @@ function msbClass(units){
    /* 모르는 동선 값(예: 옛 'rc')이면 조용히 빠뜨리지 말고 미배차로 (2026-11-03 평택삼성 사고) */
    if(r==='rc')r=rcOf(o.n);   /* 옛 '화·목 충청' 값 → 9/10동선 (RID.rc 별칭이 있어 아래 검사로는 못 거른다) */
    if(!ROUTES.some(function(x){return x.id===r})){u.g='un';u.why='동선 값을 모름('+r+')';return}
+   /* 전표(PDF) 적요가 제일 새것 — 사이트 명세서에 아직 없는 적요 주소도 번호표보다 먼저 본다 (2026-11-05 조아스가구 «굿퍼니하차~ 서울 서초구…»).
+      손으로 옮긴 배차·거래처 고정(10동선 고정은 빼고)은 그대로 */
+   {const am=String(u.memo||'').match(ADRE);
+    if(am&&looksAddr(am[0])&&!(um&&nz(o.memo).indexOf(um)>=0)&&!ASGV[o.key]){const hd=rtHard(o.n);
+     if(!hd||hd==='r10'){const r3=hitRoute(am[0]);
+      if(okR(r3)&&r3!==r){u.g=r3;u.drv=CAR[r3]||'';if(MSB_DRV.indexOf(u.drv)<0)u.drv='';u.trip=1;u.jik=true;u.pdfR=1;return}}}}
    u.g=r;u.drv=effDrv(o)||'';u.trip=Math.min(TRIP_MAX,+TRIP[o.key]||1);
    /* 기사 이름은 호로차(장세훈·안정수)·3.5톤(배진성)만 찍는다 (2026-10-29 사장님) */
    if(MSB_DRV.indexOf(u.drv)<0)u.drv='';
@@ -6042,11 +6073,18 @@ function ujKor(n){n=Math.round(+n||0);if(!n)return '';
    s=t+B[g]+s}
   g++}
  return s}
+/* 결의서 칸을 손으로 고치면 그 용차 줄(ujo)에 저장 — 다시 그리거나 세트 인쇄해도 고친 대로 (2026-11-05) */
+function ujEd(el){const k=String(el.getAttribute('data-k')||'').split('|'),f=el.getAttribute('data-f');if(k.length<2||!f)return;
+ const a=YCB[k[0]]&&YCB[k[0]][+k[1]];if(!a)return;const v=el.innerText.replace(/\u00a0/g,' ').replace(/\n{2,}/g,'\n').trim();
+ if(v===String(el.getAttribute('data-d')||'').trim()){if(a.ujo&&a.ujo[f]!=null){delete a.ujo[f];ASGV['yb:'+k[0]]=Date.now();save()}return}
+ if((a.ujo&&a.ujo[f])===v)return;a.ujo=a.ujo||{};a.ujo[f]=v;ASGV['yb:'+k[0]]=Date.now();save();toast('결의서 고친 것 저장')}
 function ujForm(e,last){
  const y=e.y,sup=Math.round(+y.ujs||0),tax=Math.round(sup*1.1)-sup,tot=sup+tax; /* 기본은 금액 빈칸 — 공급가액을 적으면 나머지 자동 */
  const dd=new Date(y.d+'T00:00:00');
  const reg=e.regs.join('·')+(y.tnm?' · '+y.tnm:'');
  const key=e.co+'|'+e.k,gong=ujGong(e);
+ const OV=function(f,d){return y.ujo&&y.ujo[f]!=null?String(y.ujo[f]):String(d)},BR=function(t){return esc(t).replace(/\n/g,'<br>')},
+  ED=function(f,d){return 'contenteditable="true" data-k="'+esc(key)+'" data-f="'+f+'" data-d="'+esc(String(d))+'" onblur="ujEd(this)"'};
  /* 공가 250만원 이상 = 광일부담, 그 아래 = 장부올림 (2026-11-05). 삼정은 그대로 */
  const book=y.co==='삼정'?'삼정부담':gong>=2500000?'광일부담':'장부올림';
  return '<div class="ujf">'
@@ -6058,15 +6096,16 @@ function ujForm(e,last){
   +'<tr class="hd"><td>내역</td><td>공급가액</td><td>세액</td><td>합계</td></tr>'
   +'<tr class="am"><td>운임</td><td contenteditable="true" class="ujsup" data-k="'+esc(key)+'" oninput="ujAmt(this)" onblur="ujSup(this)" title="공급가액만 적으면 세액·합계·일금이 자동으로 들어갑니다">'+(sup?won(sup):'')+'</td><td contenteditable="true" class="ujtax">'+(sup?won(tax):'')+'</td><td contenteditable="true" class="ujtot">'+(sup?won(tot):'')+'</td></tr>'
   /* 물류업체 옆에 부른 차 — 나눔물류 (라보), 굵고 크게 (2026-11-05 사장님). «3.5m (합바차)» 는 «3.5m» 로 */
-  +'<tr><td>물류업체</td><td colspan="3" contenteditable="true">'+esc(ujCoName(e.co))+(function(){const t=String(y.tnm||(YC_TRUCK.filter(function(z){return z.t===y.tk})[0]||{}).nm||y.tk||'').replace(/\s*\(합바차\)/,'').trim();return t?' <b class="ujcar" style="font-size:1.35em;font-weight:900">('+esc(t)+')</b>':''})()+'</td></tr>'
+  +(function(){const t=String(y.tnm||(YC_TRUCK.filter(function(z){return z.t===y.tk})[0]||{}).nm||y.tk||'').replace(/\s*\(합바차\)/,'').trim();const d0=ujCoName(e.co)+(t?' ('+t+')':'');const v=OV('co',d0);const m=v.match(/^(.*?)\s*(\([^()]*\))$/);
+    return '<tr><td>물류업체</td><td colspan="3" '+ED('co',d0)+'>'+(m?esc(m[1])+' <b class="ujcar" style="font-size:1.35em;font-weight:900">'+esc(m[2])+'</b>':esc(v))+'</td></tr>'})()
   +'<tr class="tl"><td>기사님 성명<br>전화번호</td><td colspan="3" contenteditable="true" class="ujdv" data-k="'+esc(key)+'" onblur="ujDv(this)">'+esc(y.dv||'')+'</td></tr>'
-  +'<tr class="tl"><td>매출거래처</td><td colspan="3" contenteditable="true" class="ujnm">'+e.names.map(esc).join('<br>')+'</td></tr>'
-  +'<tr class="tl"><td>지역</td><td colspan="3" contenteditable="true">'+esc(reg)+'</td></tr>'
-  +'<tr><td>장부</td><td colspan="3" contenteditable="true" style="text-align:center">'+book+' (공가 <span class="ujbk" style="display:inline-block;min-width:20mm">'+(gong?won(gong):'')+'</span>)</td></tr></table>'
+  +'<tr class="tl"><td>매출거래처</td><td colspan="3" '+ED('nm',e.names.join('\n'))+' class="ujnm">'+BR(OV('nm',e.names.join('\n')))+'</td></tr>'
+  +'<tr class="tl"><td>지역</td><td colspan="3" '+ED('reg',reg)+'>'+BR(OV('reg',reg))+'</td></tr>'
+  +(function(){const d0=book+' (공가 '+(gong?won(gong):'')+' )';return '<tr><td>장부</td><td colspan="3" '+ED('bk',d0)+' style="text-align:center">'+(y.ujo&&y.ujo.bk!=null?BR(y.ujo.bk):book+' (공가 <span class="ujbk" style="display:inline-block;min-width:20mm">'+(gong?won(gong):'')+'</span>)')+'</td></tr></table>'})()
   +'<table class="ujb"><colgroup><col style="width:54mm"><col></colgroup>'
-  +'<tr><td>영 &nbsp;수 &nbsp;자</td><td contenteditable="true" style="text-align:right">(인)&nbsp;&nbsp;</td></tr>'
-  +'<tr><td>처 리 일 자</td><td contenteditable="true"></td></tr>'
-  +'<tr><td>'+(last?'계 정 과 목':'')+'</td><td contenteditable="true"></td></tr></table>'
+  +'<tr><td>영 &nbsp;수 &nbsp;자</td><td '+ED('r1','(인)')+' style="text-align:right">'+BR(OV('r1','(인)'))+'&nbsp;&nbsp;</td></tr>'
+  +'<tr><td>처 리 일 자</td><td '+ED('r2','')+'>'+BR(OV('r2',''))+'</td></tr>'
+  +'<tr><td>'+(last?'계 정 과 목':'')+'</td><td '+ED('r3','')+'>'+BR(OV('r3',''))+'</td></tr></table>'
   +'<div class="ujc">㈜ 광일체어</div></div>'}
 /* 공급가액 적는 중 — 같은 장의 세액·합계·일금·₩ 를 바로 채운다 */
 /* 장부 (공가) — 판매명세서에서 그 매출거래처(묶인 줄 포함) 그날 출고분 공급가액 합.
@@ -6152,7 +6191,7 @@ async function ujSetPrint(){
  for(const e of L){
   const ys=e.ys,kks=[],sps=[];
   /* 용차 세트 수기전표는 차 한 대에 한 장 — 같은 차 거래처는 합친다 (짝은 직납내역서만, 2026-11-05) */
-  {const M=kkMerge(ys);kks.push(kkDraw(M,kkItems(M)).toDataURL('image/jpeg',0.9))}
+  {const M=kkView(kkMerge(ys));kks.push(kkDraw(M,kkItems(M)).toDataURL('image/jpeg',0.9))}
   for(const y of ys){
    let sp=[];try{sp=await ujsSerp(y)}catch(er){console.warn(er)}
    if(!sp.length)miss.push(y.n);
@@ -6272,7 +6311,7 @@ async function jnPrintKk(k){
  list=list.filter(function(x){return x&&x.n});
  if(!list.length)return toast('뽑을 수기전표가 없습니다');
  let h='';
- list.forEach(function(y){const it=kkItems(y);
+ list.forEach(function(y0){const y=kkView(y0),it=kkItems(y);
   h+='<div class="ujsl"><div class="ujhalf ujkk"><img src="'+kkDraw(y,it,false,'공급자 보관용').toDataURL('image/jpeg',0.9)+'"></div>'
    +'<div class="ujhalf ujkk"><img src="'+kkDraw(y,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.9)+'"></div></div>'});
  let el=document.getElementById('ycbprt');
