@@ -1608,7 +1608,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261105ad';
+const APPVER='20261106b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4480,7 +4480,7 @@ function kkDraw(x,items,land,who){
  /* 틀 */
  const X0=30,X1=W-30;g.strokeStyle=R;g.lineWidth=2;g.strokeRect(X0,78,X1-X0,H-110);
  g.fillStyle=R;g.font=F(40,1);const T='거  래  명  세  표';g.fillText(T,(W-g.measureText(T).width)/2,128);
- if(who){g.font=F(15,1);const wt='[ '+who+' ]';g.fillText(wt,(W-g.measureText(wt).width)/2,145)}
+ if(who){g.font=F(19,1);const wt='[ '+who+' ]';g.fillText(wt,X1-12-g.measureText(wt).width,122)} /* 제목 오른쪽에 크게 — 제목 밑은 너무 작았다 (2026-11-06) */
  g.beginPath();g.moveTo(X0,148);g.lineTo(X1,148);g.stroke();
  /* 왼쪽 — 날짜·거래처 */
  g.fillStyle=B;g.font=F(22);
@@ -5429,13 +5429,15 @@ function msbSpace(t){
  return String(t||'').split(/\s*\/\s*/).map(function(g){
   g=g.replace(/\b(01[016789])[-\s.]?(\d{3,4})[-\s.]?(\d{4})\b/g,'$1-$2-$3').replace(/([가-힣)~])(0\d{1,2}-\d)/g,'$1 $2');
   if(!/[가-힣]{2,}(시|군|구|읍|면)|[가-힣0-9](로|길)\s*\d/.test(g))return g.trim();
-  return g.replace(/(서울특별시|서울|인천광역시|인천|부산광역시|부산|대구광역시|대구|대전광역시|대전|광주광역시|울산광역시|울산|경기도|경기|강원도|강원|충청남도|충남|충청북도|충북|전라남도|전남|전라북도|전북|경상남도|경남|경상북도|경북)(?=[가-힣]{2,}?(?:시|군|구))/g,'$1 ')
-   .replace(/([가-힣]{2,}?(?:시|군|구))(?=[가-힣0-9])(?![청간장작의내외립])/g,'$1 ')
-   .replace(/([가-힣]{2,}(?:읍|면))(?=[가-힣])/g,'$1 ')
+  return g.replace(/(서울특별시|인천광역시|부산광역시|대구광역시|대전광역시|광주광역시|울산광역시|경기도|강원도|충청남도|충청북도|전라남도|전라북도|경상남도|경상북도|서울|인천|부산|대구|대전|울산|경기|강원|충남|충북|전남|전북|경남|경북)(?!특별|광역)(?=[가-힣]{2,}?(?:시|군|구))/g,'$1 ')
+   /* 뒤에 주소 낱말이 이어질 때만 띄운다 — «아이비시스템»·«○○가구»·«입구» 같은 말은 안 쪼갠다 */
+   .replace(/([가-힣]{2,}?(?:시|군|(?<![가지입출창])구))(?![가-힣]*가구)(?=[가-힣]{1,8}?(?:구|군|읍|면)|[가-힣0-9]{1,10}?(?:동|리|가|로|길)(?:[^가-힣]|$)|\d)(?![청간장작의내외립])/g,'$1 ')
+   .replace(/([가-힣]{2,}(?:읍|면))(?=[가-힣0-9]{1,10}?(?:동|리|가|로|길)(?:[^가-힣]|$))/g,'$1 ')
    .replace(/([가-힣]{2,}(?:동|리))(?=\d)/g,'$1 ')
    .replace(/([가-힣0-9]+?(?:로|길))(?=\d)/g,'$1 ')
    .replace(/(\d+번길)(?=\d)/g,'$1 ')
-   .replace(/(?<![가-힣]\d*)(\d(?:-\d+)?)(?=[가-힣])(?![층호동번시일개톤차가길로분단대장박월명인층])/g,'$1 ')
+   /* 번지 뒤 건물 이름 — 도로·동 낱말 바로 뒤의 숫자만 («66으로»·«14택배» 는 그대로) */
+   .replace(/((?:로|길|동|리|가)\s\d+(?:-\d+)?)(?=[가-힣])(?![층호동번시일개톤차가길로분단대장박월명인으])/g,'$1 ')
    .replace(/\s{2,}/g,' ').trim()}).filter(Boolean).join(' / ')}
 async function msbReadPage(p){
  const H=p.getViewport({scale:1}).height;
@@ -5738,30 +5740,35 @@ async function msbBuild(bytes,groups,coversOnly){
     const isAdd=/추가(?!\s*예정)/.test(String(u.memo||''));
     if(isAdd)memo=memo.replace(/(^|[\s\/,·])추가(?=$|[\s\/,·])/g,'$1').replace(/^[\s\/,·.-]+|[\s\/,·.-]+$/g,'').replace(/\s*\/\s*\/\s*/g,' / ').trim();
     /* 일찍·오전일찍·오전배송 — 글씨 키워 동그라미 안에. 자리: 일자·거래처 줄 오른쪽 빈칸(공급자 칸 x298 앞). 위·아래 반쪽 다 */
+    /* 왼쪽 위 도장 줄을 16pt 올린다 — 적요 자리를 넓히려고. «명세표 주지마세요» 띠가 있는 전표만 그 자리를 비켜 그대로 */
+    const SUP=u.noms?0:16;
     if(memo){let ms=10;while(ms>8&&tw(memo,ms)>232)ms-=0.5;
      /* 직납이거나 적요에 주소가 있으면 글자 뒤에 노란 형광펜 — 거래처와 같은 시로 가는 주소도 칠한다 (2026-11-05 피움(아트뱅크) 안성시청) */
      const am0=memo.match(ADRE),hl=u.jik||!!(am0&&looksAddr(am0[0]));
      /* 직납·주소 적요는 붙여 쓴 주소에 띄어쓰기를 넣고, 길면 2~3줄로 — 기사가 보기 좋게 (2026-11-05). 자리: 도장 칸 밑 ~ «일자» 줄 위 */
      if(hl)memo=msbSpace(memo);
-     ms=10;while(ms>8.5&&tw(memo,ms)>232)ms-=0.5;
-     let ls=[memo];
-     const wrapM=function(t,sz){const out=[];let cur='';t.split(/(?<=[\s\/,·])/).forEach(function(w){if(cur&&tw(cur+w,sz)>232){out.push(cur.trim());cur=w}else cur+=w});if(cur.trim())out.push(cur.trim());return out};
+     /* 도장 줄을 위로 올린 만큼 적요 자리가 넓다 — 3줄도 크게 (2026-11-05 사장님). 첫 줄은 제목 밑줄에 안 닿게 짧게 */
+     const hasUp=SUP>0,W3=hasUp?190:232;
+     ms=hasUp?11:10;while(ms>9&&tw(memo,ms)>232)ms-=0.5;
+     let ls=[memo],three=false;
+     const wrapM=function(t,sz,w1){const out=[];let cur='';t.split(/(?<=[\s\/,·])/).forEach(function(w){const lim=out.length===0?w1:232;if(cur&&tw(cur+w,sz)>lim){out.push(cur.trim());cur=w}else cur+=w});if(cur.trim())out.push(cur.trim());return out};
      if(tw(memo,ms)>232){let done=false;
-      for(let z=9.5;z>=8&&!done;z-=0.5){const w2=wrapM(memo,z);if(w2.length<=2&&w2.every(function(x){return tw(x,z)<=232})){ls=w2;ms=z;done=true}}
-      for(let z=8;z>=6&&!done;z-=0.5){const w3=wrapM(memo,z);if(w3.length<=3&&w3.every(function(x){return tw(x,z)<=232})){ls=w3;ms=z;done=true}}
-      if(!done){ls=wrapM(memo,6).slice(0,3);ms=6}}
-     const ys=ls.length>2?[782,774,766]:ls.length>1?[779,769]:[773];
+      for(let z=10.5;z>=8.5&&!done;z-=0.5){const w2=wrapM(memo,z,232);if(w2.length<=2&&w2.every(function(x){return tw(x,z)<=232})){ls=w2;ms=z;done=true}}
+      for(let z=hasUp?10:7;z>=6.5&&!done;z-=0.5){const w3=wrapM(memo,z,W3);if(w3.length<=3&&w3.every(function(x,i){return tw(x,z)<=(i?232:W3)})){ls=w3;ms=z;done=true;three=true}}
+      if(!done){ls=wrapM(memo,6.5,W3).slice(0,3);ms=6.5;three=true}}
+     const ys=three?(hasUp?[790,778,766]:[782,774,766]):ls.length>1?(hasUp?[782,769]:[779,769]):[773];
+     const rh=three?(hasUp?11.5:8):ls.length>1?(hasUp?12.5:10):ms+4;
      /* 노란 칸을 먼저 다 칠하고 글자를 찍는다 — 아래 줄 칸이 윗줄 글자를 덮지 않게 */
      [0,413].forEach(function(dy){
-      if(hl)ls.forEach(function(t,li){const mt=fit(t,ms,232);pg.drawRectangle({x:20,y:ys[li]-dy-2,width:tw(mt,ms)+4,height:ls.length>2?8:ls.length>1?10:ms+4,color:rgb(1,.92,.3)})});
-      ls.forEach(function(t,li){pg.drawText(fit(t,ms,232),{x:22,y:ys[li]-dy,size:ms,font:font,color:BLK})})})}
+      if(hl)ls.forEach(function(t,li){const mt=fit(t,ms,(three&&!li)?W3:232);pg.drawRectangle({x:20,y:ys[li]-dy-2.5,width:tw(mt,ms)+4,height:rh,color:rgb(1,.92,.3)})});
+      ls.forEach(function(t,li){pg.drawText(fit(t,ms,(three&&!li)?W3:232),{x:22,y:ys[li]-dy,size:ms,font:font,color:BLK})})})}
     /* 선입금·ERP수시 도장은 공급자 보관용(위)에만 — 거래처가 가져가는 공급받는자용에는 안 찍는다 (2026-10-27 사장님) */
     let fx=22;
     /* 추가분 묶기에서 지난 묶기에 있던 거래처의 전표 = 수정된 것 — 왼쪽 맨 위 «수정» 동그라미, 위·아래 반쪽 다 (2026-11-03 사장님) */
     const circ=function(t){const es=14,ew=tw(t,es),rx=Math.max(24,ew/2+10),cx=fx+rx;
      [0,413].forEach(function(dy){
-      pg.drawEllipse({x:cx,y:803.5-dy,xScale:rx,yScale:14,color:WHT,borderColor:RED,borderWidth:2});
-      pg.drawText(t,{x:cx-ew/2,y:798.5-dy,size:es,font:font,color:RED})});
+      pg.drawEllipse({x:cx,y:803.5+SUP-dy,xScale:rx,yScale:14,color:WHT,borderColor:RED,borderWidth:2});
+      pg.drawText(t,{x:cx-ew/2,y:798.5+SUP-dy,size:es,font:font,color:RED})});
      fx=fx+rx*2+8};
     if(u.mod)circ('수정');
     /* 일찍·오전일찍·오전배송 — 왼쪽 맨 위(도장 줄 맨 앞)에 큰 글씨 동그라미. 위·아래 반쪽 다 (2026-10-30 «왼쪽 위로») */
@@ -5772,12 +5779,12 @@ async function msbBuild(bytes,groups,coversOnly){
      pg.drawRectangle({x:22,y:818,width:w,height:20,color:RED});
      pg.drawText(t,{x:29,y:823,size:12,font:font,color:WHT})}
     u.flags.forEach(function(f){const w=tw(f,11)+12;
-     pg.drawRectangle({x:fx,y:792,width:w,height:23,borderColor:RED,borderWidth:1.5});
-     pg.drawText(f,{x:fx+6,y:799,size:11,font:font,color:RED});fx+=w+6});
+     pg.drawRectangle({x:fx,y:792+SUP,width:w,height:23,borderColor:RED,borderWidth:1.5});
+     pg.drawText(f,{x:fx+6,y:799+SUP,size:11,font:font,color:RED});fx+=w+6});
     /* 직납 — ERP수시 도장 크기로 파란 네모 (2026-10-29 사장님) */
     if(u.jik){const w=tw('직납',11)+12;
-     pg.drawRectangle({x:fx,y:792,width:w,height:23,borderColor:BLU,borderWidth:1.5});
-     pg.drawText('직납',{x:fx+6,y:799,size:11,font:font,color:BLU})}
+     pg.drawRectangle({x:fx,y:792+SUP,width:w,height:23,borderColor:BLU,borderWidth:1.5});
+     pg.drawText('직납',{x:fx+6,y:799+SUP,size:11,font:font,color:BLU})}
    })});
  });
  /* 맨 뒤 — 뺀 전표 */
@@ -6172,80 +6179,45 @@ function tabUj(){
   +'<div class="ycrow"><label style="white-space:nowrap">① 날짜</label><select onchange="ujSetD(this.value)">'
   +ds.map(function(d){const n=ujList(d).length;return '<option value="'+d+'"'+(d===UJD?' selected':'')+'>'+md(d)+' ('+'일월화수목금토'[new Date(d+'T00:00:00').getDay()]+') · '+n+'대</option>'}).join('')+'</select>'
   +'<button class="btn" style="margin-left:10px" onclick="ujPrint()"'+(L.length?'':' disabled')+'>🖨️ 인쇄 ('+L.length+'장 → A4 '+Math.ceil(L.length/2)+'장)</button>'
-  +'<button class="btn" style="margin-left:8px;background:#1e8a4b" onclick="ujSetPrint()"'+(L.length?'':' disabled')+' title="용차 한 대마다 — A4 가로: 운임지출결의서 | 수기전표, A4 세로: sERP 거래명세표(공급자용)">🧾 세트 인쇄 ('+L.length+'세트)</button></div>'
+  +'<button class="btn" style="margin-left:8px;background:#1e8a4b" onclick="ujSetPrint()"'+(L.length?'':' disabled')+' title="용차 한 대에 A4 가로 1장: 운임지출결의서 | 수기전표">🧾 세트 인쇄 ('+L.length+'장)</button>'
+  +'<button class="btn" style="margin-left:8px" onclick="ujKkPrint()"'+(L.length?'':' disabled')+' title="용차 한 대에 A4 가로 1장: 왼쪽 공급자 보관용 | 오른쪽 공급받는자 보관용">📄 수기전표 ('+L.length+'장)</button></div>'
   +'<div class="ujpick">'+(all.length?all.map(function(e){const key=e.co+'|'+e.k,cb=e.y.co==='착불',on=ujOn(e);
     return '<label class="'+(on?'on':'')+'"><input type="checkbox"'+(on?' checked':'')+' onchange="ujTog(\''+esc(key)+'\',this.checked,'+(cb?1:0)+')"> '
      +'<b style="color:'+(YC_COLOR[e.co]||'#555')+'">'+esc(e.co.replace('물류',''))+'</b> '+esc(e.names[0].slice(0,14))+(e.names.length>1?' 외 '+(e.names.length-1):'')
      +' · '+esc(e.y.tnm||'')+' · '+(cb?'<i>착불</i>':won(+e.y.fee||0)+'원')+'</label>'}).join(''):'<span style="color:#8b9aab">그날 용차가 없습니다.</span>')+'</div></div>';
  h+='<div class="ujprev" id="ujprev">'+(L.length?ujPages(L):'')+'</div></div>';
  return h}
-/* ===== 🖨️ 용차 한 세트 인쇄 (2026-10-30) =====
-   용차 한 대 = A4 가로 1장(왼쪽 운임지출결의서 | 오른쪽 수기전표) + A4 세로(위 반쪽 sERP 거래명세표 «공급자 보관용»).
-   sERP 쪽은 그날 statements PDF 에서 그 거래처 전표를 찾아 위 반쪽만 자른다. */
-const UJS_PDF={};   /* 날짜별로 읽은 sERP PDF — {doc, units} */
-async function ujsPdf(d){
- if(UJS_PDF[d])return UJS_PDF[d];
- const b=await msbFile(d);if(!b)return (UJS_PDF[d]={doc:null,units:[]});
- const units=await msbParse(b);
- const doc=await pdfjsLib.getDocument({data:new Uint8Array(b.slice(0))}).promise;
- return (UJS_PDF[d]={doc:doc,units:units})}
-/* 그 거래처 전표의 위 반쪽(공급자 보관용)을 그림으로 */
-async function ujsSerp(y){
- const nz=function(s){return String(s||'').replace(/\s+/g,'')},un=nz(y.n);
- const same=function(n){const a=nz(n);return a===un||(a.length>=6&&un.indexOf(a)===0)||(un.length>=6&&a.indexOf(un)===0)};
- /* 그 거래처의 판매명세서 거래일자들 — 상차일(y.d)과 다를 수 있다 */
- const ds=[];ORDERS.forEach(function(o){if(o.n!==y.n||ST[o.i]==='del')return;
-  let sd='';if(o.d!==y.d){try{sd=shipDate(o)||''}catch(e){}if(sd!==y.d)return}
-  (o.items||[]).forEach(function(it){if(it.d&&ds.indexOf(it.d)<0)ds.push(it.d)})});
- if(ds.indexOf(y.d)<0)ds.push(y.d);
- const out=[];
- for(const d of ds){const P=await ujsPdf(d);if(!P.doc)continue;
-  for(const u of P.units){if(!u.ok||!same(u.n))continue;
-   const pg=await P.doc.getPage(u.pages[0]),vp=pg.getViewport({scale:2.2});
-   const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
-   await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
-   const h=document.createElement('canvas');h.width=c.width;h.height=Math.round(c.height/2);
-   h.getContext('2d').drawImage(c,0,0);out.push(h.toDataURL('image/jpeg',0.85))}}
- return out}
-async function ujSetPrint(){
- const L=ujList(UJD).filter(ujOn);if(!L.length)return toast('뽑을 용차가 없습니다');
- toast('세트 만드는 중… (sERP 명세서 PDF 읽는 중)');
- try{await msbLibs()}catch(e){return alert('PDF 도구를 못 불러왔습니다: '+e.message)}
- /* 2026-10-30 사장님 사진대로: 1장 = A4 가로, 왼쪽 운임지출결의서 | 오른쪽 수기전표(세로판).
-    그다음 장 = A4 세로, 위 반쪽에 sERP 거래명세표 공급자용 (원본과 같은 크기·자리). 거래처·전표마다 한 장씩. */
- let h='',miss=[];
- for(const e of L){
-  const ys=e.ys,kks=[],sps=[];
-  /* 용차 세트 수기전표는 차 한 대에 한 장 — 같은 차 거래처는 합친다 (짝은 직납내역서만, 2026-11-05) */
-  {const M=kkView(kkMerge(ys));kks.push(kkDraw(M,kkItems(M)).toDataURL('image/jpeg',0.9))}
-  for(const y of ys){
-   let sp=[];try{sp=await ujsSerp(y)}catch(er){console.warn(er)}
-   if(!sp.length)miss.push(y.n);
-   sps.push({y:y,sp:sp});
-  }
-  /* 가로 장: 결의서 + 첫 거래처 수기전표, 같은 차에 거래처가 더 있으면 수기전표를 둘씩 이어서 */
-  h+='<div class="ujsl"><div class="ujhalf">'+ujForm(e,false)+'</div><div class="ujhalf ujkk"><img src="'+kks[0]+'"></div></div>';
-  for(let i=1;i<kks.length;i+=2)h+='<div class="ujsl"><div class="ujhalf ujkk"><img src="'+kks[i]+'"></div><div class="ujhalf ujkk">'+(kks[i+1]?'<img src="'+kks[i+1]+'">':'')+'</div></div>';
-  sps.forEach(function(s){
-   if(!s.sp.length){h+='<div class="ujsp"><div class="ujsh"><div class="ujsno">sERP 거래명세표를 못 찾았습니다<br>'+esc(s.y.n)+' · '+md(s.y.d)+'<br><small>명세서묶기 탭에서 그날 PDF 를 먼저 뽑아 주세요</small></div></div></div>';return}
-   s.sp.forEach(function(src){h+='<div class="ujsp"><div class="ujsh ujsr"><img src="'+src+'"></div></div>'})});
- }
+/* ===== 🖨️ 용차 세트 인쇄 =====
+   용차 한 대 = A4 가로 1장: 왼쪽 운임지출결의서 | 오른쪽 수기전표. 같은 차 거래처는 수기전표 한 장으로 합친다.
+   sERP 명세표 세로 장은 뺐다 (2026-11-06 사장님 «세트 인쇄는 1장만»). */
+function ujPrintLand(h){
  let el=document.getElementById('ycbprt');
  if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
  el.innerHTML='<div class="ujsset">'+h+'</div>';
  el.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable')});
- /* 가로 장과 세로 장이 섞인다 — 크롬의 이름 붙인 @page 로 장마다 방향을 정한다 */
  const st=document.createElement('style');
- st.textContent='@media print{@page{size:A4 portrait;margin:0}@page ujland{size:A4 landscape;margin:0}@page ujport{size:A4 portrait;margin:0}#ycbprt .ujsl{page:ujland}#ycbprt .ujsp{page:ujport}}';
+ st.textContent='@media print{@page{size:A4 landscape;margin:0}@page ujland{size:A4 landscape;margin:0}#ycbprt .ujsl{page:ujland}}';
  document.head.appendChild(st);
  document.body.classList.add('ycbprint');
  const off=function(){document.body.classList.remove('ycbprint');if(st.parentNode)st.parentNode.removeChild(st);window.removeEventListener('afterprint',off)};
  window.addEventListener('afterprint',off);
- if(miss.length)toast('sERP 명세서 못 찾음: '+miss.join(', '));
  const imgs=[].slice.call(el.querySelectorAll('img'));
- await Promise.all(imgs.map(function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r})}));
- setTimeout(function(){window.print();setTimeout(off,400)},120);
-}
+ Promise.all(imgs.map(function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r})})).then(function(){
+  setTimeout(function(){window.print();setTimeout(off,400)},120)})}
+function ujSetPrint(){
+ const L=ujList(UJD).filter(ujOn);if(!L.length)return toast('뽑을 용차가 없습니다');
+ let h='';
+ L.forEach(function(e){const M=kkView(kkMerge(e.ys));
+  h+='<div class="ujsl"><div class="ujhalf">'+ujForm(e,false)+'</div><div class="ujhalf ujkk"><img src="'+kkDraw(M,kkItems(M)).toDataURL('image/jpeg',0.9)+'"></div></div>'});
+ ujPrintLand(h)}
+/* 수기전표만 — 차 한 대에 A4 가로 1장, 왼쪽 공급자 보관용 | 오른쪽 공급받는자 보관용 (2026-11-06 사장님) */
+function ujKkPrint(){
+ const L=ujList(UJD).filter(ujOn);if(!L.length)return toast('뽑을 용차가 없습니다');
+ let h='';
+ L.forEach(function(e){const M=kkView(kkMerge(e.ys)),it=kkItems(M);
+  h+='<div class="ujsl"><div class="ujhalf ujkk"><img src="'+kkDraw(M,it,false,'공급자 보관용').toDataURL('image/jpeg',0.9)+'"></div>'
+   +'<div class="ujhalf ujkk"><img src="'+kkDraw(M,it,false,'공급받는자 보관용').toDataURL('image/jpeg',0.9)+'"></div></div>'});
+ ujPrintLand(h)}
 function ujPrint(){
  const src=document.getElementById('ujprev');if(!src||!src.querySelector('.ujpage'))return toast('뽑을 결의서가 없습니다');
  let el=document.getElementById('ycbprt');
