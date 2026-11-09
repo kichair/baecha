@@ -558,6 +558,20 @@ th{background:#f6f8f9;position:sticky;top:0}
 .worklog-inline-edit .ie-6{grid-column:1 / -1}
 .worklog-inline-edit .ie-btns{display:flex;gap:8px}
 .worklog-inline-edit .ie-btns .action{flex:1}
+
+.worklog-item-link{color:#0b5cad;text-decoration:underline;font-weight:800;cursor:pointer}
+.rp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px}
+.rp-box{background:#fff;border-radius:14px;max-width:360px;width:100%;max-height:80vh;overflow:auto;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.rp-title{font-size:16px;font-weight:900;margin-bottom:12px}
+.rp-card{border:1px solid #dfe5ea;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafcfb}
+.rp-card.latest{border-color:#0f5f37;background:#f0faf4}
+.rp-name{font-weight:800;margin-bottom:6px}
+.rp-tag{font-size:11px;background:#0f5f37;color:#fff;border-radius:999px;padding:2px 7px;margin-left:4px}
+.rp-main{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.rp-main b{font-size:22px;color:#0f5f37}
+.rp-sub{font-size:12px;color:#59656f;margin-top:4px}
+.rp-none{padding:18px 0;text-align:center;color:#59656f}
+.rp-close{width:100%;margin-top:4px}
 </style>
 
 <style>
@@ -3598,6 +3612,44 @@ function worklogMonthAgo(dateStr){
   return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
 }
 
+function findReceivePrices(item){
+  const n=String(item||"").trim().replace(/\s+/g,"").toLowerCase();
+  if(!n) return [];
+  const list=(db.unitPrices||[]).filter(u=>String(u.name||"").trim());
+  const key=u=>String(u.name).trim().replace(/\s+/g,"").toLowerCase();
+  let hit=list.filter(u=>key(u)===n);
+  if(!hit.length) hit=list.filter(u=>key(u).includes(n)||n.includes(key(u)));
+  return hit.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+}
+
+function closeReceivePrice(){
+  const m=document.getElementById("receivePriceModal");
+  if(m) m.remove();
+}
+
+function showReceivePrice(index){
+  const r=db.workLogs[index]; if(!r) return;
+  const item=String(r.item||r.work||"").trim();
+  const hits=findReceivePrices(item);
+  closeReceivePrice();
+  const body=hits.length ? hits.map((u,i)=>`
+    <div class="rp-card ${i===0?'latest':''}">
+      <div class="rp-name">${escapeHtml(u.name)}${i===0&&hits.length>1?' <span class="rp-tag">최신</span>':''}</div>
+      <div class="rp-main"><span>받는 단가</span><b>${money(u.receive)}</b></div>
+      <div class="rp-sub">작업자 단가 ${money(u.order)} · 기준일 ${escapeHtml(u.date||"-")}</div>
+      ${u.note?`<div class="rp-sub">비고: ${escapeHtml(u.note)}</div>`:""}
+    </div>`).join("") : '<div class="rp-none">단가 관리에 등록된 단가가 없습니다.</div>';
+  const m=document.createElement("div");
+  m.id="receivePriceModal"; m.className="rp-backdrop";
+  m.innerHTML=`<div class="rp-box" role="dialog" aria-modal="true">
+    <div class="rp-title">${escapeHtml(item)} · 입고 단가</div>
+    ${body}
+    <button type="button" class="action rp-close" onclick="closeReceivePrice()">닫기</button>
+  </div>`;
+  m.addEventListener("click",e=>{ if(e.target===m) closeReceivePrice(); });
+  document.body.appendChild(m);
+}
+
 function selectWorklogHistoryMonth(m){
   worklogHistoryMonth=String(m||"all");
   selectedWorklogIndex=null; inlineEditIndex=null;
@@ -3712,7 +3764,7 @@ function renderWorklogHistory(){
               </div>
               <div class="worklog-history-field">
                 <div class="worklog-history-label">품명</div>
-                <div class="worklog-history-value">${escapeHtml(r.item)||"-"}</div>
+                <div class="worklog-history-value">${String(r.item||"").trim()?`<a class="worklog-item-link" role="button" tabindex="0" onclick="event.stopPropagation();showReceivePrice(${index})">${escapeHtml(r.item)}</a>`:"-"}</div>
               </div>
               <div class="worklog-history-field worklog-history-number">
                 <div class="worklog-history-label">수량</div>
