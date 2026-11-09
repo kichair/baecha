@@ -580,6 +580,18 @@ th{background:#f6f8f9;position:sticky;top:0}
 .pr-scroll{flex:1;overflow:auto;padding:12px;display:flex;justify-content:center;align-items:flex-start}
 .pr-holder{flex:none;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.4);overflow:hidden}
 #payReportFrame{width:794px;height:1123px;border:0;background:#fff;transform-origin:top left;display:block}
+
+.entry-cat-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0 0 14px}
+.entry-cat-card{border:1px solid #d9e0e5;border-left-width:6px;border-radius:12px;padding:10px 12px;background:#fff}
+.entry-cat-card.cat-wire{border-left-color:#4b7fc9;background:#f2f7fd}
+.entry-cat-card.cat-nail{border-left-color:#d4803a;background:#fdf5ec}
+.entry-cat-card.cat-etc{border-left-color:#8a949c;background:#f6f7f8}
+.ec-title{font-weight:900;font-size:15px;margin-bottom:6px}
+.ec-row{display:flex;justify-content:space-between;font-size:13px;color:#59656f;padding:1px 0}
+.ec-row b{color:#16202c;font-size:15px}
+.entry-cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.entry-cat-btn{border:1px solid #cfd6dd;background:#fff;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:800;cursor:pointer}
+.entry-cat-btn.active{background:#0f5f37;border-color:#0f5f37;color:#fff}
 </style>
 
 <style>
@@ -3076,6 +3088,41 @@ function renderVendorHistory(){
   });
 }
 
+/* ===== 입고·출고: 전선 / 네일 구분 (품목 이름으로 자동 구분) ===== */
+const ENTRY_CATS=["전선","네일","기타"];
+const entryCatFilter={in:"all",out:"all"};
+function entryCategory(r){
+  /* 업체명 기준: '전선부업(유호)' → 전선, '네일' → 네일 */
+  const name=String((r&&r.name)||"");
+  if(name.includes("전선")) return "전선";
+  if(name.includes("네일")) return "네일";
+  /* 업체명으로 알 수 없으면 품목·비고에서 한 번 더 찾는다 */
+  const t=String((r&&r.item)||"")+" "+String((r&&r.note)||"");
+  if(t.includes("전선")) return "전선";
+  if(t.includes("네일")) return "네일";
+  return "기타";
+}
+function setEntryCat(type,cat){
+  entryCatFilter[type]=cat;
+  renderEntries(type);
+}
+function ensureEntryCatBoxes(type){
+  const sec=document.getElementById(type);
+  if(!sec) return {};
+  let tabs=document.getElementById(type+"CatTabs"), split=document.getElementById(type+"CatSummary");
+  if(!split){
+    split=document.createElement("div"); split.id=type+"CatSummary"; split.className="entry-cat-summary";
+    const sum=sec.querySelector(".summary");
+    if(sum) sum.insertAdjacentElement("afterend",split);
+  }
+  if(!tabs){
+    tabs=document.createElement("div"); tabs.id=type+"CatTabs"; tabs.className="entry-cat-tabs";
+    const tw=sec.querySelector(".tablewrap");
+    if(tw) tw.parentNode.insertBefore(tabs,tw);
+  }
+  return {tabs,split};
+}
+
 function renderEntries(type){
   const body=document.getElementById(type+"Body");
   if(!body)return;
@@ -3098,6 +3145,9 @@ function renderEntries(type){
       .sort((a,b)=>b.i-a.i);
   }
 
+  const catNow=entryCatFilter[type]||"all";
+  if(catNow!=="all") entries=entries.filter(({r})=>entryCategory(r)===catNow);
+
   body.innerHTML=entries.map(({r,i,entryType})=>`<tr class="entry-card-row${combined?" combined-entry-row":""}">
     <td class="entry-card-image-cell">
       ${entryImages(r).filter(x=>safeImageSrc(x)).length>1
@@ -3119,7 +3169,28 @@ function renderEntries(type){
   </tr>`).join("");
 
   // 상단 요약은 현재 화면의 의미(입고/출고)를 유지하고, 전체보기 사진 목록 개수와 섞지 않는다.
-  const visibleRows=db[type].filter(r=>!selectedVendor || String(r.name||"").trim()===selectedVendor);
+  const vendorRows=db[type].filter(r=>!selectedVendor || String(r.name||"").trim()===selectedVendor);
+  const visibleRows=catNow==="all"?vendorRows:vendorRows.filter(r=>entryCategory(r)===catNow);
+
+  /* 전선 / 네일 / 기타 합계를 따로 보여준다 */
+  const stat={};
+  ENTRY_CATS.forEach(c=>stat[c]={n:0,q:0,a:0});
+  vendorRows.forEach(r=>{const c=stat[entryCategory(r)]; c.n++; c.q+=Number(r.qty||0); c.a+=Number(r.qty||0)*Number(r.price||0);});
+  const label=type==="in"?"입고":"출고";
+  const boxes=ensureEntryCatBoxes(type);
+  if(boxes.split){
+    const cats=ENTRY_CATS.filter(c=>c!=="기타"||stat[c].n>0);
+    boxes.split.innerHTML=cats.map(c=>`<div class="entry-cat-card cat-${c==="전선"?"wire":c==="네일"?"nail":"etc"}">
+      <div class="ec-title">${c} ${label}</div>
+      <div class="ec-row"><span>건수</span><b>${money(stat[c].n)}</b></div>
+      <div class="ec-row"><span>수량</span><b>${money(stat[c].q)}</b></div>
+      <div class="ec-row"><span>금액</span><b>${money(stat[c].a)}원</b></div>
+    </div>`).join("");
+  }
+  if(boxes.tabs){
+    const tabCats=["all"].concat(ENTRY_CATS.filter(c=>c!=="기타"||stat[c].n>0));
+    boxes.tabs.innerHTML=tabCats.map(c=>`<button type="button" class="entry-cat-btn ${catNow===c?'active':''}" onclick="setEntryCat('${type}','${c}')">${c==="all"?"전체":c}</button>`).join("");
+  }
   document.getElementById(type+"Count").textContent=visibleRows.length;
   document.getElementById(type+"QtySum").textContent=money(visibleRows.reduce((s,r)=>s+Number(r.qty||0),0));
   document.getElementById(type+"Amount").textContent=money(visibleRows.reduce((s,r)=>s+Number(r.qty||0)*Number(r.price||0),0));
