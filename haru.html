@@ -2503,6 +2503,15 @@ function isTempOpen(){
 }
 
 function storageHelpText(){
+  if(isTempOpen() && storageMode==="local"){
+    return "ℹ 지금은 '임시 화면'입니다.\n\n"
+      + "다운로드 알림이나 파일관리자에서 파일을 바로 열어서(주소가 content:// 로 시작)\n"
+      + "평소에 쓰던 자료는 보이지 않습니다.\n"
+      + "여기서 입력한 내용은 이 화면 안에만 임시로 저장되며, 평소 화면의 자료와는 별개입니다.\n\n"
+      + "★ 평소 자료는 지워진 것이 아닙니다.\n"
+      + "홈 화면 바로가기 / 크롬 즐겨찾기로 열면 그대로 들어 있습니다.\n\n"
+      + "평소 자료를 이 화면으로 옮기려면 평소 화면에서 '백업'한 뒤 여기서 '불러오기'를 하세요.";
+  }
   if(isTempOpen()){
     return "⚠ 지금은 '임시 화면'입니다.\n\n"
       + "파일관리자나 다운로드 알림에서 파일을 바로 열면(주소가 content:// 로 시작)\n"
@@ -2599,7 +2608,7 @@ async function loadDB(){
 
   renderAll();
   showStorageBanner();
-  if(dataLoadWarning)setTimeout(()=>alert(dataLoadWarning),150);
+  if(dataLoadWarning && storageMode!=="local")setTimeout(()=>alert(dataLoadWarning),150);
 }
 
 function persistDB(){
