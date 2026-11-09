@@ -2067,6 +2067,41 @@ button.action{padding:clamp(8px,1vw,10px) clamp(10px,1.4vw,14px);font-size:clamp
   #pay table.pay-summary-table tbody tr{border-left-width:7px}
 }
 </style>
+<style id="unitprice-fit">
+/* 단가 관리: 옆으로 밀지 않고 한 화면에 보이게 */
+#unitprice .tablewrap{overflow:visible !important}
+#unitprice table{width:100% !important;min-width:0 !important;table-layout:fixed !important}
+#unitprice th,#unitprice td{word-break:break-all;overflow-wrap:anywhere;padding:8px 4px !important}
+#unitprice th:nth-child(1),#unitprice td:nth-child(1){width:14% !important}
+#unitprice th:nth-child(2),#unitprice td:nth-child(2){width:20% !important}
+#unitprice th:nth-child(3),#unitprice td:nth-child(3){width:12% !important}
+#unitprice th:nth-child(4),#unitprice td:nth-child(4){width:12% !important}
+#unitprice th:nth-child(5),#unitprice td:nth-child(5){width:12% !important}
+#unitprice th:nth-child(6),#unitprice td:nth-child(6){width:16% !important}
+#unitprice th:nth-child(7),#unitprice td:nth-child(7){width:14% !important}
+#unitprice td img{max-width:100% !important;height:auto !important;max-height:70px}
+@media(max-width:700px){
+  #unitprice table,#unitprice tbody{display:block !important;width:100% !important}
+  #unitprice thead{display:none !important}
+  #unitprice tr{display:grid !important;grid-template-columns:88px 1fr 1fr;gap:4px 10px;padding:12px;margin:0 0 10px;border:1px solid #d9e0e5;border-radius:14px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  #unitprice td:nth-child(n){width:auto !important;max-width:none !important}
+  #unitprice td{display:block !important;width:auto !important;padding:0 !important;border:0 !important;text-align:left !important;font-size:14px;min-width:0}
+  #unitprice td:nth-child(1){grid-column:1;grid-row:1 / span 3;align-self:start}
+  #unitprice td:nth-child(1) img{width:88px !important;height:66px !important;max-height:none;object-fit:contain}
+  #unitprice td:nth-child(2){grid-column:2 / 4;grid-row:1;font-weight:900;font-size:16px}
+  #unitprice td:nth-child(3){grid-column:2 / 4;grid-row:2;color:#59656f;font-size:13px}
+  #unitprice td:nth-child(4){grid-column:2;grid-row:3}
+  #unitprice td:nth-child(5){grid-column:3;grid-row:3}
+  #unitprice td:nth-child(4)::before{content:"받는단가";display:block;font-size:11px;color:#59656f;font-weight:700}
+  #unitprice td:nth-child(5)::before{content:"작업자단가";display:block;font-size:11px;color:#59656f;font-weight:700}
+  #unitprice td:nth-child(4),#unitprice td:nth-child(5){font-weight:900;font-size:16px}
+  #unitprice td:nth-child(6){grid-column:1 / -1;grid-row:4;font-size:13px;color:#33404a}
+  #unitprice td:nth-child(6):empty{display:none !important}
+  #unitprice td:nth-child(7){grid-column:1 / -1;grid-row:5;margin-top:4px}
+  #unitprice td:nth-child(7) .row-actions{display:flex;gap:8px}
+  #unitprice td:nth-child(7) .row-actions button{flex:1;min-height:40px}
+}
+</style>
 </head>
 <body>
 
