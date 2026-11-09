@@ -4039,48 +4039,73 @@ function payReportCanvas(worker,month){
   const days=new Set(rows.map(r=>r.date)).size;
   const qty=rows.reduce((t,r)=>t+r.qty,0);
   const amt=rows.reduce((t,r)=>t+r.qty*r.price,0);
-  const W=900, RH=38, HEAD=150, pad=16;
-  const H=HEAD+RH*(rows.length+2)+pad*2+30;
-  const sc=2;
-  const c=document.createElement("canvas");
-  c.width=W*sc; c.height=H*sc;
-  const x=c.getContext("2d");
-  x.scale(sc,sc);
+  const W=900, LH=26, PADV=10, HEAD=150, pad=16;
   const F='"Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif';
-  x.fillStyle="#fff"; x.fillRect(0,0,W,H);
-  x.fillStyle="#16202c"; x.textBaseline="middle";
-  x.font="bold 30px "+F; x.textAlign="left";
-  x.fillText(worker+" · "+y+"년 "+(+m)+"월 작업내역",pad,40);
-  x.font="20px "+F; x.fillStyle="#555";
-  x.fillText("작업일수 "+days+"일   총 수량 "+money(qty)+"   월급 합계 "+money(amt)+"원",pad,86);
-  const cols=[{t:"날짜",w:130,a:"c"},{t:"품명",w:290,a:"l"},{t:"수량",w:90,a:"r"},{t:"단가",w:110,a:"r"},{t:"합계",w:130,a:"r"},{t:"비고",w:120,a:"l"}];
+  const cols=[{t:"날짜",w:120,a:"c"},{t:"품명",w:200,a:"l"},{t:"수량",w:80,a:"r"},{t:"단가",w:90,a:"r"},{t:"합계",w:110,a:"r"},{t:"비고",w:300,a:"l"}];
   const tw=cols.reduce((t,k)=>t+k.w,0), left=(W-tw)/2;
-  function row(y0,vals,opt){
-    opt=opt||{};
-    if(opt.bg){x.fillStyle=opt.bg;x.fillRect(left,y0,tw,RH);}
-    let cx=left;
-    cols.forEach((k,i)=>{
-      x.strokeStyle="#bbb";x.lineWidth=1;x.strokeRect(cx+.5,y0+.5,k.w,RH);
-      x.fillStyle=opt.color||"#16202c";
-      x.font=(opt.bold?"bold ":"")+"19px "+F;
-      let v=String(vals[i]??"");
-      while(v.length>1 && x.measureText(v).width>k.w-14) v=v.slice(0,-1);
-      if(k.a==="r"){x.textAlign="right";x.fillText(v,cx+k.w-8,y0+RH/2);}
-      else if(k.a==="c"){x.textAlign="center";x.fillText(v,cx+k.w/2,y0+RH/2);}
-      else{x.textAlign="left";x.fillText(v,cx+8,y0+RH/2);}
-      cx+=k.w;
-    });
+
+  /* 긴 글은 칸 너비에 맞춰 여러 줄로 나눈다 (잘리지 않게) */
+  const mc=document.createElement("canvas").getContext("2d");
+  function wrap(text,width,font){
+    mc.font=font;
+    const out=[]; let line="";
+    for(const ch of String(text??"")){
+      if(ch==="\n"){ out.push(line); line=""; continue; }
+      if(mc.measureText(line+ch).width>width && line){ out.push(line); line=ch; }
+      else line+=ch;
+    }
+    out.push(line);
+    return out;
   }
-  let yy=HEAD-pad;
-  row(yy,cols.map(k=>k.t),{bg:"#eef2ef",bold:true}); yy+=RH;
+
+  const table=[];
+  table.push({vals:cols.map(k=>k.t),opt:{bg:"#eef2ef",bold:true}});
   let prev="";
   rows.forEach(r=>{
     const t=new Date(+r.date.slice(0,4),+r.date.slice(5,7)-1,+r.date.slice(8,10));
     const d=r.date!==prev?r.date.slice(5,7)+"-"+r.date.slice(8,10)+" ("+week[t.getDay()]+")":"";
     prev=r.date;
-    row(yy,[d,r.item,money(r.qty),money(r.price),money(r.qty*r.price),r.note]); yy+=RH;
+    table.push({vals:[d,r.item,money(r.qty),money(r.price),money(r.qty*r.price),r.note],opt:{}});
   });
-  row(yy,["합계","",money(qty),"",money(amt),""],{bg:"#f4f4f4",bold:true});
+  table.push({vals:["합계","",money(qty),"",money(amt),""],opt:{bg:"#f4f4f4",bold:true}});
+
+  table.forEach(row=>{
+    const font=(row.opt.bold?"bold ":"")+"19px "+F;
+    row.lines=row.vals.map((v,i)=>wrap(v,cols[i].w-16,font));
+    row.h=Math.max(...row.lines.map(l=>l.length))*LH+PADV;
+  });
+
+  const H=HEAD-pad+table.reduce((t,r)=>t+r.h,0)+pad*2;
+  const sc=2;
+  const c=document.createElement("canvas");
+  c.width=W*sc; c.height=H*sc;
+  const x=c.getContext("2d");
+  x.scale(sc,sc);
+  x.fillStyle="#fff"; x.fillRect(0,0,W,H);
+  x.textBaseline="middle";
+  x.fillStyle="#16202c"; x.font="bold 30px "+F; x.textAlign="left";
+  x.fillText(worker+" · "+y+"년 "+(+m)+"월 작업내역",pad,40);
+  x.font="20px "+F; x.fillStyle="#555";
+  x.fillText("작업일수 "+days+"일   총 수량 "+money(qty)+"   월급 합계 "+money(amt)+"원",pad,86);
+
+  let yy=HEAD-pad;
+  table.forEach(row=>{
+    if(row.opt.bg){x.fillStyle=row.opt.bg;x.fillRect(left,yy,tw,row.h);}
+    let cx=left;
+    cols.forEach((k,i)=>{
+      x.strokeStyle="#bbb";x.lineWidth=1;x.strokeRect(cx+.5,yy+.5,k.w,row.h);
+      x.fillStyle="#16202c";
+      x.font=(row.opt.bold?"bold ":"")+"19px "+F;
+      row.lines[i].forEach((ln,j)=>{
+        const ty=yy+PADV/2+LH*j+LH/2;
+        if(k.a==="r"){x.textAlign="right";x.fillText(ln,cx+k.w-8,ty);}
+        else if(k.a==="c"){x.textAlign="center";x.fillText(ln,cx+k.w/2,ty);}
+        else{x.textAlign="left";x.fillText(ln,cx+8,ty);}
+      });
+      cx+=k.w;
+    });
+    yy+=row.h;
+  });
   return c;
 }
 
@@ -4104,27 +4129,57 @@ async function copyPayReportText(){
   payToast("복사했습니다. 카카오톡 대화창에 붙여넣기 하세요.");
 }
 
+async function copyPayReportImage(silent){
+  const cur=window.__payReportCur; if(!cur) return false;
+  if(!(navigator.clipboard && window.ClipboardItem)) return false;
+  try{
+    const canvas=payReportCanvas(cur.worker,cur.month);
+    const blobP=new Promise(res=>canvas.toBlob(res,"image/png"));
+    await navigator.clipboard.write([new ClipboardItem({"image/png":blobP})]);
+    if(!silent) payToast("사진을 복사했습니다. 카카오톡 대화창을 열고 붙여넣기(Ctrl+V)만 하세요.");
+    return true;
+  }catch(e){
+    console.error("사진 복사 실패",e);
+    return false;
+  }
+}
+
+async function copyPayReportImageBtn(){
+  if(await copyPayReportImage(false)) return;
+  /* 이 화면에서 사진 복사가 막혀 있으면 공유창/저장으로 대신 */
+  await sharePayReportImage();
+}
+
 async function sharePayReportImage(){
   const cur=window.__payReportCur; if(!cur) return;
   const canvas=payReportCanvas(cur.worker,cur.month);
-  const blob=await new Promise(res=>canvas.toBlob(res,"image/png"));
-  if(!blob){ alert("이미지를 만들지 못했습니다."); return; }
   const name=cur.worker+"_"+cur.month+"_작업내역.png";
-  const file=new File([blob],name,{type:"image/png"});
+
+  /* 1) 폰: 공유창(카카오톡 선택)으로 바로 전송 */
   try{
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:name});
-      return;
+    const blob=await new Promise(res=>canvas.toBlob(res,"image/png"));
+    if(blob){
+      const file=new File([blob],name,{type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:name});
+        return;
+      }
     }
   }catch(e){
     if(e && e.name==="AbortError") return;   /* 사용자가 공유창을 닫음 */
   }
-  /* 공유창을 쓸 수 없는 환경: 사진으로 저장하고 글자 복사 */
+
+  /* 2) PC 등 공유창이 없는 환경: 사진을 복사 → 카톡에 붙여넣기 */
+  if(await copyPayReportImage(false)) return;
+
+  /* 3) 복사도 안 되면 마지막으로 파일 저장 */
+  const blob=await new Promise(res=>canvas.toBlob(res,"image/png"));
+  if(!blob){ alert("이미지를 만들지 못했습니다."); return; }
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  payToast("이 화면에서는 바로 전송이 안 돼서 사진으로 저장했습니다. 카카오톡에서 사진을 보내거나 '글자 복사'를 이용하세요.");
+  payToast("사진으로 저장했습니다. 카카오톡에서 사진을 보내거나 '글자 복사'를 이용하세요.");
 }
 
 function closePayReport(){
@@ -4149,8 +4204,8 @@ function openPayReport(worker){
   m.id="payReportModal"; m.className="pr-backdrop";
   m.innerHTML=`<div class="pr-bar">
       <b>${escapeHtml(worker)} · ${escapeHtml(month)} 작업내역</b>
-      <span><button type="button" class="action" onclick="sharePayReportImage()">💬 카톡 전송</button>
-      <button type="button" class="action secondary" onclick="copyPayReportText()">📋 글자 복사</button>
+      <span><button type="button" class="action" onclick="copyPayReportImageBtn()">📋 사진 복사</button>
+      <button type="button" class="action secondary" onclick="copyPayReportText()">글자 복사</button>
       <button type="button" class="action" onclick="printPayReport()">🖨 인쇄 / PDF 저장</button>
       <button type="button" class="action secondary" onclick="closePayReport()">닫기</button></span>
     </div>
