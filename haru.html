@@ -3961,6 +3961,7 @@ function buildPayReportHtml(worker,month){
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(worker)} ${y}년 ${+m}월 작업내역</title>
 <style>
 @page{size:A4 portrait;margin:12mm}
+@media screen{body{padding:12mm}}
 *{box-sizing:border-box}
 html,body{margin:0;background:#fff;color:#16202c;font-family:-apple-system,"Malgun Gothic","맑은 고딕",sans-serif}
 #c{width:100%;padding:0}
@@ -3974,6 +3975,7 @@ th{background:#eef2ef;border:1px solid #999;padding:5px 4px;font-size:12px}
 td{border:1px solid #bbb;padding:4px 5px;text-align:center}
 td.l{text-align:left}td.n{text-align:right}td.b{font-weight:800}
 tr.nd td{border-top:1.5px solid #666}
+thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
 tfoot td{background:#f4f4f4;font-weight:900;border-top:2px solid #333}
 .foot{margin-top:10px;font-size:11px;color:#777;text-align:right}
 </style></head><body><div id="c">
@@ -3986,9 +3988,12 @@ tfoot td{background:#f4f4f4;font-weight:900;border-top:2px solid #333}
 <div class="foot">출력일 ${new Date().toISOString().slice(0,10)}</div>
 </div>
 <script>
-/* 한 달 내역이 많아도 A4 한 장에 들어오도록 자동 축소 */
+/* 한 장에 읽기 좋게 들어가면 한 장, 너무 작아지면 두 장으로 나눠 출력 */
 (function(){var c=document.getElementById('c');var maxH=(297-24)*96/25.4;
-for(var i=0;i<3;i++){var h=c.getBoundingClientRect().height;var z=parseFloat(c.style.zoom||1);if(h>maxH){c.style.zoom=(z*maxH/h*0.99);}else break;}})();
+function fit(pages){for(var i=0;i<4;i++){var h=c.getBoundingClientRect().height;var z=parseFloat(c.style.zoom||1);if(h>maxH*pages*0.97){c.style.zoom=(z*maxH*pages*0.97/h);}else break;}}
+var h0=c.getBoundingClientRect().height;
+if(h0>maxH){ if(maxH/h0>=0.75){fit(1);} else if(h0>maxH*2){fit(2);} }
+})();
 <\/script></body></html>`;
 }
 
@@ -4022,9 +4027,13 @@ function openPayReport(worker){
   f.srcdoc=buildPayReportHtml(worker,month);
   const fit=()=>{
     const sc=Math.min(1,(window.innerWidth-24)/794);
+    let h=1123;
+    try{ h=Math.max(1123,f.contentDocument.documentElement.scrollHeight); }catch(e){}
+    f.style.height=h+"px";
     f.style.transform="scale("+sc+")";
-    document.getElementById("payReportHolder").style.cssText="width:"+(794*sc)+"px;height:"+(1123*sc)+"px";
+    document.getElementById("payReportHolder").style.cssText="width:"+(794*sc)+"px;height:"+(h*sc)+"px";
   };
+  f.addEventListener("load",fit);
   window.__payReportFit=fit; window.addEventListener("resize",fit); fit();
 }
 
