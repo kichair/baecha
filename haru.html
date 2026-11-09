@@ -572,6 +572,14 @@ th{background:#f6f8f9;position:sticky;top:0}
 .rp-sub{font-size:12px;color:#59656f;margin-top:4px}
 .rp-none{padding:18px 0;text-align:center;color:#59656f}
 .rp-close{width:100%;margin-top:4px}
+
+.pay-pdf-hint{font-size:12px;opacity:.6}
+.pr-backdrop{position:fixed;inset:0;z-index:100001;background:#555;display:flex;flex-direction:column}
+.pr-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:#fff;padding:10px 12px;border-bottom:1px solid #ccc}
+.pr-bar .action{padding:9px 12px}
+.pr-scroll{flex:1;overflow:auto;padding:12px;display:flex;justify-content:center;align-items:flex-start}
+.pr-holder{flex:none;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.4);overflow:hidden}
+#payReportFrame{width:794px;height:1123px;border:0;background:#fff;transform-origin:top left;display:block}
 </style>
 
 <style>
@@ -3865,8 +3873,8 @@ function renderPay(){
     summaryBody.innerHTML=workers.map((x,i)=>{
       const c=workerColors[i%workerColors.length];
       return `
-    <tr style="background:${c.bg};border-left-color:${c.bar}">
-      <td class="pay-cell-head" data-label="작업자" style="font-weight:900;color:${c.bar}">${escapeHtml(x.worker)}</td>
+    <tr class="pay-worker-row" data-worker="${escapeHtmlAttr(x.worker)}" onclick="openPayReport(this.dataset.worker)" title="누르면 월 작업내역 미리보기/출력" style="background:${c.bg};border-left-color:${c.bar};cursor:pointer">
+      <td class="pay-cell-head" data-label="작업자" style="font-weight:900;color:${c.bar}">${escapeHtml(x.worker)} <span class="pay-pdf-hint">📄</span></td>
       <td data-label="작업일수">${x.dates.size}일</td>
       <td data-label="총 수량">${money(x.qty)}</td>
       <td class="pay-cell-amount" data-label="월급 합계" style="font-weight:900;color:${c.bar}">${money(x.amount)}원</td>
@@ -3932,6 +3940,93 @@ function renderPay(){
   document.getElementById("payAmount").textContent=money(logs.reduce((s,r)=>s+r.qty*r.price,0));
 }
 
+
+/* ===== 월급: 작업자 1명 월간 작업내역 미리보기 / 출력 (A4 한 장) ===== */
+function buildPayReportHtml(worker,month){
+  const week=["일","월","화","수","목","금","토"];
+  const rows=(db.workLogs||[])
+    .map(r=>({date:r.date||"",worker:String(r.worker||r.name||"").trim(),item:String(r.item||r.work||"").trim(),qty:Number(r.qty||0),price:Number(r.price||0),note:String(r.note||"")}))
+    .filter(r=>r.worker===worker && r.date.startsWith(month))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const days=new Set(rows.map(r=>r.date)).size;
+  const qty=rows.reduce((t,r)=>t+r.qty,0);
+  const amt=rows.reduce((t,r)=>t+r.qty*r.price,0);
+  const [y,m]=month.split("-");
+  const lab=d=>{const t=new Date(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10));return d.slice(5,7)+"-"+d.slice(8,10)+" ("+week[t.getDay()]+")";};
+  let prev="";
+  const body=rows.length?rows.map(r=>{
+    const first=r.date!==prev; prev=r.date;
+    return `<tr class="${first?'nd':''}"><td>${first?escapeHtml(lab(r.date)):""}</td><td class="l">${escapeHtml(r.item)}</td><td class="n">${money(r.qty)}</td><td class="n">${money(r.price)}</td><td class="n b">${money(r.qty*r.price)}</td><td class="l">${escapeHtml(r.note)}</td></tr>`;
+  }).join(""):'<tr><td colspan="6" style="padding:24px;text-align:center;color:#777">작업내역이 없습니다.</td></tr>';
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${escapeHtml(worker)} ${y}년 ${+m}월 작업내역</title>
+<style>
+@page{size:A4 portrait;margin:12mm}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:#16202c;font-family:-apple-system,"Malgun Gothic","맑은 고딕",sans-serif}
+#c{width:100%;padding:0}
+h1{font-size:20px;margin:0 0 4px}
+.sub{font-size:13px;color:#555;margin-bottom:10px}
+.sum{display:flex;gap:8px;margin-bottom:10px}
+.sum div{flex:1;border:1px solid #bbb;border-radius:6px;padding:6px 8px;font-size:12px;color:#555}
+.sum b{display:block;font-size:16px;color:#111;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#eef2ef;border:1px solid #999;padding:5px 4px;font-size:12px}
+td{border:1px solid #bbb;padding:4px 5px;text-align:center}
+td.l{text-align:left}td.n{text-align:right}td.b{font-weight:800}
+tr.nd td{border-top:1.5px solid #666}
+tfoot td{background:#f4f4f4;font-weight:900;border-top:2px solid #333}
+.foot{margin-top:10px;font-size:11px;color:#777;text-align:right}
+</style></head><body><div id="c">
+<h1>${escapeHtml(worker)} · ${y}년 ${+m}월 작업내역</h1>
+<div class="sub">작업일수 ${days}일 · 총 수량 ${money(qty)} · 월급 합계 ${money(amt)}원</div>
+<div class="sum"><div>작업일수<b>${days}일</b></div><div>총 수량<b>${money(qty)}</b></div><div>월급 합계<b>${money(amt)}원</b></div></div>
+<table><thead><tr><th style="width:15%">날짜</th><th>품명</th><th style="width:9%">수량</th><th style="width:12%">단가</th><th style="width:15%">합계</th><th style="width:20%">비고</th></tr></thead>
+<tbody>${body}</tbody>
+<tfoot><tr><td colspan="2">합계</td><td class="n">${money(qty)}</td><td></td><td class="n">${money(amt)}</td><td></td></tr></tfoot></table>
+<div class="foot">출력일 ${new Date().toISOString().slice(0,10)}</div>
+</div>
+<script>
+/* 한 달 내역이 많아도 A4 한 장에 들어오도록 자동 축소 */
+(function(){var c=document.getElementById('c');var maxH=(297-24)*96/25.4;
+for(var i=0;i<3;i++){var h=c.getBoundingClientRect().height;var z=parseFloat(c.style.zoom||1);if(h>maxH){c.style.zoom=(z*maxH/h*0.99);}else break;}})();
+<\/script></body></html>`;
+}
+
+function closePayReport(){
+  const m=document.getElementById("payReportModal");
+  if(m) m.remove();
+  window.removeEventListener("resize",window.__payReportFit||(()=>{}));
+}
+
+function printPayReport(){
+  const f=document.getElementById("payReportFrame");
+  if(!f||!f.contentWindow) return;
+  f.contentWindow.focus();
+  f.contentWindow.print();
+}
+
+function openPayReport(worker){
+  const month=(document.getElementById("payMonth")||{}).value;
+  if(!worker||!month) return;
+  closePayReport();
+  const m=document.createElement("div");
+  m.id="payReportModal"; m.className="pr-backdrop";
+  m.innerHTML=`<div class="pr-bar">
+      <b>${escapeHtml(worker)} · ${escapeHtml(month)} 작업내역</b>
+      <span><button type="button" class="action" onclick="printPayReport()">🖨 인쇄 / PDF 저장</button>
+      <button type="button" class="action secondary" onclick="closePayReport()">닫기</button></span>
+    </div>
+    <div class="pr-scroll"><div class="pr-holder" id="payReportHolder"><iframe id="payReportFrame" title="월 작업내역 미리보기"></iframe></div></div>`;
+  document.body.appendChild(m);
+  const f=document.getElementById("payReportFrame");
+  f.srcdoc=buildPayReportHtml(worker,month);
+  const fit=()=>{
+    const sc=Math.min(1,(window.innerWidth-24)/794);
+    f.style.transform="scale("+sc+")";
+    document.getElementById("payReportHolder").style.cssText="width:"+(794*sc)+"px;height:"+(1123*sc)+"px";
+  };
+  window.__payReportFit=fit; window.addEventListener("resize",fit); fit();
+}
 
 function canvasToLandscape(img){
   const portrait=img.naturalHeight>img.naturalWidth;
