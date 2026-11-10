@@ -1620,7 +1620,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261110l';
+const APPVER='20261110m';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1759,6 +1759,9 @@ function applySnap(o){applying=true;try{
 let INBOX_TS=+(localStorage.getItem(UKEY+'_inboxts')||0);
 /* 광일·삼정 명세서를 마지막으로 받아온 시각 (자동조회 확인용) */
 let INBS=LSU('_inbs',{});
+/* 2026-11-10 같은 날·거래처·품목·규격·수량 줄이 이미 있을 때 새로 넣는 줄에 붙이는 번호(cp) — 있는 줄 중 가장 큰 번호 + 1.
+   cp 가 서로 다른 줄은 명세서에 따로 있는 줄 — 화면(build)·중복 지우기에서 합치지 않는다 */
+function rowCp(list){let mx=1;list.forEach(function(x){mx=Math.max(mx,+x.cp||1)});return mx+1}
 function inboxApply(box){
  if(!box||!Array.isArray(box.rows))return;
  const ts=+box.ts||0;
@@ -1781,26 +1784,36 @@ function inboxApply(box){
    const gv=GM[k];if(gv&&l.g!==gv){l.g=gv;gfix++}
    const am=AM[k];if(am){['u','a','v','t'].forEach(function(f){if(am[f]&&l[f]!==am[f])l[f]=am[f]})}});})();
  const B=function(l){return [l.d,l.n,l.p,l.s||'',l.q].join('\u0001')};
- const seen={},bag={};
- RAW.forEach(function(l){seen[K(l)]=1;(bag[B(l)]=bag[B(l)]||[]).push(l)});
+ /* 2026-11-10 대한사무용가구(수원) 11/11 흑로대(요추무) 2개 전표가 둘인데 배차엔 하나만 들어왔다 —
+    날짜·거래처·품목·규격·수량·적요가 똑같은 줄을 «이미 있다» 고 하나로 합쳐 버렸다.
+    («삼정)» 과 «삼정) 추가분» 처럼 따로 주문한 줄도 «적요를 고친 것» 으로 보고 하나로 합쳤다 — 삼정 6건)
+    이제는 ① 파일 줄마다 있던 똑같은 줄 하나씩을 먼저 차지하고(개수대로) ② 남은 파일 줄만 «적요 고침» 짐작을 하며
+    ③ 그래도 남으면 새 줄로 넣는다. 같은 날·거래처·품목·규격·수량 줄이 이미 있는데 새로 넣는 줄에는 cp(2,3…) 를 붙여
+    화면(build)에서도 합치지 않고 따로 센다. */
+ const byK={},bag={},used=new Set();
+ RAW.forEach(function(l){(byK[K(l)]=byK[K(l)]||[]).push(l);(bag[B(l)]=bag[B(l)]||[]).push(l)});
+ let mfix=0;
+ const pend=box.rows.filter(function(l){
+  if(!l||!l.n||!l.p||!l.d||!(+l.q>0))return false;
+  l.q=Math.round(+l.q);l.s=l.s||'';l.m=(l.m||'').slice(0,80);delete l.cp;
+  const same=byK[K(l)]||[];
+  for(let i=0;i<same.length;i++)if(!used.has(same[i])){used.add(same[i]);return false}   /* 있던 똑같은 줄 하나를 차지 */
+  return true});
  /* 같은 품목·규격·수량인데 적요만 다르게 다시 온 줄 = 적요를 고친 것.
     새 줄로 넣지 말고 있던 줄의 적요를 바꿔 준다 (2026-09-22). 넣으면 같은 건이 둘이 된다. */
- let mfix=0;
- const add=box.rows.filter(function(l){
-  if(!l||!l.n||!l.p||!l.d||!(+l.q>0))return false;
-  l.q=Math.round(+l.q);l.s=l.s||'';l.m=(l.m||'').slice(0,80);
-  if(seen[K(l)])return false;
-  const b=B(l), m=(l.m||'').trim(), nm=m.replace(/\s+/g,''), ls=bag[b]||[];
+ const add=pend.filter(function(l){
+  const b=B(l), m=(l.m||'').trim(), nm=m.replace(/\s+/g,''), ls=(bag[b]||[]).filter(function(x){return !used.has(x)});
   /* 있던 줄들 중 내 적요 안에 들어 있는 것(=내가 덧붙여 고친 원본)을 찾되, 가장 긴 것을 고른다.
      '퀵' 과 '9시퀵 강남' 이 같이 있을 때 '9시퀵 강남 테헤란로' 는 뒤엣것의 수정본이다. */
   let best=null,bl=-1;
   for(let i=0;i<ls.length;i++){const x=ls[i],xm=String(x.m||'').trim().replace(/\s+/g,'');
-   if(xm===nm)return false;
-   if(nm===''||(xm&&xm.indexOf(nm)>=0))return false;   /* 옛 적요가 다시 옴 → 무시 */
+   if(xm===nm){used.add(x);return false}
+   if(nm===''||(xm&&xm.indexOf(nm)>=0)){used.add(x);return false}   /* 옛 적요가 다시 옴 → 무시 */
    if(xm===''||nm.indexOf(xm)>=0){if(xm.length>bl){bl=xm.length;best=x}}
   }
-  if(best){best.m=m;mfix++;return false}
-  seen[K(l)]=1;ls.push(l);bag[b]=ls;l._in=ts;return true});
+  if(best){used.add(best);best.m=m;mfix++;return false}
+  const sb=bag[b]||(bag[b]=[]);if(sb.length)l.cp=rowCp(sb);
+  used.add(l);sb.push(l);l._in=ts;return true});
  /* 2026-10-29 sERP 에서 날짜를 옮기면(계룡 10/30→10/29, 태백 10/29→11/3) 새 날짜 줄은 들어오는데
     옛 날짜 줄이 그대로 남아 두 날에 다 보였다. 자동조회 파일은 기간 전체를 통째로 뽑은 것이므로
     그 파일 기간 안에서 파일에 없는 줄 = 옮겼거나 지운 줄 → 걷어낸다. 광일·삼정은 각자 따로.
@@ -1809,16 +1822,17 @@ function inboxApply(box){
  [0,1].forEach(function(S){
   const br=box.rows.filter(function(l){return l&&l.d&&!!l.sj===!!S});if(!br.length)return;
   let lo=br[0].d,hi=br[0].d;br.forEach(function(l){if(l.d<lo)lo=l.d;if(l.d>hi)hi=l.d});
-  const cnt={},inF={};br.forEach(function(l){const b=B(l);cnt[b]=(cnt[b]||0)+1;inF[K(l)]=1});
+  const cnt={},inF={};br.forEach(function(l){const b=B(l);cnt[b]=(cnt[b]||0)+1;const k=K(l);inF[k]=(inF[k]||0)+1});
   /* 2026-11-06 상상OA 31개가 62개로: 적요를 통째로 바꾸면 새 줄이 들어오는데 옛 줄이 수량을 차지해 남았다
      → 새로 넣는 줄·파일과 똑같은 줄이 먼저 자리를 차지하고, 남는 옛 줄을 걷어낸다 */
-  add.forEach(function(l){if(!!l.sj===!!S){const b=B(l);if(cnt[b]>0)cnt[b]--}});
+  /* 2026-11-10 똑같은 줄도 파일에 있는 개수만큼만 자리를 차지한다 (파일에 하나인데 둘 있으면 하나는 걷어냄) */
+  add.forEach(function(l){if(!!l.sj===!!S){const b=B(l);if(cnt[b]>0)cnt[b]--;const k=K(l);if(inF[k]>0)inF[k]--}});
   const rm=[],rest=[];let tot=0;
   RAW.forEach(function(l){if(!!l.sj!==!!S||!l.d||l.d<lo||l.d>hi)return;
    /* 2026-11-03 사고: 09:10 자동조회 뒤 sERP 에 넣고 손으로 올린 텐데이즈 11-03 줄을, 그 09:10 파일에 없다고 지워 버렸다
       → 파일을 받은 시각(ts)보다 나중에 들어온 줄(_in)은 그 파일로는 판단할 수 없으니 건드리지 않는다 */
    if((l._in||0)>ts)return;tot++;
-   const b=B(l);if(inF[K(l)]&&cnt[b]>0)cnt[b]--;else rest.push(l)});
+   const b=B(l),k=K(l);if(inF[k]>0&&cnt[b]>0){inF[k]--;cnt[b]--}else rest.push(l)});
   rest.forEach(function(l){const b=B(l);if(cnt[b]>0)cnt[b]--;else rm.push(l)});
   if(rm.length>Math.max(300,tot*0.1)){console.warn('명세서 정리 건너뜀',S?'삼정':'광일',rm.length,'/',tot);return}
   gone=gone.concat(rm)});
@@ -2312,6 +2326,7 @@ function build(fresh){
   Object.keys(bag).forEach(function(b){const a=bag[b];if(a.length<2)return;
    for(let i=0;i<a.length;i++)for(let j=0;j<a.length;j++){if(i===j)continue;
     const mi=String(a[i].m||'').replace(/\s+/g,''),mj=String(a[j].m||'').replace(/\s+/g,'');
+    if((+a[i].cp||1)!==(+a[j].cp||1))continue;   /* cp 가 다르면 명세서에 따로 있는 줄 — 합치지 않는다 (2026-11-10) */
     if(mi===mj){if(i>j)drop.add(a[i]);continue}
     if(mj.indexOf(mi)>=0)drop.add(a[i]);
    }});
@@ -2339,7 +2354,7 @@ function build(fresh){
    const a=grp[kk];if(a.length<2)return;
    const paid=a.filter(function(x){return !!(x.u||x.a||x.t)});
    if(!paid.length||paid.length===a.length)return;      /* 판단 못하면 그대로 둔다 */
-   a.forEach(function(x){if(!(x.u||x.a||x.t))drop.push(x)});
+   a.forEach(function(x){if(!(x.u||x.a||x.t)&&paid.some(function(y){return (+y.cp||1)===(+x.cp||1)}))drop.push(x)});   /* cp 다른 줄은 따로 주문한 것 (2026-11-10) */
   });
   if(drop.length){
    /* 적요는 살려서 옮긴다 — 도착시간이 새 줄에만 있을 수 있다 */
@@ -3734,11 +3749,12 @@ function syncD(){DRVS=[].slice.call(document.getElementById('drows').querySelect
 function cleanDup(){
  const base=function(l){return [l.d,l.n,l.p,l.s||'',l.q].join('\u0001')};
  const hasMemo={};
- RAW.forEach(function(l){if((l.m||'').trim())hasMemo[base(l)]=(hasMemo[base(l)]||0)+1});
+ /* cp 붙은 줄은 명세서에 따로 있는 줄 — 중복으로 보지 않는다 (2026-11-10) */
+ RAW.forEach(function(l){if(!l.cp&&(l.m||'').trim())hasMemo[base(l)]=(hasMemo[base(l)]||0)+1});
  const seen={},drop=[];
  RAW.forEach(function(l){
   const b=base(l);
-  if((l.m||'').trim())return;
+  if(l.cp||(l.m||'').trim())return;
   if(!hasMemo[b])return;
   const c=(seen[b]=(seen[b]||0)+1);
   if(c<=hasMemo[b])drop.push(l);
@@ -3969,14 +3985,21 @@ function onOrders(fs){
    const gk=function(l){return [l.d,l.n,l.p,l.s,l.sj||''].join(RSEP)};
    const inG={},inB={};ALL.forEach(function(l){inG[gk(l)]=1;inB[bkey(l)+RSEP+(l.sj||'')]=1});
    RAW=RAW.filter(function(l){return !(nd.indexOf(l.d)>=0&&inG[gk(l)]&&!inB[bkey(l)+RSEP+(l.sj||'')])});
-   const seen={},bag={};
-   RAW.forEach(function(l){seen[key(l)]=1;(bag[bkey(l)]=bag[bkey(l)]||[]).push((l.m||'').trim())});
-   const add=ALL.filter(function(l){
-    if(seen[key(l)])return false;
-    const b=bkey(l), m=(l.m||'').trim(), ms=bag[b];
+   /* 2026-11-10 똑같은 줄(날짜·거래처·품목·규격·수량·적요)도 개수대로 — ① 올린 파일 줄마다 있던 똑같은 줄 하나씩 먼저 차지,
+      ② 남은 줄만 «한쪽 적요가 빈 같은 건» 짐작, ③ 그래도 남으면 새로 넣는다(같은 품목 줄이 있으면 cp). 전에는 파일 안의 똑같은 두 줄이 하나로 합쳐졌다 */
+   const byK={},bag={},used=new Set();
+   RAW.forEach(function(l){(byK[key(l)]=byK[key(l)]||[]).push(l);(bag[bkey(l)]=bag[bkey(l)]||[]).push(l)});
+   const pend=ALL.filter(function(l){
+    delete l.cp;
+    const same=byK[key(l)]||[];
+    for(let i=0;i<same.length;i++)if(!used.has(same[i])){used.add(same[i]);return false}
+    return true});
+   const add=pend.filter(function(l){
+    const b=bkey(l), m=(l.m||'').trim(), ls=bag[b]||(bag[b]=[]);
     /* 거래처·품목·규격·수량이 같은데 한쪽만 적요가 비어 있으면 같은 건으로 본다 */
-    if(ms&&ms.some(function(x){return x===m||x===''||m===''}))return false;
-    seen[key(l)]=1;(bag[b]=bag[b]||[]).push(m);
+    for(let i=0;i<ls.length;i++){const x=ls[i];if(used.has(x))continue;const xm=(x.m||'').trim();if(xm===m||xm===''||m===''){used.add(x);return false}}
+    if(ls.length)l.cp=rowCp(ls);
+    used.add(l);ls.push(l);
     return true});
    RAW=RAW.concat(add);RAWV=Date.now();
    /* 2026-11-06 인토스 11/9→11/16: 합치기는 새 줄만 보태서 옮긴 날짜의 옛 줄이 남고, 적요를 고친 줄은 둘이 됐다(상상OA 31→62).
@@ -3984,15 +4007,19 @@ function onOrders(fs){
       ② 파일 기간 안의 옛 줄인데, 그 날짜엔 파일에 없고 같은 거래처·품목·규격·수량이 파일의 다른 날에 있으면 날짜를 옮긴 것 — 뺀다 */
    {const fN={},fK={},fM={};let lo=nd[0],hi=nd[nd.length-1];
     const mk=function(l){return [l.n,l.p,l.s,l.q,l.sj||''].join(RSEP)},bs=function(l){return bkey(l)+RSEP+(l.sj||'')};
-    ALL.forEach(function(l){const b=bs(l);fN[b]=(fN[b]||0)+1;fK[key(l)]=1;fM[mk(l)]=1});
-    const used={};RAW.forEach(function(l){if(fK[key(l)]){const b=bs(l);used[b]=(used[b]||0)+1}});
+    ALL.forEach(function(l){const b=bs(l);fN[b]=(fN[b]||0)+1;const k=key(l);fK[k]=(fK[k]||0)+1;fM[mk(l)]=1});
+    /* 2026-11-10 똑같은 줄도 파일에 있는 개수만큼만 «똑같은 줄» 로 남긴다 */
+    const used={},usedK={},keep=new Set();
+    RAW.forEach(function(l){const b=bs(l),k=key(l);if(fN[b]&&(usedK[k]||0)<(fK[k]||0)){usedK[k]=(usedK[k]||0)+1;used[b]=(used[b]||0)+1;keep.add(l)}});
     RAW=RAW.filter(function(l){const b=bs(l);
-     if(fN[b]){if(fK[key(l)])return true;if((used[b]||0)<fN[b]){used[b]=(used[b]||0)+1;return true}return false}
+     if(fN[b]){if(keep.has(l))return true;if((used[b]||0)<fN[b]){used[b]=(used[b]||0)+1;return true}return false}
      return !(l.d>=lo&&l.d<=hi&&fM[mk(l)])})}
   }else{
    /* 2026-10-21 사고: 광일 명세서만 '교체'로 올렸는데 그 날짜의 삼정 줄까지 다 지워졌다(10월 삼정 923줄).
       교체는 올린 파일과 같은 쪽(광일 / 삼정) 줄만 바꾼다. 다른 쪽 줄은 그대로 둔다. */
    const upK=ALL.some(function(l){return !l.sj}),upS=ALL.some(function(l){return !!l.sj});
+   /* 2026-11-10 파일 안에 같은 날·거래처·품목·규격·수량 줄이 여럿이면 둘째부터 cp — 화면에서 하나로 합쳐 세지 않게 */
+   {const c={};ALL.forEach(function(l){const k=[l.d,l.n,l.p,l.s||'',l.q,l.sj||''].join(RSEP);c[k]=(c[k]||0)+1;if(c[k]>1)l.cp=c[k];else delete l.cp})}
    RAW=RAW.filter(function(l){return nd.indexOf(l.d)<0||(l.sj?!upS:!upK)}).concat(ALL);RAWV=Date.now()}
   LASTDIFF=diffRaw(before,RAW,nd);LASTDIFF.dates=nd;LASTDIFF.first=!dup;
   if(nd.length===1)SEL=nd[0];
@@ -5946,7 +5973,7 @@ async function msbByDate(force,onlyNew,coversOnly){
 }
 function tabMsb(){
  let h='<div class="hd2">📄 명세서 묶기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">sERP 거래명세표 PDF → 동선·기사 찍고 동선별로 다시 묶기</span></div>';
- h+='<div class="ycnote"><b>날짜를 고르고 「📥 ERP에서 묶기」</b>를 누르면 자동실행컴이 sERP 에서 뽑아 둔 그날 거래명세표를 가져와 묶습니다(없으면 그 자리에서 뽑아 달라고 합니다, 2~5분). 평일 <b>14:35</b> 에 다음 영업일 것이 저절로 뽑힙니다(일별영업현황 → 거래명세표 → 미발행·개별발행·통합발행을 모아 PDF, 수집이 돌고 있으면 끝난 뒤). 직납 전표는 맨 앞에 <b>직납 묶음</b>으로 따로 모입니다(도장은 원래 동선). sERP 에서 직접 받은 PDF 는 <b>「📄 이 파일 도장찍기」</b>(전부) · <b>「➕ 이 파일 추가분만 도장찍기」</b>. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
+ h+='<div class="ycnote"><b>날짜를 고르고 「📥 ERP에서 묶기」</b>를 누르면 자동실행컴이 sERP 에서 뽑아 둔 그날 거래명세표를 가져와 묶습니다(없으면 그 자리에서 뽑아 달라고 합니다, 2~5분). 평일 <b>14:35</b> 에 다음 영업일 것이 저절로 뽑힙니다(일별영업현황 → 거래명세표 → 미발행·개별발행·통합발행을 모아 PDF, 수집이 돌고 있으면 끝난 뒤) — 원본은 공유폴더 <b>\\\\Kic-server2\\새공유문서\\거래명세표PDF\\&lt;날짜&gt;.pdf</b>. <b>16:20</b> 에는 14:35 뒤 들어온 전표만 다시 뽑아 같은 곳 <b>&lt;날짜&gt;_추가.pdf</b> (새 장 목록·빼야 할 옛 장은 <b>&lt;날짜&gt;_추가.txt</b>) — «➕ 이 파일 추가분만 도장찍기» 로 올리세요. 직납 전표는 맨 앞에 <b>직납 묶음</b>으로 따로 모입니다(도장은 원래 동선). sERP 에서 직접 받은 PDF 는 <b>「📄 이 파일 도장찍기」</b>(전부) · <b>「➕ 이 파일 추가분만 도장찍기」</b>. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
   +'적요에 <b>택배·용차·상차·화물·차량입고·퀵</b> 이 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴</b>은 따로 모읍니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
   +'<b>배차를 다 마친 뒤</b> 올려야 동선·기사가 다 채워집니다.</div>';
  const md0=MSBD||mnNextBiz();
