@@ -6,6 +6,7 @@ rem  Opens the site as an app window (no address bar) in Chrome
 rem  or Edge. If neither is installed, makes a normal web shortcut.
 rem ============================================================
 set "URL=https://kwangilchair.com"
+set "MSG_B64=67CU7YOV7ZmU66m07JeQICLqtJHsnbzssrTslrQg7JiB7JeF6rSA66asIiDslYTsnbTsvZjsnYQg66eM65Ok7JeI7Iq164uI64ukLgoK7J6R7JeF7KSEKO2ZlOuptCDslYTrnpgp7JeQ64+EIOuRkOugpOuptDoK7KeA6riIIOyXtOumsCDsmIHsl4XqtIDrpqwg7LC97J2YIOyekeyXheykhCDslYTsnbTsvZjsnYQg7Jik66W47Kq9IO2BtOumrSDihpIgIuyekeyXhSDtkZzsi5zspITsl5Ag6rOg7KCVIgoKKOyciOuPhOyasCDqt5zsuZnsg4Eg7J206rKD66eM7J2AIOyngeygkSDriIzrn6zslbwg7ZWp64uI64ukKQ=="
 set "NAME_B64=6rSR7J287LK07Ja0IOyYgeyXheq0gOumrA=="
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
@@ -29,7 +30,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
  "  $lnk=Join-Path $desk ($name+'.url');" ^
  "  $s=$ws.CreateShortcut($lnk); $s.TargetPath=$url; $s.Save();" ^
  "};" ^
- "Write-Host ''; Write-Host ('  OK  -> '+$lnk); Write-Host ''"
+ "Write-Host ''; Write-Host ('  OK  -> '+$lnk); Write-Host '';" ^
+ "try{ Start-Process $lnk; Start-Sleep 3 }catch{};" ^
+ "$msg=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('%MSG_B64%'));" ^
+ "Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show($msg,$name,0,64)"
 
 if errorlevel 1 (
   echo.
