@@ -1630,7 +1630,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261113a';
+const APPVER='20261113b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4241,7 +4241,7 @@ function ycFindParse(q){
    if(YC_BASE[mk]){t=mk;s=s.replace(mm[0],' ')}}}
  /* 품목+개수 짝 — «무지개 30개» «흑로대 40» (이름이 숫자로 끝나지 않게) */
  const items=[];let qty0=0;
- s=s.replace(/([가-힣a-zA-Z](?:[가-힣a-zA-Z0-9*×]{0,13}[가-힣a-zA-Z*×])?)\s*(\d{1,4})\s*개?(?=\s|$)/g,
+ s=s.replace(/([가-힣a-zA-Z](?:[가-힣a-zA-Z0-9*×]{0,13}[가-힣a-zA-Z*×])?)\s*(\d{1,4})\s*(?:개\s*)?(?:이?랑|하고)?(?=\s|$)/g,
   function(_,nm,n2){items.push({nm:nm,q:+n2});return ' '});
  s=s.replace(/(^|\s)(\d{1,4})\s*개(?=\s|$)/g,function(_,sp,n2){qty0+=+n2;return ' '});
  /* 짝의 이름이 사실 지역이면(«부산 30개») 지역으로 돌리고 개수는 의자로 */
@@ -4282,6 +4282,32 @@ function ycFindYcbTb(rows,showTk){
    +'<td style="text-align:right"><b>'+won(r.fee)+'</b>'+(r.cb?' <span style="color:#c9761a">착불</span>':'')+'</td></tr>'});
  return h+'</table>';
 }
+/* 과거에 실제로 부른 차 — 용차 내역서 줄(날짜·거래처·차종·운임)에 그날 명세서(ORDERS)를 붙여
+   질문한 품목이 전부 들어 있는 건을 찾고, 수량이 가까운 순으로 늘어놓는다.
+   (2026-11-13 강현아님 «과거의 기록을 토대로 계산해야지» — 루트 30개는 계산으론 다마스지만 실제론 1톤을 불렀다) */
+function ycPastCases(items){
+ if(!items||!items.length)return [];
+ const idx={};
+ try{(ORDERS||[]).forEach(function(o){idx[o.d+'§'+o.n]=o})}catch(e){}
+ const out=[];
+ try{YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){
+  if(!y||y.link)return;const tk=y.tk;if(!tk)return;
+  const o=idx[String(y.d||'')+'§'+String(y.n||'')];if(!o||!o.items||!o.items.length)return;
+  let ok=true,dist=0,qsum=0,tot=0;const parts=[];
+  items.forEach(function(x){
+   const k=String(x.nm).replace(/\s+/g,'');let q=0;
+   o.items.forEach(function(it){if(String(it.p||'').replace(/\s+/g,'').indexOf(k)>=0)q+=(+it.q||0)});
+   if(!q){ok=false;return}
+   qsum+=q;dist+=Math.abs(q-x.q)/Math.max(x.q,1);parts.push(x.nm+' '+q+'개')});
+  if(!ok)return;
+  o.items.forEach(function(it){tot+=(+it.q||0)});
+  const extra=tot-qsum;
+  out.push({d:String(y.d||''),n:String(y.n||''),tk:tk,fee:+y.fee||0,co:c,
+   parts:parts.join(' · '),extra:extra,dist:dist+(extra>qsum*0.25?0.6:0)});
+ })})}catch(e){}
+ out.sort(function(a,b){return a.dist-b.dist||(a.d<b.d?1:(a.d>b.d?-1:0))});
+ return out;
+}
 function ycFindDraw(){
  const el=document.getElementById('ycfout');if(!el)return;
  const q=String(YCFQ||'').trim();
@@ -4289,7 +4315,7 @@ function ycFindDraw(){
  const P=ycFindParse(q);
  let h='';
  if(P.items.length||P.qty0>0){
-  /* ---- 물량: 품목+개수 → 몇 대분·어떤 차 ---- */
+  /* ---- 물량: 품목+개수 → 과거 기록 먼저, 신부장님 기준 계산은 참고 (2026-11-13) ---- */
   let L=0,rows='';
   P.items.forEach(function(x){
    const pc=ycProdCap(x.nm);const ld=x.q/(pc.c||60);L+=ld;
@@ -4303,20 +4329,38 @@ function ycFindDraw(){
   const len=ycLen(L);
   const PL=ycPlan(L,P.reg);
   const first=(PL.plan&&PL.plan[0])?PL.plan[0].tk:null;
-  const mk='m'+(Math.ceil(len*2)/2);
-  const mtk=YC_TRUCK.filter(function(x){return x.t===mk})[0];
-  const mf=mtk?ycFee(P.reg,mtk.t):null;
+  /* 과거 실제 기록 — 수량이 ±절반 안쪽인 건들에서 가장 많이 부른 차 */
+  const cases=P.items.length?ycPastCases(P.items):[];
+  let rec=null;
+  if(cases.length){const cnt={};cases.forEach(function(x){if(x.dist<=0.5)cnt[x.tk]=(cnt[x.tk]||0)+1});
+   const ks=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]});
+   if(ks.length)rec={tk:ks[0],n:cnt[ks[0]]}}
+  const rf=rec?ycFee(P.reg,rec.tk):null;
+  const fv=(rec&&rf)?rf.v:PL.fee, fh=(rec&&rf)?(rf.how+(rf.n?' '+rf.n+'건':'')):(PL.how+(PL.n?' '+PL.n+'건':''));
   h+='<div class="ycout" style="margin-top:9px">'
    +(P.reg?'<div class="ycsub" style="margin-bottom:3px"><b>'+ycEsc(P.reg)+'</b></div>':'')
-   +'<div class="ycbig">'+(first?ycEsc(first.nm):'-')+(PL.plan&&PL.plan.length>1?' 외':'')+'</div>'
-   +'<div class="ycsub" style="margin-top:6px">짐칸 <b style="font-size:15px;color:#0f5f37">'+len.toFixed(2)+'m</b> 차지 · <b>'+L.toFixed(2)+'대분</b> (1톤차 기준)</div>'
+   +'<div class="ycbig">'+(rec?ycEsc(ycTkNm(rec.tk)):(first?ycEsc(first.nm):'-')+(PL.plan&&PL.plan.length>1?' 외':''))+'</div>'
+   +(rec?'<div class="ycsub" style="margin-top:2px;color:#0f5f37"><b>과거 기록</b> — 비슷한 수량일 때 '+rec.n+'번 이 차를 불렀습니다 (아래 📜)</div>':'')
+   +'<div class="ycsub" style="margin-top:6px">짐칸 <b style="font-size:15px;color:#0f5f37">'+len.toFixed(2)+'m</b> 차지 · <b>'+L.toFixed(2)+'대분</b> (1톤차 기준 계산)</div>'
    +'<table class="yctb" style="margin-top:6px">'+rows+'</table>'
    +ycRuler(len)
-   +'<div class="ycsub" style="margin-top:8px">차 한 대 부르면 <b>'+ycEsc(PL.txt||'-')+'</b></div>'
-   +'<div class="ycsub">예상 운임 <b style="font-size:17px;color:#1b4fa8">'+won(PL.fee)+'원</b> <span style="color:#8b9aab">(부가세 별도 · 포함 '+won(Math.round(PL.fee*1.1))+'원 · '+PL.how+(PL.n?' '+PL.n+'건':'')+')</span></div>'
-   +(mtk&&mf?'<div class="ycsub">합바차로 보내면 <b>'+ycEsc(mtk.nm)+'</b> ≈ <b>'+won(mf.v)+'원</b> <span style="color:#8b9aab">('+mf.how+(mf.n?' '+mf.n+'건':'')+')</span></div>':'')
-   +(P.reg?'':'<div class="ycsub" style="white-space:normal;color:#c9761a">지역을 같이 적으면(예: 부산 무지개 30개) 그 지역 운임으로 계산합니다 — 지금은 전체 평균.</div>')
+   +'<div class="ycsub" style="margin-top:8px">'+(rec?'계산으로만 고르면':'차 한 대 부르면')+' <b>'+ycEsc(PL.txt||'-')+'</b></div>'
+   +'<div class="ycsub">예상 운임 <b style="font-size:17px;color:#1b4fa8">'+won(fv)+'원</b> <span style="color:#8b9aab">(부가세 별도 · 포함 '+won(Math.round(fv*1.1))+'원 · '+fh+')</span></div>'
+   +(P.reg?'':'<div class="ycsub" style="white-space:normal;color:#c9761a">지역을 같이 적으면(예: 부산 무지개 30개) 그 지역 운임으로 계산합니다.</div>')
    +'</div>';
+  const show=cases.filter(function(x){return x.dist<=2});
+  if(show.length){
+   h+='<div class="ycsub" style="margin-top:9px;font-weight:700">📜 과거에 실제로 부른 차 — 비슷한 수량부터 '+Math.min(5,show.length)+'건'+(show.length>5?' / '+show.length+'건':'')+'</div>'
+    +'<table class="yctb" style="margin-top:4px">';
+   show.slice(0,5).forEach(function(x){
+    h+='<tr><td class="ycn">'+ycEsc(x.d.slice(2))+'</td><td class="ycn">'+ycEsc(x.n.slice(0,12))+'</td>'
+     +'<td class="ycn" style="color:#8b9aab">'+ycEsc(x.parts)+(x.extra>0?' <span style="color:#c9761a">+다른 짐 '+x.extra+'개</span>':'')+'</td>'
+     +'<td class="ycn"><b>'+ycEsc(ycTkNm(x.tk))+'</b></td>'
+     +'<td style="text-align:right"><b>'+won(x.fee)+'</b></td></tr>'});
+   h+='</table>';
+  }else if(P.items.length){
+   h+='<div class="ycsub" style="margin-top:8px;white-space:normal;color:#8b9aab">용차 내역서에서 이 품목을 보낸 과거 기록을 못 찾았습니다 — 위는 신부장님 적재 기준 계산입니다.</div>';
+  }
  }
  else if(P.t&&(P.reg||P.rest)){
   /* ---- 운임: 지역 + 차종 ---- */
