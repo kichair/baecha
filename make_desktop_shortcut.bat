@@ -4,6 +4,8 @@ rem  Make a DESKTOP shortcut for the KwangIl sales site.
 rem  Double-click this file once on each PC. That's all.
 rem  Opens the site as an app window (no address bar) in Chrome
 rem  or Edge. If neither is installed, makes a normal web shortcut.
+rem  Then opens the app once and shows how to pin it to the taskbar
+rem  (Windows does not let scripts pin to the taskbar).
 rem ============================================================
 set "URL=https://kwangilchair.com"
 set "MSG_B64=67CU7YOV7ZmU66m07JeQICLqtJHsnbzssrTslrQg7JiB7JeF6rSA66asIiDslYTsnbTsvZjsnYQg66eM65Ok7JeI7Iq164uI64ukLgoK7J6R7JeF7KSEKO2ZlOuptCDslYTrnpgp7JeQ64+EIOuRkOugpOuptDoK7KeA6riIIOyXtOumsCDsmIHsl4XqtIDrpqwg7LC97J2YIOyekeyXheykhCDslYTsnbTsvZjsnYQg7Jik66W47Kq9IO2BtOumrSDihpIgIuyekeyXhSDtkZzsi5zspITsl5Ag6rOg7KCVIgoKKOyciOuPhOyasCDqt5zsuZnsg4Eg7J206rKD66eM7J2AIOyngeygkSDriIzrn6zslbwg7ZWp64uI64ukKQ=="
