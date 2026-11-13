@@ -134,6 +134,7 @@ button,select,input{font-family:inherit}
 .addr .go{flex:none;display:flex;gap:5px}
 .addr .go a{background:#fff;border:1px solid #dde5ee;border-radius:8px;width:32px;height:32px;display:grid;place-items:center;font-size:15px;text-decoration:none}
 .memo{margin-top:7px;font-size:12px;color:#c0392b;font-weight:700;line-height:1.5}
+.drvc{display:inline-block;border:2px solid #e11d48;border-radius:999px;padding:0 6px;margin:1px;color:#e11d48;font-weight:900;background:#fff1f2;line-height:1.3;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .items{list-style:none;margin-top:8px;border-top:1px dashed #e4eaf1;padding-top:7px}
 .items li{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:#54637a;line-height:1.65}
 .items li b{color:#16202c;font-variant-numeric:tabular-nums;font-weight:800}
@@ -536,6 +537,7 @@ dialog::backdrop{background:rgba(10,20,35,.55)}
 .yctb.rate th{text-align:right}
 .yctb.rate th:first-child{text-align:left}
 .ycout b,.ycout span,.ycout em,.yctb b,.yctb span{display:inline}
+#ycfout b,#ycfout span,#ycfout em{display:inline}
 .ycbig span{display:inline}
 .ycnote{background:#fffaf0;border:1px solid #f0dfbd;border-radius:10px;padding:9px 12px;font-size:12px;color:#7a5a17;line-height:1.6;margin:0 0 10px}
 /* 용차내역서 적요 — 7시도착 / 8일상차9일도착(주소) 같은 걸 붙여넣는 칸 */
@@ -1158,10 +1160,10 @@ const ROUTES=[
  {id:'rw',slot:'am',nm:'수요일. 남양주·원주·춘천',cl:'#EC4899',days:[3],zone:'남양주 마석 원주 춘천',
   k:['남양주','마석','원주','춘천','가평','만종','양평']},
  /* 2026-11-02 사장님: 화·목 충청(rc) 하나를 둘로 — 9동선 대전·진천·중부 / 10동선 천안·당진·평택·홍성·충청도 */
- {id:'r9',slot:'am',nm:'9. 대전·진천·중부',cl:'#FF7A45',days:[2,4],zone:'음성 진천 충주 세종 대전 / 공주 논산 계룡 금산 제천 (충북)',
-  k:['대전','음성','진천','충주','세종','대덕','유성','공주','논산','계룡','금산','제천','증평','괴산','옥천','보은','영동','단양','중부']},   /* 청주·오창·청원은 10동선으로, «충북» 낱말은 «충북 청주» 가 9로 먼저 잡혀 뺌 (2026-11-09) */
- {id:'r10',slot:'am',nm:'10. 천안·청주·평택·당진',cl:'#7A4E2D',days:[2,4],zone:'오산 평택 안성 아산 천안 청주 홍성 예산 보령 서산 당진 태안 서천 (충남·충청)',
-  k:['청주','오창','청원','평택','천안','아산','당진','홍성','예산','보령','서산','안성','청북','지제','서천','태안','충남','충청','송탄','안중','팽성','둔포','탕정','배방','성환','직산','입장','신창','광덕','청양','부여']},
+ {id:'r9',slot:'am',nm:'9. 대전·진천·중부·청주',cl:'#FF7A45',days:[2,4],zone:'대전 청주 세종 음성 진천 충주 / 공주 논산 계룡 금산 제천 (충북)',
+  k:['대전','청주','오창','청원','음성','진천','충주','세종','대덕','유성','공주','논산','계룡','금산','제천','증평','괴산','옥천','보은','영동','단양','충북','중부']},   /* 2026-11-11 강현아님 «9동선은 대전·진천·중부·청주» — 11/09 에 10 으로 보냈던 청주·오창·청원(과 «충북»)을 9 로 되돌림 */
+ {id:'r10',slot:'am',nm:'10. 천안·아산·평택·당진·홍성·예산',cl:'#7A4E2D',days:[2,4],zone:'천안 아산 평택 당진 홍성 예산 / 오산 안성 보령 서산 태안 서천 (충남)',
+  k:['평택','천안','아산','당진','홍성','예산','보령','서산','안성','청북','지제','서천','태안','충남','충청','송탄','안중','팽성','둔포','탕정','배방','성환','직산','입장','신창','광덕','청양','부여']},   /* 2026-11-11 강현아님 «10동선은 천안·평택·당진·홍성·예산» */
  {id:'t35',nm:'3.5톤 대형',cl:'#F5C518',days:[1,2,3,4,5],zone:'지방 위주 · 장·캐비닛 등 가구 위주 · 서울 시내(골목·높이바) 제외 · 1톤의 1.2배 적재',k:[]},
  {id:'as',nm:'A/S 출동',cl:'#F97316',days:[1,2,3,4,5],zone:'A/S · 수리 · 회수 · 교환',k:[]},
  {id:'etc',nm:'추가·기타',cl:'#94A3B8',days:[1,2,3,4,5],zone:'분류 안 되는 건 · 급건 · 용차',k:[]},
@@ -1174,7 +1176,9 @@ const ROUTES=[
 const RID=Object.fromEntries(ROUTES.map(r=>[r.id,r]));
 /* 2026-11-02 옛 '화·목 충청(rc)' 값이 저장돼 남아 있을 수 있다 — 거래처 이름·주소로 9/10동선에 나눠 넣고, 못 고친 것은 10동선으로 보이게 */
 RID.rc=RID.r10;
-const RC9=/대전|음성|진천|충주|세종|유성|대덕|공주|논산|계룡|금산|제천|옥천|보은|증평|괴산|중부/;
+const RC9=/대전|청주|오창|청원|음성|진천|충주|세종|유성|대덕|공주|논산|계룡|금산|제천|옥천|보은|증평|괴산|중부/;
+/* 10동선 지역 — 2026-11-11 강현아님 «10동선은 천안,평택,당진,홍성,예산» (+ 거기 딸린 충남 시·군) */
+const RT10=/천안|아산|평택|오산|안성|당진|홍성|예산|보령|서산|태안|서천|송탄|안중|팽성|둔포|탕정|배방|성환|직산|입장|신창|광덕|청양|부여/;
 function rcOf(n){n=String(n||'');return RC9.test(n+' '+((typeof ADDR!=='undefined'&&ADDR[n])||''))?'r9':'r10'}
 function rcMig(){
  const fix=function(m){if(!m||typeof m!=='object')return;Object.keys(m).forEach(function(k){if(m[k]==='rc')m[k]=rcOf(String(k).split('§')[0])})};
@@ -1269,6 +1273,8 @@ let YCT='1',YCR='',YCQ=1,YCC=0,YCF=0;
 let YCCD='',YCCALL=false;
 /* 용차계산기 입력 방식 — 0: 개수로(신부장님 기준) / 1: 직접 재서(가로×세로×높이) */
 let YCMD=0,YCBW=60,YCBD=60,YCBH=90,YCBQ=0,YCBT=0;
+/* 운임·물량 검색 한 줄 (2026-11-13 강현아님 — «어떤 차를 불러야 하나» 창을 이 검색으로 바꿈) */
+let YCFQ='';
 function ycMode(m){YCMD=+m||0;render()}
 function ycBox(k,v){const n=Math.max(0,+v||0);if(k==='w')YCBW=n;else if(k==='d')YCBD=n;else if(k==='h')YCBH=n;else if(k==='t')YCBT=n;else YCBQ=n;drawYcOne()}
 /* 용차 내역서 — {날짜:{업체:[줄]}} · 업체 이름 */
@@ -1280,7 +1286,11 @@ let SJA=LSU('_sja',{});
 /* sERP 거래처 주소 끝의 동선 번호표 «[7]» «[5#]» — 거래명세표 PDF 를 읽을 때 외워 둔다 {거래처(빈칸 뺀 이름):'r7'} (2026-11-04 사장님 «번호표 써») */
 let TAGRT=LSU('_tagrt',{});
 let JNT=LSU('_jnt',{});   /* 직납내역서 시간 칸에 손으로 넣은 것 {주문key:{t,ts}} (2026-11-09) */
-function tagRt(n){const r=TAGRT[String(n||'').replace(/\s+/g,'')];return r&&RID[r]?r:null}
+function tagRt(n){const r=TAGRT[String(n||'').replace(/\s+/g,'')];if(!r||!RID[r])return null;
+ /* 2026-11-11 강현아님 «9와 10동선은 옛 번호표 무시하고 주소대로» — sERP 번호표 9·10 은 새 나눔과 어긋나는 게 많다
+    (천안·평택인데 [9] 가 17곳, 대전인데 [10]). 표가 9/10 이면 표 대신 거래처 주소의 지역으로 가르고, 지역을 모르면 표도 안 쓴다. */
+ if(r==='r9'||r==='r10'){const ad=String((typeof ADDR!=='undefined'&&ADDR[n])||'');return RC9.test(ad)?'r9':(RT10.test(ad)?'r10':null)}
+ return r}
 let YCV=localStorage.getItem(KEY+'_ycv')||'대현물류';
 let YCD='';   /* 2026-11-02 용차내역서도 열 때마다 내일로 — 전에 고른 날짜는 기억하지 않는다 */
 let YCBALL=false;
@@ -1370,14 +1380,14 @@ const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계
 /* 적요에 직납 주소가 있어도 무조건 이 동선으로 보내는 거래처 */
 const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/삼신\s*탈렌토/,'r4'],
- [/대한사무용중역가구|토파즈/,'r10'],
+ [/대한사무용중역가구|토파즈/,'r9'],   /* 청주 — 2026-11-11 강현아님 «9동선은 대전·진천·중부·청주» 로 9 로 되돌림 (11/09 엔 10) */
  [/다온사무용가구\(천안|현대가구산업\(평택/,'r10'],   /* 2026-11-09 사장님 «다온사무용가구(천안) 10동선 · 현대가구산업(평택) 10동선» */
  [/상상\s*OA/i,'r9',1],   /* 2026-11-09 사장님 «상상oa 9동선» (대전). 셋째 칸 1 = 거래처 위치 고정 — 적요에 배송지가 있으면 그 주소 동선 (11/9 안산 직납 → 6동선) */   /* 2026-11-09 사장님 «대한사무용중역가구랑 토파즈 10동선» — 청주 남이면이라 9동선으로 잡히던 것 */   /* 2026-11-09 사장님 «삼신탈렌토 4동선» (영등포 주소라 2동선으로 잡히던 것) */
  /* 2026-11-02 사장님 «동일사무용/한양듀오백/한국퍼니처/강남퍼니처는 4동선으로» — 적요에 «수원제일로» 같은 배송지가 있어도 4동선 */
  [/나무이야기|한양사무용가구\(천안/,'r9'],   /* 2026-11-04 사장님 «나무이야기 한양사무용가구(천안)은 9동선» — 아래 한양사무용가구→4 보다 먼저 */
  /* 2026-11-04 사장님 받아적은 9동선: 그루터기 · 종합사무용가구(음성) · 청송사무용가구(청주) · 음성우드메탈 · 동양M&F · 모던엔틱 (그루터기·청송은 10 에서 9 로) */
  [/그루터기|종합사무용가구\(음성|음성우드메탈|해밀가구/i,'r9'],
- [/청송.*청주|청주.*청송|동양\s*M\s*&\s*F|모던엔틱/i,'r10'],   /* 2026-11-09 사장님 «청주는 10동선» — 11/04 에 9 로 고정했던 청주 3곳(청송·동양M&F·모던엔틱)도 10 으로 */   /* 해밀가구(대전) — 번호표는 [5#] 이지만 9동선 고정 (2026-11-04 사장님) */
+ [/청송.*청주|청주.*청송|동양\s*M\s*&\s*F|모던엔틱/i,'r9'],   /* 청주 3곳 — 11/04 r9 → 11/09 r10 → 2026-11-11 강현아님 «청주는 9동선» 으로 다시 r9 */   /* 해밀가구(대전) — 번호표는 [5#] 이지만 9동선 고정 (2026-11-04 사장님) */
  [/새천년사무용가구\(화성/,'r7'],   /* 2026-11-05 사장님 «화성 새천년은 7동선» (번호표는 [6]) */
  [/더블유퍼니처/,'r7'],   /* 2026-11-04 사장님 «더블유퍼니처는 7동선» (주소 끝 [7], 도착지 수원대한) */
  [/동일사무용가구|한양듀오백|한양사무용가구|한국퍼니처|강남퍼니처/,'r4'],
@@ -1394,7 +1404,7 @@ const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/동양사무용가구\(아현/,'r5'],   /* 2026-11-03 사장님 «아현동양 을지로동선» */
  [/에이원사무용가구\(광주|아이콘가구/,'r7'],   /* «광주에이원 수원동선 · 아이콘 수원동선» */
  [/월드사무용가구\(남동/,'r1'],   /* «남동월드 1동선» */
- [/서해가구\(당진|서해가구백화점\(당진|당진\s*OK|당진OK사무용가구|한솔가구\(홍성|당진가구타운|네오오피스/i,'r10']];   /* 청송(청주)·그루터기는 11-04 에 9동선으로 옮김 */   /* 2026-11-02 사장님 «서해가구(당진) · 당진OK · 홍성 한솔 · 당진가구타운 → 10» */   /* 2026-11-02 사장님 «이프시스템 5동선» — 5/27·5/28 에 4동선으로 옮긴 기억이 남아 4동선으로 찍히던 것 */
+ [/서해가구\(당진|서해가구백화점\(당진|당진\s*OK|당진OK사무용가구|한솔가구\(홍성|당진가구타운/i,'r10']];   /* 네오오피스(대전)는 2026-11-11 «대전은 9동선 · 주소대로» 로 고정에서 뺌 */   /* 청송(청주)·그루터기는 11-04 에 9동선으로 옮김 */   /* 2026-11-02 사장님 «서해가구(당진) · 당진OK · 홍성 한솔 · 당진가구타운 → 10» */   /* 2026-11-02 사장님 «이프시스템 5동선» — 5/27·5/28 에 4동선으로 옮긴 기억이 남아 4동선으로 찍히던 것 */
 function rtHard(n){const t=String(n||'');
  for(let i=0;i<RT_HARD.length;i++)if(RT_HARD[i][0].test(t))return RT_HARD[i][1];
  return null}
@@ -1620,7 +1630,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261110m';
+const APPVER='20261113a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2073,8 +2083,8 @@ function guess0(o){
    원거리(부산·대구·전라·경상·제주)는 용차로 나가야 하니 그대로 미배차로 두고, 주소가 아예 없는 거래처도 못 잡는다. */
 const AREA_FB=[
  [/인천/,'r1'],
- [/청주|오창|청원|평택|안성|천안|아산|당진|서산|홍성|예산|보령|태안|서천|청양|부여|충남|충청/,'r10'],
- [/대전|세종|충주|음성|진천|충북|공주|논산|계룡|금산|제천|옥천|보은|증평|괴산|영동|단양/,'r9'],
+ [/대전|세종|충주|음성|진천|청주|오창|청원|충북|공주|논산|계룡|금산|제천|옥천|보은|증평|괴산|영동|단양/,'r9'],   /* 9 를 10 보다 먼저 — «충청북도 청주» 가 아래 «충청» 에 잡히지 않게 (2026-11-11 청주=9동선) */
+ [/평택|안성|천안|아산|당진|서산|홍성|예산|보령|태안|서천|청양|부여|충남|충청/,'r10'],
  [/(구로|금천|강서|양천|영등포)구/,'r2'],
  [/(동작|관악|서초|강남|송파|강동)구|하남/,'r4'],
  [/(마포|종로|용산|서대문|은평|성동|광진|동대문|중랑|성북|강북|도봉|노원)구|서울.{0,12}중구/,'r5'],
@@ -2168,7 +2178,16 @@ function t35Tag(o){
  const ad=(ADDR[o.n]||'')+' '+(o.memo||'')+' '+(o.dst||'')+' '+(o.n||'');
  return T35_SEOUL.test(ad)?'<em class="t35tag" title="배진성 기사님 차는 서울 시내 골목·높이 제한 바가 있는 곳은 들어가기 어렵습니다 — 다른 동선으로 빼 주세요">⚠ 서울</em>':''}
 /* 거래처구분이 'ERP수시집' 이면 빨간 동그라미 — 거래명세서를 들고 나가거나 돈을 받아야 하는 건 */
-const ERP_RE=/ERP\s*수시/i;   /* 실제 명세서 값은 'ERP수시' · 'ERP수시(운임비별도)' — '집'이 없다 */
+const ERP_RE=/ERP\s*수시/i;
+/* 2026-11-11 강현아님 «기사님바로전화 이런 건 동그라미 표시로 눈에 띄게 · 기사님정보 이런 것도» —
+   적요에서 기사에게 하는 부탁을 찾는다: 전화·연락 요청(바로/미리/도착 전/출발 전 … 전화, 전화요망·전화주세요 …)과 기사 정보 요청.
+   «최판동기사님010-…» 처럼 이름·번호만 적힌 것, «기사님으로배차» 는 아니다. 화면·직납 목록·배송 전표는 빨간 동그라미 테두리,
+   거래명세표 묶음은 공급자 보관용 왼쪽 위에 «기사님 전화»·«기사님 정보» 동그라미 도장. */
+const DRV_INFO_RE=/기\s*사\s*님?\s*(?:의\s*)?정\s*보[가-힣!]{0,4}/;
+const DRV_CALL_RE=/기\s*사\s*님?[^\/,\d]{0,6}?(?:전화|연락)[가-힣!]{0,4}|(?:바로|미리|꼭|먼저|반드시|도착\s*\S{0,5}?\s*전에?|출발\s*전에?|하루\s*전날?|이틀\s*전에?)\s*(?:기\s*사\s*님?\s*)?(?:꼭\s*)?(?:전화|연락)[가-힣!]{0,5}|(?:전화|연락)\s*(?:부탁|요망|요청|주세요|주시면|해\s*주세요|달래|달라|필수|후\s*(?:방문|출발))[가-힣!]{0,3}/;
+function drvHL(raw){const t=String(raw||''),re=new RegExp(DRV_INFO_RE.source+'|'+DRV_CALL_RE.source,'g');let out='',i=0,m;
+ while((m=re.exec(t))){if(!m[0]){re.lastIndex++;continue}out+=esc(t.slice(i,m.index))+'<span class="drvc">'+esc(m[0])+'</span>';i=m.index+m[0].length}
+ return out+esc(t.slice(i))}   /* 실제 명세서 값은 'ERP수시' · 'ERP수시(운임비별도)' — '집'이 없다 */
 const ERP_FROM='2026-08-25';
 function erpTag(o){
  if(!o||!o.erp)return '';
@@ -2280,6 +2299,14 @@ function build(fresh){
  ORDERS=[];const g={};DUPN=0;
  /* 동기화로 내려온 옛 '화·목 충청(rc)' 배차값은 그때그때 9/10동선으로 (2026-11-03) */
  try{if(typeof ASGK!=='undefined'&&ASGK)Object.keys(ASGK).forEach(function(k){if(ASGK[k]==='rc')ASGK[k]=rcOf(String(k).split('§')[0])})}catch(e){}
+ /* 2026-11-11 강현아님 «9동선=대전·진천·중부·청주 / 10동선=천안·평택·당진·홍성·예산 / 9·10 은 옛 번호표 무시하고 주소대로» —
+    번호표·옛 지역표로 잡혀 저장된 오늘 이후의 9/10 배차값을 주소 지역에 맞게 되돌린다.
+    고정 거래처는 고정대로, 손으로 옮긴 것(옮긴 시각이 남아 있음)은 안 건드린다. */
+ try{if(typeof ASGK!=='undefined'&&ASGK){const _td=mnToday();Object.keys(ASGK).forEach(function(k){const v=ASGK[k];
+  if(v!=='r9'&&v!=='r10')return;const ps=String(k).split('§');if((ps[2]||'')<_td)return;if(ASGV&&ASGV[k])return;
+  const h=rtHard(ps[0]);if(h){if((h==='r9'||h==='r10')&&v!==h)ASGK[k]=h;return}
+  const ad=String((typeof ADDR!=='undefined'&&ADDR[ps[0]])||'');const w=RC9.test(ad)?'r9':(RT10.test(ad)?'r10':'');
+  if(w&&v!==w)ASGK[k]=w})}}catch(e){}
  DSTL={};RAW.forEach(function(l){const m=String(l.m||'').match(/([가-힣A-Za-z0-9]{2,12})\s*(?:으로|로)\s*(?:배송|배달)?\s*\(([^)]{6,60})\)/);
   if(m&&looksAddr(m[2]))DSTL[dstlKey(l.n,m[1])]=trimAd(m[2].replace(/\s+/g,' '))});
  /* 같은 거래처라도 적요에 서로 다른 배송 주소가 적혀 있으면 따로 떼어낸다.
@@ -2667,7 +2694,7 @@ function card(o,big){
   +'<div class="chips">'+chips+(DRVOV[o.key]?'<span class="chip" style="background:#e5edfb;color:#2F7FE8">👤 '+DRVOV[o.key]+'</span>':'')+(DRV2[o.key]?'<span class="chip" style="background:#fdf1e2;color:#c9761a">🔀 분할 '+DRV2[o.key]+'</span>':'')+'</div>'+'<div class="cdrv" onclick="event.stopPropagation()"><span>기사</span><select onchange="pendDrv('+o.i+',this.value)">'+'<option value="">'+(CAR[ASSIGN[o.i]]?'동선 기사('+CAR[ASSIGN[o.i]]+')':'미지정')+'</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+((PEND[o.i]!==undefined?PEND[o.i]:DRVOV[o.key])===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'+'<span style="margin-left:6px">분할</span><select onchange="setDrv2('+o.i+',this.value)">'+'<option value="">없음</option>'+DRVS.map(function(d){return '<option value="'+d[0]+'"'+(DRV2[o.key]===d[0]?' selected':'')+'>'+d[0]+'</option>'}).join('')+'</select>'
   +(FQ===o.i?'<span style="margin-left:6px">동선</span><select onchange="move('+o.i+',this.value,\'동선 이동\',1)">'+ROUTES.map(function(r){return '<option value="'+r.id+'"'+(ASSIGN[o.i]===r.id?' selected':'')+'>'+r.nm+'</option>'}).join('')+'<option value="x"'+(ASSIGN[o.i]==='x'?' selected':'')+'>제외</option></select>':'')
   +'</div>'+adr
-  +(o.memo?'<div class="memo">▸ '+o.memo+'</div>':'')
+  +(o.memo?'<div class="memo">▸ '+drvHL(o.memo)+'</div>':'')
   +'<ul class="items">'+items+'</ul>'+acts+'</div></div>'}
 function ring(pct,a,b){const R=38,C=2*Math.PI*R;
  return '<div class="ring"><svg width="88" height="88" viewBox="0 0 88 88">'
@@ -2700,7 +2727,7 @@ function render(){
  const app=document.getElementById('app');
  if(!RAW.length&&!CUSTOM.length){app.innerHTML=setupHTML();return}
  app.innerHTML=TAB===0?tabBoard(today):TAB===1?tabMine(today):TAB===3?tabRoute(today):TAB===4?tabDrv(today):TAB===5?tabNote(NB.length):TAB===6?tabYc(today):TAB===7?tabYcb():TAB===8?tabCt():TAB===9?tabHl():TAB===10?tabMs():TAB===11?tabUj():TAB===12?tabMsb():TAB===13?tabMoney():TAB===15?tabJn():tabStat(today);
- bind();if(TAB===6)drawYcOne();
+ bind();if(TAB===6)ycFindDraw();
  const _q=document.getElementById('srchq');if(_q&&SQ)_q.value=SQ;
  applySrch(false);
  save();if(TAB===2)initMap()}
@@ -2722,7 +2749,7 @@ function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h
 const ZONE_DRV={
  r7:[[/용인|오포|모현|기흥|처인|광주시/,[303,12]],[/이천|여주|곤지암|초월|도척/,[323,24]],[/수원|화성|오산|병점|봉담|권선|영통|팔달|장안구/,[327,17]],[/안양|군포|의왕|과천/,[211,10]]],
  r9:[[/대전|세종|유성|대덕|충주|공주|논산|계룡/,[501,14]],[/음성|진천/,[205,40]],[/./,[411,20]]],
- r10:[[/천안|청주|아산|당진|서산|홍성|예산|보령|태안|서천/,[411,20]],[/평택|안성|오산/,[205,40]],[/./,[380,20]]],
+ r10:[[/천안|아산|당진|서산|홍성|예산|보령|태안|서천/,[411,20]],[/평택|안성|오산/,[205,40]],[/./,[380,20]]],
  rw:[[/원주|춘천|횡성|홍천|만종/,[446,22]],[/남양주|마석|덕소|포천|의정부|구리|양주/,[285,29]],[/가평|양평|청평/,[156,34]]],
  r6:[[/화성|발안|남양읍|봉담/,[327,17]],[/안산|시화|정왕|시흥|군자|광명/,[213,20]]],
  r1:[[/./,[87,25]]],
@@ -4186,6 +4213,160 @@ function ycFee(reg,t){
  return {v:Math.round(YC_BASE[bt]*up),n:0,how:'전체 평균'};
 }
 function won(v){return (v||0).toLocaleString('ko-KR')}
+/* ===== 운임·물량 검색 (2026-11-13 강현아님) =====
+   검색 한 줄에서 ① 차종(5톤초장축·3.5톤·3m…) ② 품목+개수(무지개 30개) ③ 지역(부산…)을 알아듣는다.
+   — 품목+개수면: 실제 주문에 있던 품목을 찾아 신부장님 적재 기준으로 몇 대분·짐칸 몇 m·어떤 차(ycPlan)·예상 운임
+   — 차종+지역이면: 운임 장부 실적(ycFee)과 용차 내역서 최근 기록
+   «어떤 차를 불러야 하나» 입력 칸(지역·날짜·거래처·개수·직접재기)은 이 검색으로 바꿨다. */
+function ycEsc(x){return String(x||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function ycTkNm(t){const x=YC_TRUCK.filter(function(y){return y.t===t})[0];return x?x.nm:String(t||'')}
+function ycFindParse(q){
+ let s=' '+String(q||'').replace(/[,·+]/g,' ')+' ';
+ let t=null;
+ const take=function(re,code){if(t)return;const m=s.match(re);if(m){t=code;s=s.replace(re,' ')}};
+ /* 긴 말부터 — «5톤초장축» 이 «5톤» 보다 먼저 잡혀야 한다 */
+ take(/1\s*(?:톤|t|T)\s*(?:초\s*)?장\s*축/,'1L');
+ take(/5\s*(?:톤|t|T)?\s*(?:초\s*장\s*축|장\s*축|축\s*차?)|초\s*장\s*축/,'5L');
+ take(/(?:1\.4|1\.5)\s*(?:톤|t|T)/,'1.4');
+ take(/2\.5\s*(?:톤|t|T)/,'2.5');
+ take(/3\.5\s*(?:톤|t|T)/,'3.5');
+ take(/11\s*(?:톤|t|T)/,'11');
+ take(/5\s*(?:톤|t|T)/,'5');
+ take(/1\s*(?:톤|t|T)/,'1');
+ take(/다마스/,'0.5');
+ take(/라보/,'0.6');
+ /* 합바차 — «3m» «2.5미터» (0.5m 단위로 맞춰 요금표에 있는 것만) */
+ if(!t){const mm=s.match(/(\d+(?:\.\d+)?)\s*(?:m|M|미터)(?![a-zA-Z가-힣])/);
+  if(mm){const v=Math.round(parseFloat(mm[1])*2)/2,mk='m'+v;
+   if(YC_BASE[mk]){t=mk;s=s.replace(mm[0],' ')}}}
+ /* 품목+개수 짝 — «무지개 30개» «흑로대 40» (이름이 숫자로 끝나지 않게) */
+ const items=[];let qty0=0;
+ s=s.replace(/([가-힣a-zA-Z](?:[가-힣a-zA-Z0-9*×]{0,13}[가-힣a-zA-Z*×])?)\s*(\d{1,4})\s*개?(?=\s|$)/g,
+  function(_,nm,n2){items.push({nm:nm,q:+n2});return ' '});
+ s=s.replace(/(^|\s)(\d{1,4})\s*개(?=\s|$)/g,function(_,sp,n2){qty0+=+n2;return ' '});
+ /* 짝의 이름이 사실 지역이면(«부산 30개») 지역으로 돌리고 개수는 의자로 */
+ let reg=null;
+ for(let i=items.length-1;i>=0;i--){const r2=ycRegion(items[i].nm);
+  if(r2){if(!reg)reg=r2;qty0+=items[i].q;items.splice(i,1)}}
+ s=s.replace(/얼마(?:예요|에요|야|지|임|인가요?)?|운임|가격|비용|요금|금액|알려줘?|\?/g,' ').replace(/\s+/g,' ').trim();
+ if(!reg)reg=s?ycRegion(s):null;
+ return {t:t,reg:reg,rest:s,items:items,qty0:qty0};
+}
+/* 품목 이름 → 실제 주문에 있던 품목을 찾아 1톤당 몇 개인지 (없으면 적재기준표로) */
+function ycProdCap(nm){
+ const key=String(nm||'').replace(/\s+/g,'');
+ const cnt={};
+ try{(ORDERS||[]).forEach(function(o){(o.items||[]).forEach(function(it){
+  const p=String(it.p||'');if(!p||p.replace(/\s+/g,'').indexOf(key)<0)return;
+  cnt[p]=(cnt[p]||0)+(+it.q||1)})})}catch(e){}
+ const names=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]});
+ if(names.length){const c=capOfIt({p:names[0]});return {p:names[0],c:c.c||60,l:c.l,vars:names.length}}
+ const c=capOf(String(nm||''));return {p:String(nm||''),c:c.c||60,l:c.l,vars:0};
+}
+/* 용차 내역서에서 지역(rk)·차종(tk) 맞는 최근 기록 */
+function ycFindYcb(rk,tk){
+ const out=[];
+ try{YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y){
+  if(!y||y.link)return;const f=+y.fee||0;if(!f)return;
+  if(tk&&y.tk!==tk)return;
+  if(rk){const k2=ycRegKey(y.reg);if(!k2||(k2.indexOf(rk)<0&&rk.indexOf(k2)<0))return}
+  out.push({d:String(y.d||''),co:c,n:String(y.n||''),reg:String(y.reg||''),tk:y.tk||'',fee:f,cb:(y.co==='착불')})})})}catch(e){}
+ out.sort(function(a,b){return a.d<b.d?1:(a.d>b.d?-1:0)});
+ return out;
+}
+function ycFindYcbTb(rows,showTk){
+ let h='<table class="yctb" style="margin-top:4px">';
+ rows.slice(0,6).forEach(function(r){
+  h+='<tr><td class="ycn">'+ycEsc(r.d.slice(2))+'</td><td class="ycn">'+ycEsc(r.n.slice(0,14))+'</td>'
+   +'<td class="ycn" style="color:#8b9aab">'+ycEsc(r.reg)+(showTk&&r.tk?' · '+ycEsc(ycTkNm(r.tk)):'')+' · '+ycEsc(ycShort(r.co))+'</td>'
+   +'<td style="text-align:right"><b>'+won(r.fee)+'</b>'+(r.cb?' <span style="color:#c9761a">착불</span>':'')+'</td></tr>'});
+ return h+'</table>';
+}
+function ycFindDraw(){
+ const el=document.getElementById('ycfout');if(!el)return;
+ const q=String(YCFQ||'').trim();
+ if(!q){el.innerHTML='<div class="ycsub" style="margin-top:4px;white-space:normal;color:#8b9aab">예: <b>부산 5톤초장축</b> → 운임 · <b>무지개 30개</b> → 몇 대분·어떤 차 · <b>부산 무지개 30개</b> → 둘 다 · <b>부산 3m</b> → 합바차</div>';return}
+ const P=ycFindParse(q);
+ let h='';
+ if(P.items.length||P.qty0>0){
+  /* ---- 물량: 품목+개수 → 몇 대분·어떤 차 ---- */
+  let L=0,rows='';
+  P.items.forEach(function(x){
+   const pc=ycProdCap(x.nm);const ld=x.q/(pc.c||60);L+=ld;
+   rows+='<tr><td class="ycn">'+ycEsc(x.nm)+(pc.p!==x.nm?' <span style="color:#8b9aab">→ '+ycEsc(pc.p.slice(0,22))+'</span>':'')+'</td>'
+    +'<td style="text-align:right">'+x.q+'개</td>'
+    +'<td class="ycn" style="color:#8b9aab">1톤에 '+pc.c+'개 · '+ycEsc(pc.l)+'</td>'
+    +'<td style="text-align:right"><b>'+ld.toFixed(2)+'대</b></td></tr>';
+  });
+  if(P.qty0>0){const ld=P.qty0/60;L+=ld;
+   rows+='<tr><td class="ycn">의자</td><td style="text-align:right">'+P.qty0+'개</td><td class="ycn" style="color:#8b9aab">1톤에 60개 (신부장님 기준)</td><td style="text-align:right"><b>'+ld.toFixed(2)+'대</b></td></tr>';}
+  const len=ycLen(L);
+  const PL=ycPlan(L,P.reg);
+  const first=(PL.plan&&PL.plan[0])?PL.plan[0].tk:null;
+  const mk='m'+(Math.ceil(len*2)/2);
+  const mtk=YC_TRUCK.filter(function(x){return x.t===mk})[0];
+  const mf=mtk?ycFee(P.reg,mtk.t):null;
+  h+='<div class="ycout" style="margin-top:9px">'
+   +(P.reg?'<div class="ycsub" style="margin-bottom:3px"><b>'+ycEsc(P.reg)+'</b></div>':'')
+   +'<div class="ycbig">'+(first?ycEsc(first.nm):'-')+(PL.plan&&PL.plan.length>1?' 외':'')+'</div>'
+   +'<div class="ycsub" style="margin-top:6px">짐칸 <b style="font-size:15px;color:#0f5f37">'+len.toFixed(2)+'m</b> 차지 · <b>'+L.toFixed(2)+'대분</b> (1톤차 기준)</div>'
+   +'<table class="yctb" style="margin-top:6px">'+rows+'</table>'
+   +ycRuler(len)
+   +'<div class="ycsub" style="margin-top:8px">차 한 대 부르면 <b>'+ycEsc(PL.txt||'-')+'</b></div>'
+   +'<div class="ycsub">예상 운임 <b style="font-size:17px;color:#1b4fa8">'+won(PL.fee)+'원</b> <span style="color:#8b9aab">(부가세 별도 · 포함 '+won(Math.round(PL.fee*1.1))+'원 · '+PL.how+(PL.n?' '+PL.n+'건':'')+')</span></div>'
+   +(mtk&&mf?'<div class="ycsub">합바차로 보내면 <b>'+ycEsc(mtk.nm)+'</b> ≈ <b>'+won(mf.v)+'원</b> <span style="color:#8b9aab">('+mf.how+(mf.n?' '+mf.n+'건':'')+')</span></div>':'')
+   +(P.reg?'':'<div class="ycsub" style="white-space:normal;color:#c9761a">지역을 같이 적으면(예: 부산 무지개 30개) 그 지역 운임으로 계산합니다 — 지금은 전체 평균.</div>')
+   +'</div>';
+ }
+ else if(P.t&&(P.reg||P.rest)){
+  /* ---- 운임: 지역 + 차종 ---- */
+  const regNm=P.reg||P.rest;
+  const f=ycFee(P.reg||regNm,P.t);
+  h+='<div class="ycout" style="margin-top:9px">'
+   +'<div class="ycsub" style="margin-bottom:3px"><b>'+ycEsc(regNm)+'</b> · '+ycEsc(ycTkNm(P.t))+'</div>'
+   +'<div class="ycbig">'+won(f.v)+'<span>원</span></div>'
+   +'<div class="ycsub">부가세 포함 <b>'+won(Math.round(f.v*1.1))+'원</b> · <span style="color:#8b9aab">'+f.how+(f.n?' '+f.n+'건':'')+' · 부가세 별도</span></div>'
+   +(P.reg?'':'<div class="ycsub" style="white-space:normal;color:#c9761a">장부에 «'+ycEsc(regNm)+'» 지역 실적이 없어 전체 기준입니다.</div>')
+   +'</div>';
+  const RR=P.reg&&YC_RATE[P.reg];
+  if(RR){const ks=YC_TRUCK.map(function(x){return x.t}).filter(function(k){return RR[k]&&k!==P.t});
+   if(ks.length)h+='<div class="ycsub" style="margin-top:7px;white-space:normal;line-height:1.7"><b>'+ycEsc(P.reg)+'</b> 다른 차: '+ks.map(function(k){return ycEsc(ycTkNm(k))+' <b>'+won(RR[k][0])+'</b>'}).join(' · ')+'</div>';}
+  const rk=ycRegKey(regNm);
+  let rows=ycFindYcb(rk,P.t),lbl='이 지역·이 차 최근',showTk=false;
+  if(!rows.length){rows=ycFindYcb(rk,null);lbl='이 지역 최근 (이 차 기록은 없음)';showTk=true}
+  if(rows.length)h+='<div class="ycsub" style="margin-top:9px;font-weight:700">📒 용차 내역서 — '+lbl+' '+Math.min(6,rows.length)+'건</div>'+ycFindYcbTb(rows,showTk);
+ }
+ else if(P.t){
+  /* ---- 차종만 — 지역별 실적 ---- */
+  const ks=Object.keys(YC_RATE).map(function(r){return {r:r,v:YC_RATE[r][P.t]}}).filter(function(x){return x.v})
+   .sort(function(a,b){return b.v[1]-a.v[1]});
+  h+='<div class="ycout" style="margin-top:9px"><div class="ycsub" style="margin-bottom:3px"><b>'+ycEsc(ycTkNm(P.t))+'</b> — 지역별 장부 실적 (부가세 별도)</div>';
+  if(ks.length){h+='<table class="yctb">';ks.slice(0,14).forEach(function(x){h+='<tr><td class="ycn">'+ycEsc(x.r)+'</td><td style="text-align:right"><b>'+won(x.v[0])+'</b></td><td class="ycn" style="color:#8b9aab">'+x.v[1]+'건</td></tr>'});h+='</table>';
+   if(ks.length>14)h+='<div class="ycsub" style="white-space:normal;color:#8b9aab">실적 많은 14곳만 — 지역을 같이 적으면 바로 나옵니다.</div>'}
+  else h+='<div class="ycsub" style="white-space:normal">장부에 이 차종 실적이 없습니다 — 기준값 '+won(Math.round(YC_BASE[ycTon(P.t)]*ycUp(P.t)))+'원</div>';
+  h+='</div>';
+  const rows=ycFindYcb(null,P.t);
+  if(rows.length)h+='<div class="ycsub" style="margin-top:9px;font-weight:700">📒 용차 내역서 — 이 차 최근 '+Math.min(6,rows.length)+'건</div>'+ycFindYcbTb(rows,false);
+ }
+ else if(P.reg||P.rest){
+  /* ---- 지역만 — 그 지역 단가표 (또는 품목 안내) ---- */
+  const regNm=P.reg||P.rest;
+  const RR=P.reg&&YC_RATE[P.reg];
+  h+='<div class="ycout" style="margin-top:9px"><div class="ycsub" style="margin-bottom:3px"><b>'+ycEsc(regNm)+'</b> — 장부 실적 (부가세 별도)</div>';
+  if(RR){h+='<table class="yctb">';
+   YC_TRUCK.forEach(function(x){if(!RR[x.t])return;
+    h+='<tr><td class="ycn">'+ycEsc(x.nm)+'</td><td style="text-align:right"><b>'+won(RR[x.t][0])+'</b></td><td class="ycn" style="color:#8b9aab">'+RR[x.t][1]+'건</td></tr>'});
+   h+='</table><div class="ycsub" style="white-space:normal;color:#8b9aab">차종을 같이 적으면(예: '+ycEsc(regNm)+' 5톤초장축) 그 값만 바로 나옵니다.</div>'}
+  else{const pc=ycProdCap(regNm);
+   if(pc.vars>0)h+='<div class="ycsub" style="white-space:normal">«'+ycEsc(regNm)+'» 품목이 주문에 있습니다 — <b>1톤에 '+pc.c+'개</b> ('+ycEsc(pc.l)+'). 개수를 같이 적으면(예: '+ycEsc(regNm)+' 30개) 몇 대분인지 계산합니다.</div>';
+   else h+='<div class="ycsub" style="white-space:normal;color:#c9761a">장부에 «'+ycEsc(regNm)+'» 지역 실적이 없습니다 — 차종을 같이 적으면 전체 기준값이라도 알려드립니다.</div>'}
+  h+='</div>';
+  const rows=P.reg?ycFindYcb(ycRegKey(regNm),null):[];
+  if(rows.length)h+='<div class="ycsub" style="margin-top:9px;font-weight:700">📒 용차 내역서 — 이 지역 최근 '+Math.min(6,rows.length)+'건</div>'+ycFindYcbTb(rows,true);
+ }
+ else h='<div class="ycsub" style="margin-top:4px;white-space:normal;color:#c9761a">차종(5톤초장축·3.5톤·3m…)·품목+개수(무지개 30개)·지역을 못 알아들었습니다.</div>';
+ el.innerHTML=h;
+}
 /* 물량(1톤차 환산 대수) → 알맞은 차 한 대 */
 function ycPick(load){
  for(let i=0;i<YC_SOLO.length;i++)if(load<=YC_SOLO[i].c+0.02)return YC_SOLO[i];
@@ -5850,6 +6031,11 @@ async function msbBuild(bytes,groups,coversOnly){
     /* 일찍·오전일찍·오전배송 — 왼쪽 맨 위(도장 줄 맨 앞)에 큰 글씨 동그라미. 위·아래 반쪽 다 (2026-10-30 «왼쪽 위로») */
     if(u.early)circ(u.early);
     if(isAdd)circ('추가');
+    /* 기사님 전화·기사님 정보 — 공급자 보관용(위)에만 (거래처가 가져가는 아래 반쪽엔 안 찍음) (2026-11-11 강현아님 «동그라미로 눈에 띄게») */
+    {const m0=String(u.memo||''),di=DRV_INFO_RE.test(m0),dc=DRV_CALL_RE.test(m0);
+     if(di||dc){const t=di&&dc?'기사님 정보·전화':di?'기사님 정보':'기사님 전화',es=14,ew=tw(t,es),rx=Math.max(24,ew/2+10),cx=fx+rx;
+      pg.drawEllipse({x:cx,y:803.5+SUP,xScale:rx,yScale:14,color:WHT,borderColor:RED,borderWidth:2});
+      pg.drawText(t,{x:cx-ew/2,y:798.5+SUP,size:es,font:font,color:RED});fx=fx+rx*2+8}}
     /* 주소란 «명세표주지마세요» — 맨 왼쪽 위, 도장 줄 위에 따로 한 줄 (공급자용에만). 같은 줄에 두면 제목과 겹친다 (2026-10-30) */
     if(u.noms){const t='명세표 주지마세요',w=tw(t,12)+14;
      pg.drawRectangle({x:22,y:818,width:w,height:20,color:RED});
@@ -5974,7 +6160,7 @@ async function msbByDate(force,onlyNew,coversOnly){
 function tabMsb(){
  let h='<div class="hd2">📄 명세서 묶기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">sERP 거래명세표 PDF → 동선·기사 찍고 동선별로 다시 묶기</span></div>';
  h+='<div class="ycnote"><b>날짜를 고르고 「📥 ERP에서 묶기」</b>를 누르면 자동실행컴이 sERP 에서 뽑아 둔 그날 거래명세표를 가져와 묶습니다(없으면 그 자리에서 뽑아 달라고 합니다, 2~5분). 평일 <b>14:35</b> 에 다음 영업일 것이 저절로 뽑힙니다(일별영업현황 → 거래명세표 → 미발행·개별발행·통합발행을 모아 PDF, 수집이 돌고 있으면 끝난 뒤) — 원본은 공유폴더 <b>\\\\Kic-server2\\새공유문서\\거래명세표PDF\\&lt;날짜&gt;.pdf</b>. <b>16:20</b> 에는 14:35 뒤 들어온 전표만 다시 뽑아 같은 곳 <b>&lt;날짜&gt;_추가.pdf</b> (새 장 목록·빼야 할 옛 장은 <b>&lt;날짜&gt;_추가.txt</b>) — «➕ 이 파일 추가분만 도장찍기» 로 올리세요. 직납 전표는 맨 앞에 <b>직납 묶음</b>으로 따로 모입니다(도장은 원래 동선). sERP 에서 직접 받은 PDF 는 <b>「📄 이 파일 도장찍기」</b>(전부) · <b>「➕ 이 파일 추가분만 도장찍기」</b>. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
-  +'적요에 <b>택배·용차·상차·화물·차량입고·퀵</b> 이 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴</b>은 따로 모읍니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
+  +'적요에 <b>택배·용차·상차·화물·차량입고·퀵</b> 이 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴</b>은 따로 모읍니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시) · 적요에 <b>기사님 바로 전화·도착 전 연락·기사님 정보</b> 같은 부탁이 있으면 빨간 동그라미 <b>«기사님 전화»·«기사님 정보»</b>(공급자용에만). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
   +'<b>배차를 다 마친 뒤</b> 올려야 동선·기사가 다 채워집니다.</div>';
  const md0=MSBD||mnNextBiz();
  /* 이 날짜를 마지막으로 묶은 때 — 추가분이 «언제 뒤» 인지 보이게 (2026-11-02 사장님 «몇시에 올리는건지 알꺼아냐») */
@@ -6450,7 +6636,7 @@ function jnPrintList(){const D=ycbDate(),G=jnGroups(D);
   G.by[g].forEach(function(z,i){const dv=z.mv?ycShort(z.mv.c)+' '+String(z.mv.y.tnm||'').replace(/\s*\(합바차\)/,''):(effDrv(z.o)||''),tm=jnTime(z.o);
    h+='<tr><td style="'+td+'text-align:center">'+(i+1)+'</td><td style="'+td+'font-weight:800">'+(jnSj(z.o)?JN_SJB:'')+esc(z.o.n)+'</td><td style="'+td+'text-align:center">'+esc(z.reg)+'</td>'
     +'<td style="'+td+'font-weight:900;text-align:center">'+esc(tm.t)+'</td><td style="'+td+'text-align:center;white-space:nowrap">'+esc(tm.p)+'</td><td style="'+td+'text-align:center">'+esc(dv)+'</td>'
-    +'<td style="'+td+'"><div class="mm">'+esc(tm.rest)+'</div></td><td style="'+td+'text-align:right;font-weight:900">'+z.o.qty+'</td></tr>'})});
+    +'<td style="'+td+'"><div class="mm">'+drvHL(tm.rest)+'</div></td><td style="'+td+'text-align:right;font-weight:900">'+z.o.qty+'</td></tr>'})});
  h+='</tbody></table></div>';
  let el=document.getElementById('ycbprt');if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
  /* 한 장(가로 A4 높이 194mm ≈ 733px)에 들어갈 때까지 글자를 줄인다 — 인쇄 전엔 숨겨져 있어 화면 밖에 그려서 잰다. 글씨는 11.5px 아래로는 안 줄이고(적요는 두 줄까지), 그래도 넘치면 두 장 */
@@ -6515,7 +6701,7 @@ function tabJn(){
     +'<td><input value="'+esc(tm.t)+'" placeholder="시간 입력" title="적요에서 가져온 시간 — 없으면 적어 주세요 (저장됩니다)" onchange="jnTimeSet('+z.idx+',this.value)" style="width:150px;padding:3px 5px;font-size:12.5px;border:1px solid '+(tm.t?'#c9d4e0':'#e8a7a2')+';border-radius:6px;'+(tm.hand?'font-weight:800;color:#1b4fa8':'')+'"></td>'
     +'<td><input value="'+esc(tm.p)+'" placeholder="전번 입력" title="적요의 전화번호 — 없으면 거래처 전화번호(회색). 고쳐 적으면 저장됩니다" onchange="jnTelSet('+z.idx+',this.value)" inputmode="tel" style="width:130px;padding:3px 5px;font-size:12.5px;border:1px solid '+(tm.p?'#c9d4e0':'#e8a7a2')+';border-radius:6px;'+(tm.pHand?'font-weight:800;color:#1b4fa8':tm.pCust?'color:#8b9aab':'')+'"></td>'
     +'<td style="white-space:nowrap">'+esc(z.mv?z.mv.c:(effDrv(o)||''))+' '+esc(z.mv?(z.mv.y.tnm||''):jnGName(g))+'</td>'
-    +'<td>'+esc(tm.rest)+warn+'</td><td style="text-align:right">'+o.qty+'</td>'
+    +'<td>'+drvHL(tm.rest)+warn+'</td><td style="text-align:right">'+o.qty+'</td>'
     +'<td style="white-space:nowrap">'+(z.mv?'':'<input type="date" value="'+esc(o.d)+'" onchange="jnMoveDate('+z.idx+',this.value)" title="판매명세서에서 날짜를 옮겼는데 아직 반영이 안 됐으면 여기서 옮깁니다" style="font-size:12px;padding:2px 3px;border:1px solid #c9d4e0;border-radius:6px">'
      +' <button class="btn g" onclick="jnDel('+z.idx+')" title="이 전표를 직납내역·배차에서 뺍니다 (배차 화면 «삭제» 와 같음)" style="color:#c0392b">✕ 빼기</button>')+'</td>'
     +'<td style="white-space:nowrap">'+(z.mv?'<button class="btn g" onclick="jnBack('+z.idx+')" title="용차내역서에서 빼고 원래 동선으로">↩︎ 직납으로</button>'
@@ -6589,46 +6775,14 @@ function tabYc(today){
  const jn=today.filter(function(o){return ASSIGN[o.i]==='jn'&&(o.load||0)>0.5});
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
- h+='<div class="ycnote"><b>의자·장 개수를 넣으면 몇 톤·몇 m 차를 불러야 하는지</b> 나옵니다. 날짜를 고르면 그날 <b>용차·직납 건</b>이 거래처 목록에 뜨고, 고르면 물량이 자동으로 들어갑니다.<br>'
-  +'우리 <b>3.5톤 대형</b> 동선의 적재 기준은 <b>신부장님 기준 그대로 1톤의 1.2배</b>로 두었습니다 — 바꾸지 않았습니다.<br>'
-  +'<b>직접 재서 넣기</b>를 누르면 가로×세로×높이(cm)와 개수로 CBM·적재길이를 계산합니다. 합바차는 이 <b>적재길이(m)</b>가 곧 부르는 단위입니다.</div>';
+ h+='<div class="ycnote"><b>검색 한 줄</b>로 물어보세요 — <b>부산 5톤초장축</b> 은 그 지역 운임, <b>무지개 30개</b> 는 물량·어떤 차, <b>부산 무지개 30개</b> 는 둘 다 나옵니다.<br>'
+  +'의자 적재 기준은 <b>신부장님 기준 그대로</b>(의자 60개 = 1톤 1대 · 3.5톤 대형은 1톤의 1.2배)입니다 — 바꾸지 않았습니다.<br>'
+  +'합바차는 실은 <b>적재길이(m)</b>로 값을 매깁니다 — <b>부산 3m</b> 처럼 물어보세요.</div>';
 
- /* ---- 물량 넣으면 어떤 차를 불러야 하는지 ---- */
- h+='<div class="dcard yccalc"><b>어떤 차를 불러야 하나</b>'
-  +'<div class="ycrow"><label>지역</label><input id="ycreg" value="'+(YCR||'').replace(/"/g,'')+'" placeholder="평택 · 강남구 · 대전 …" oninput="YCR=this.value;drawYcOne()"></div>'
-  +(function(){
-     /* 2026-10-30: 오늘 배차 말고 날짜를 골라, 그날 용차·직납 건만 불러온다 (적요 용차·상차·직납·화물…, 다른 시·구 주소, 직납 칸).
-        «전체» 를 켜면 그날 전부. */
-     const cd=YCCD||SEL;
-     const tag=function(o){if(ASSIGN&&ASSIGN[o.i]==='jn')return '직납';const m=String(o.memo||'').match(YCB_RE);if(m)return m[0];return o.dst?'직납':''};
-     /* 2026-09-03: 목록은 물량 순으로 정렬해 뿌리면서 window._YCT 에는
-        정렬 안 한 배열을 넣어 두는 바람에 번호가 어긋나 엉뚱한 거래처가 잡히거나
-        아무 반응이 없었다. 정렬한 배열을 그대로 저장한다. */
-     const L=ORDERS.filter(function(o){return o.d===cd&&ST[o.i]!=='del'&&(YCCALL||tag(o))}).sort(function(a,b){return b.load-a.load});
-     window._YCT=L;
-     return '<div class="ycrow"><label>날짜</label><input type="date" value="'+cd+'" onchange="YCCD=this.value;render()">'
-      +'<label style="font-size:12px;color:#5b6b7c;white-space:nowrap;margin-left:8px"><input type="checkbox"'+(YCCALL?' checked':'')
-      +' onchange="YCCALL=this.checked;render()"> 전체</label></div>'
-      +'<div class="ycrow"><label>거래처</label><select id="yccu" onchange="ycPick2(this.value)">'
-      +'<option value="">— '+cd.slice(5).replace('-','/')+' '+(YCCALL?'전체':'용차·직납')+' '+L.length+'건 —</option>'
-      +L.map(function(o,k){const t=tag(o);
-       return '<option value="'+k+'">'+o.n.slice(0,18)+' · 의자 '+o.qty+'개 · '+(o.load||0).toFixed(2)+'대'+(t?' ['+t+']':'')+'</option>'}).join('')
-      +'</select></div>';
-   })()
-  +'<div class="ycmode"><button class="'+(YCMD?'':'on')+'" onclick="ycMode(0)">개수로 넣기</button>'
-  +'<button class="'+(YCMD?'on':'')+'" onclick="ycMode(1)">직접 재서 넣기</button></div>'
-  +(YCMD?(
-     '<div class="ycrow"><label>한 개<br>크기</label><div class="ycbx">'
-     +'<input type="number" min="0" value="'+YCBW+'" oninput="ycBox(\'w\',this.value)"><span>×</span>'
-     +'<input type="number" min="0" value="'+YCBD+'" oninput="ycBox(\'d\',this.value)"><span>×</span>'
-     +'<input type="number" min="0" value="'+YCBH+'" oninput="ycBox(\'h\',this.value)"><span>cm</span></div></div>'
-     +'<div class="ycrow"><label>개수</label><input type="number" min="0" value="'+YCBQ+'" oninput="ycBox(\'q\',this.value)"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개</span></div>'
-     +'<div class="ycrow"><label>쌓기</label><input type="number" min="0" value="'+YCBT+'" oninput="ycBox(\'t\',this.value)"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">단 (0 = 높이로 알아서)</span></div>'
-   ):(
-     '<div class="ycrow"><label>의자</label><input type="number" id="ycq" min="0" value="'+(YCC||0)+'" oninput="YCC=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개</span></div>'
-     +'<div class="ycrow"><label>장·캐비닛</label><input type="number" id="ycf" min="0" value="'+(YCF||0)+'" oninput="YCF=Math.max(0,+this.value||0);drawYcOne()"> <span style="font-size:12px;color:#8b9aab;white-space:nowrap">개 (800×600 기준)</span></div>'
-   ))
-  +'<div id="ycone"></div></div>';
+ /* ---- 운임·물량 검색 — 2026-11-13 강현아님: «어떤 차를 불러야 하나» 창(지역·날짜·거래처·개수·직접재기)을 검색 한 줄로 바꿈 ---- */
+ h+='<div class="dcard yccalc"><b>🔍 운임·물량 검색</b>'
+  +'<div class="ycrow" style="margin-top:8px"><label>검색</label><input id="ycfq" value="'+String(YCFQ||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')+'" placeholder="부산 5톤초장축 · 무지개 30개 · 부산 무지개 30개 · 부산 3m" oninput="YCFQ=this.value;ycFindDraw()"></div>'
+  +'<div id="ycfout"></div></div>';
 
  /* ---- 오늘 넘치는 물량 ---- */
  h+='<div class="hd2">🚨 한 차를 넘는 곳 — 용차 검토 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">'+YD+'</span></div>';
@@ -7276,7 +7430,7 @@ function drawJp(){
    +'<table class="jpt"><thead><tr><th style="text-align:left">품목 / 규격</th><th class="r">수량</th>'
     +(hasAmt?'<th class="r">단가</th><th class="r">공급가액</th><th class="r">부가세</th><th class="r">합계</th>':'')
    +'</tr></thead><tbody>'+rows+'</tbody></table>'
-   +(o.memo?'<div class="jpmemo">적요: '+esc(o.memo)+'</div>':'')
+   +(o.memo?'<div class="jpmemo">적요: '+drvHL(o.memo)+'</div>':'')
    +(JPOPT.sign?'<div class="jpsign">인수자 <i></i> (인)</div>':'')
    +'</div>';
  });
