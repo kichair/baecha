@@ -1199,7 +1199,10 @@ const SH2R={};ROUTES.forEach(r=>(r.sh||[]).forEach(s=>SH2R[s]=r.id));
 const EXCL=[['택배','택배'],['차량입고','차량입고'],['상차','상차(용차)'],['퀵','퀵'],['화물','화물'],['찾으러','찾으러옴'],['방문수령','찾으러옴'],['용차','용차'],['입고','입고']];
 /* «아침입고요망»·«9시 입고 부탁» 은 거래처에 갖다 달라는 말 — 빼지 않는다 (2026-11-10 에스앤케이(가구뱅크) 11/10 «입고» 로 빠져 안 나감) */
 const EX_IN_OK=/(아침|오전|오후|일찍|새벽|당일|내일|빨리|급히|\d+\s*시(\s*\d+\s*분|반)?(까지|전)?)\s*입고|입고\s*(요망|부탁|바람|원함|해\s*주세요|해\s*주시|해\s*달라)/;
-function exLine(m,n){const s=m||'';for(let i=0;i<EXCL.length;i++){if(s.indexOf(EXCL[i][0])>=0){if(EXCL[i][0]==='입고'&&EX_IN_OK.test(s))continue;return EXCL[i][1]}}
+function exLine(m,n){const s=m||'';
+ /* «…매장배송으로 변경» — 방문수령·용차 글이 같이 있어도 가게로 갖다 주는 것, 빼지 않는다 (2026-11-13 강현아님, 유진가구(을지) 11/17) */
+ if(/매장\s*배송/.test(s))return null;
+ for(let i=0;i<EXCL.length;i++){if(s.indexOf(EXCL[i][0])>=0){if(EXCL[i][0]==='입고'&&EX_IN_OK.test(s))continue;return EXCL[i][1]}}
  if(/부산/.test(n)&&!/직납|매장/.test(s))return '원거리(화물)';return null}
 
 /* ============ 상태 ============ */
@@ -1385,6 +1388,7 @@ const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계
 /* 적요에 직납 주소가 있어도 무조건 이 동선으로 보내는 거래처 */
 const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/삼신\s*탈렌토/,'r4'],
+ [/대우토탈/,'r4',1],   /* 2026-11-13 강현아님 «사당대우토탈 4동선» — 사업장주소가 파주 자택이라 3동선으로 잡히던 것, 배송지는 동작구 동작대로 207 (도로명 칸 «[4]배송:…» 은 주소 끝 번호표가 아니라 못 배움). 1 = 적요에 딴 배송지 있으면 그 주소 동선 */
  [/대한사무용중역가구|토파즈/,'r9'],   /* 청주 — 2026-11-11 강현아님 «9동선은 대전·진천·중부·청주» 로 9 로 되돌림 (11/09 엔 10) */
  [/다온사무용가구\(천안|현대가구산업\(평택/,'r10'],   /* 2026-11-09 사장님 «다온사무용가구(천안) 10동선 · 현대가구산업(평택) 10동선» */
  [/상상\s*OA/i,'r9',1],   /* 2026-11-09 사장님 «상상oa 9동선» (대전). 셋째 칸 1 = 거래처 위치 고정 — 적요에 배송지가 있으면 그 주소 동선 (11/9 안산 직납 → 6동선) */   /* 2026-11-09 사장님 «대한사무용중역가구랑 토파즈 10동선» — 청주 남이면이라 9동선으로 잡히던 것 */   /* 2026-11-09 사장님 «삼신탈렌토 4동선» (영등포 주소라 2동선으로 잡히던 것) */
@@ -1635,7 +1639,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261113e';
+const APPVER='20261113g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2313,6 +2317,10 @@ function build(fresh){
   const h=rtHard(ps[0]);if(h){if((h==='r9'||h==='r10')&&v!==h)ASGK[k]=h;return}
   const ad=String((typeof ADDR!=='undefined'&&ADDR[ps[0]])||'');const w=RC9.test(ad)?'r9':(RT10.test(ad)?'r10':'');
   if(w&&v!==w)ASGK[k]=w})}}catch(e){}
+ /* 2026-11-13 강현아님 «사당대우토탈 4동선» — 저장된 오늘 이후 자동값(r3)도 고정대로 (지난 날짜·손으로 옮긴 것은 그대로) */
+ try{if(typeof ASGK!=='undefined'&&ASGK){const _td=mnToday();Object.keys(ASGK).forEach(function(k){
+  if(!/대우토탈/.test(String(k)))return;const ps=String(k).split('§');if((ps[2]||'')<_td)return;
+  if(ASGV&&ASGV[k])return;if(ASGK[k]==='r3')ASGK[k]='r4'})}}catch(e){}
  DSTL={};RAW.forEach(function(l){const m=String(l.m||'').match(/([가-힣A-Za-z0-9]{2,12})\s*(?:으로|로)\s*(?:배송|배달)?\s*\(([^)]{6,60})\)/);
   if(m&&looksAddr(m[2]))DSTL[dstlKey(l.n,m[1])]=trimAd(m[2].replace(/\s+/g,' '))});
  /* 같은 거래처라도 적요에 서로 다른 배송 주소가 적혀 있으면 따로 떼어낸다.
@@ -5889,7 +5897,7 @@ function msbClass(units){
    if(!u.ok){u.g='un';u.why='거래명세표가 아닌 쪽';return}
    /* 주소란에 «명세표주지마세요» — 왼쪽 위 빨간 도장 맨 앞에 (2026-10-30) */
    if(/명세[표서]\s*(를|는|은)?\s*(주지|드리지|넣지)\s*마/.test(String(u.adw||u.ad||'')))u.noms=1;
-   const mx=String(u.memo||'').match(MSB_EXCL);
+   const mx=/매장\s*배송/.test(String(u.memo||''))?null:String(u.memo||'').match(MSB_EXCL);   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) */
    if(mx){u.g='x';u.why='적요 「'+mx[0]+'」';return}
    /* 거래처 «소비자» 는 묶음에서 뺀다 (2026-11-02 사장님) — 맨 뒤 «뺀 전표» 목록에만 */
    if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){u.g='x';u.why='거래처 소비자';return}
@@ -5917,7 +5925,7 @@ function msbClass(units){
    {const mf=mnFlag(D,(o&&o.n)||u.n),다받음=(u.pre!=null&&u.tot!=null&&u.pre+u.tot<=0);
     if(mf.stop)u.flags.unshift('출고정지');
     else if((u.flags.indexOf('ERP수시')>=0||mf.pay)&&!mf.paid&&!다받음)u.flags.push('입금 전')}
-   if(MSB_PICK.test(u.memo||'')){u.g='pick';return}
+   if(MSB_PICK.test(u.memo||'')&&!/매장\s*배송/.test(u.memo||'')){u.g='pick';return}   /* «매장배송으로 변경» 은 찾으러옴 아님 (2026-11-13) */
    /* 2026-11-03 사장님 «그래도 동선 밀어넣어야지, 안 보낼 거 아니잖아» — 사이트 명세서에 아직 없는 전표(자동 받기 전에 뽑은 PDF)나
       아직 미배차인 건은 거래처 주소·적요로 동선을 추정해서 넣는다. 표지에 (추정) 으로 표시 */
    const okR=function(r){return r&&r!=='_'&&!offRoute(r)&&ROUTES.some(function(x){return x.id===r})};
