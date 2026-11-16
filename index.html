@@ -1639,7 +1639,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261116c';
+const APPVER='20261116d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1657,8 +1657,9 @@ function chkVer(){
 }
 setTimeout(chkVer,4000);setInterval(chkVer,600000);
 /* ===== 실시간 공유 (Supabase) — 주소·키 넣으면 자동 활성화 ===== */
-const SB_URL=localStorage.getItem('SB_URL')||'https://eirnudzaysvvqfjzhwni.supabase.co';
-const SB_KEY=localStorage.getItem('SB_KEY')||'sb_publishable_NSzOfeZr7RJX_ycoWnMljg_paTnlwLv';
+const SB_URL=localStorage.getItem('SB_URL')||'https://api.kwangilchair.com/p/sb';   /* 2026-11-16 Supabase egress 초과(402) → 우리 서버(조회API /p/sb) */
+const SB_REAL=/\.supabase\.co/.test(SB_URL);   /* 진짜 Supabase 면 실시간(websocket), 우리 서버면 1분 되물음 */
+const SB_KEY=localStorage.getItem('SB_KEY')||'UOFDJ--4Oe3RFnlEbp5eOX9w';   /* 조회API 배차열쇠와 같아야 한다 */
 let SB=null,SB_ON=false,pushT=null,applying=false,NEEDPUSH=0;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts','_sja','_tagrt','_jnt','_jnm'];
 function snap(){const o={};
@@ -1901,15 +1902,27 @@ async function syncInit(){
   async function 인박스받기(){try{const bx=await SB.from('board').select('data').eq('id',3).maybeSingle();
       if(bx&&bx.data&&bx.data.data){const t0=INBOX_TS;inboxApply(bx.data.data);if(INBOX_TS!==t0)인박스바뀜=true}}catch(e){}}
   await 인박스받기();
-  SB.channel('board').on('postgres_changes',{event:'*',schema:'public',table:'board'},p=>{
+  if(SB_REAL)SB.channel('board').on('postgres_changes',{event:'*',schema:'public',table:'board'},p=>{
    if(!p.new)return;
    if(p.new.id===1&&p.new.data)applySnap(p.new.data);
    if(p.new.id===3){if(p.new.data&&p.new.data.rows)inboxApply(p.new.data);else 인박스받기()}
    if(p.new.id===13&&p.new.data){SJN=p.new.data;SJN._loaded=1;SJN.notes=SJN.notes||[];SJN.paid=SJN.paid||{};if(TAB===13)render()}
   }).subscribe();
+  else{/* 우리 서버(조회API /p/sb): 1분마다 updated_at 몇십 바이트만 묻고, 바뀐 판만 받아온다 (2026-11-16) */
+   const 봤={};
+   setInterval(async function(){try{
+    const r=await fetch(SB_URL+'/rest/v1/board?id=in.(1,3,13)&select=id,updated_at,ts:data->ts',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}}).then(function(x){return x.json()});
+    for(const row of (r||[])){const k=String(row.id),u=String(row.updated_at||'');
+     if(봤[k]===undefined){봤[k]=u;if(k==='3'&&+(row.ts||0)>INBOX_TS)await 인박스받기();continue}
+     if(봤[k]===u)continue;봤[k]=u;
+     if(k==='1'){const g=await SB.from('board').select('data').eq('id',1).maybeSingle();if(g&&g.data&&g.data.data)applySnap(g.data.data)}
+     else if(k==='3')await 인박스받기();
+     else if(k==='13'){const g=await SB.from('board').select('data').eq('id',13).maybeSingle();if(g&&g.data&&g.data.data){SJN=g.data.data;SJN._loaded=1;SJN.notes=SJN.notes||[];SJN.paid=SJN.paid||{};if(TAB===13)render()}}
+    }
+   }catch(e){}},60000)}
   SB_ON=true;setDot('#03C75A');
   if(인박스바뀜)setTimeout(syncPush,2000);
-  setInterval(async function(){try{
+  if(SB_REAL)setInterval(async function(){try{
    const r=await fetch(SB_URL+'/rest/v1/board?id=eq.3&select=ts:data->ts',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}}).then(function(r){return r.json()});
    const ts=+((r&&r[0]&&r[0].ts)||0);if(ts>INBOX_TS)await 인박스받기()}catch(e){}},180000);
   if(localStorage.getItem('kiu_gps')==='1'&&ME&&GPSW==null)try{gpsToggle()}catch(e){}
@@ -3690,7 +3703,7 @@ async function initMap(){
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(LMAP);
  if(SB){const r=await SB.from('pos').select('*');(r.data||[]).forEach(function(x){POSC[x.driver]=x});
   if(!POSSUB){POSSUB=true;
-   SB.channel('pos').on('postgres_changes',{event:'*',schema:'public',table:'pos'},function(p){
+   if(SB_REAL)SB.channel('pos').on('postgres_changes',{event:'*',schema:'public',table:'pos'},function(p){
     if(p.new&&p.new.driver){POSC[p.new.driver]=p.new;drawPos()}}).subscribe()}}
  drawPos()}
 function drawPos(){if(!LMAP||!window.L)return;
