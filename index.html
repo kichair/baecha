@@ -1639,7 +1639,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261116b';
+const APPVER='20261116c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5770,7 +5770,7 @@ function msSjUp(f){if(!f)return;
    왼쪽 위 도장: 전미수잔액이 마이너스면 「선입금」, 거래처구분이 ERP수시(또는 주소 끝 [n#])면 「ERP수시」 (2026-10-26 저녁 사장님: 'ERP' 가 아니라 'ERP수시' 로).
    금액은 사장님이 직접 보신다(고액 표시 없음). 공급받는자 보관용(아래 반쪽)에는 아무것도 안 찍는다.
    글자 위치는 sERP 거래명세표 PDF(A4 세로 595×842pt) 실측 — 거래처 y737 · 주소 y720 · 일자 y755 · PAGE y774 · 전미수잔액 y487 · 적요 y446 */
-const MSB_EXCL=/택배|용차|상차|화물|차량입고|퀵/;
+const MSB_EXCL=/택배|용차|상차|화물|퀵/;   /* 차량입고는 찾으러옴처럼 묶음에 포함 — 도장 «차량입고» (2026-11-16 강현아님) */
 const MSB_PICK=/찾으러|방문수령/;
 const MSB_DRV=['장세훈','안정수','배진성'];   /* 명세서에 이름을 찍는 기사 — 호로차 둘·3.5톤 */
 /* 2026-11-02 사장님: 전표 아래 «10만 기업이 선택한 sERP» 자리를 지우고 계좌 줄을 찍는다 (종이에 미리 찍혀 있던 것 — 묶음 PDF 는 백지에 뽑으니까). 위·아래 반쪽 다 */
@@ -5889,11 +5889,11 @@ function msbSummary(){
  const S=msbStats(G,U);
  const xt=Object.keys(S.xs).map(function(k){return k+' '+S.xs[k].length}).join(' · ');
  return '<div class="ycnote" style="'+(S.good?'':'border-color:#e04b45;background:#fff5f5')+'"><b>📊 거래명세표 총 '+S.total+'건 · '+S.inPages+'장 · 의자 '+S.qty+'개</b> — '
-  +'동선 묶음 <b>'+S.routed.length+'</b>건 '+S.qtyR+'개(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
+  +'동선 묶음 <b>'+S.routed.length+'</b>건 '+S.qtyR+'개(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴·차량입고 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
   +' — 장수 대조 '+S.outPages+'/'+S.inPages+' '+(S.good?'✅ 다 들어갔습니다':'⚠ <b style="color:#c0392b">'+(S.inPages-S.outPages)+'장이 어디에도 안 들어갔습니다</b>'+(S.badOk?' · 건수도 '+S.badOk+'건 차이':''))
   +' · 같은 내용이 묶음 PDF 맨 앞 장(보고)에도 찍힙니다</div>';
 }
-function msbRL(id){if(/^r\d+$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
+function msbRL(id){if(/^r\d+$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴·차량입고';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
 function msbCL(id){if(id==='pick')return '#475569';if(id==='un')return '#9CA3AF';return (RID[id]||{}).cl||'#94A3B8'}
 /* 전표마다 그날 배차와 맞춰 동선·기사·도장을 정하고, 동선별(배차 방문순서)로 묶는다 */
 function msbClass(units){
@@ -5934,7 +5934,8 @@ function msbClass(units){
    {const mf=mnFlag(D,(o&&o.n)||u.n),다받음=(u.pre!=null&&u.tot!=null&&u.pre+u.tot<=0);
     if(mf.stop)u.flags.unshift('출고정지');
     else if((u.flags.indexOf('ERP수시')>=0||mf.pay)&&!mf.paid&&!다받음)u.flags.push('입금 전')}
-   if(MSB_PICK.test(u.memo||'')&&!/매장\s*배송/.test(u.memo||'')){u.g='pick';return}   /* «매장배송으로 변경» 은 찾으러옴 아님 (2026-11-13) */
+   /* 차량입고도 전표는 줘야 하니 찾으러옴 묶음에 같이 — 도장만 «차량입고» (2026-11-16 강현아님 «차량입고 전표 집어넣어») */
+   if(!/매장\s*배송/.test(u.memo||'')&&(MSB_PICK.test(u.memo||'')||/차량\s*입고/.test(u.memo||''))){u.g='pick';if(!MSB_PICK.test(u.memo||''))u.carin=1;return}   /* «매장배송으로 변경» 은 아님 (2026-11-13) */
    /* 2026-11-03 사장님 «그래도 동선 밀어넣어야지, 안 보낼 거 아니잖아» — 사이트 명세서에 아직 없는 전표(자동 받기 전에 뽑은 PDF)나
       아직 미배차인 건은 거래처 주소·적요로 동선을 추정해서 넣는다. 표지에 (추정) 으로 표시 */
    const okR=function(r){return r&&r!=='_'&&!offRoute(r)&&ROUTES.some(function(x){return x.id===r})};
@@ -6014,7 +6015,7 @@ async function msbBuild(bytes,groups,coversOnly){
   cv.drawText('만든 때 '+new Date().toLocaleString('ko-KR',{hour12:false}).replace(/\. /g,'.').replace(/\.$/,''),{x:LM,y:y,size:9,font:font,color:GRY});y-=22;
   const okc=S.good?rgb(.05,.5,.25):RED;
   cv.drawRectangle({x:LM,y:y-10,width:RM-LM,height:30,color:S.good?rgb(.92,.98,.94):rgb(1,.94,.94),borderColor:okc,borderWidth:1});
-  cv.drawText('총 '+S.total+'건 · '+S.inPages+'장 · 의자 '+S.qty+'개   →   동선 묶음 '+S.routed.length+'건 '+S.qtyR+'개 · 찾으러옴 '+S.pick.length+'건 · 미배차 '+S.un.length+'건 · 뺀 것 '+S.x.length+'건     장수 대조 '+S.outPages+' / '+S.inPages+(S.good?'  맞음':'  ⚠ '+(S.inPages-S.outPages)+'장 빠짐'),{x:LM+8,y:y,size:11,font:font,color:okc});y-=34;
+  cv.drawText('총 '+S.total+'건 · '+S.inPages+'장 · 의자 '+S.qty+'개   →   동선 묶음 '+S.routed.length+'건 '+S.qtyR+'개 · 찾으러옴·차량입고 '+S.pick.length+'건 · 미배차 '+S.un.length+'건 · 뺀 것 '+S.x.length+'건     장수 대조 '+S.outPages+' / '+S.inPages+(S.good?'  맞음':'  ⚠ '+(S.inPages-S.outPages)+'장 빠짐'),{x:LM+8,y:y,size:11,font:font,color:okc});y-=34;
   const nm=function(u){return u.n+(u.jik?'(직납)':'')+((u.trip||1)>1?'(2차)':'')};
   /* 거래처 이름은 열을 맞춰 한 줄에 5개씩 (2026-11-03 사장님 «열 맞춰서 5개 거래처씩») — 칸보다 길면 뒤를 자른다 */
   const COLS=5,CW=(RM-LM-10)/COLS,FS=8.3;
@@ -6106,7 +6107,7 @@ async function msbBuild(bytes,groups,coversOnly){
     /* 공급받는자 보관용(아래 반쪽, 413pt 아래) — 왼쪽 도장은 똑같이, 오른쪽은 동선 색만 칠한다 (2026-10-27 사장님) */
     pg.drawRectangle({x:396,y:789-413,width:bw,height:27,color:uc});
     /* 찾으러옴·직납은 아래 반쪽(공급받는자용)에도 글자를 찍는다 (2026-10-29 사장님) */
-    {const bt=g.id==='pick'?'찾으러옴':u.jik?'직납':'';
+    {const bt=g.id==='pick'?(u.carin?'차량입고':'찾으러옴'):u.jik?'직납':'';
      if(bt)pg.drawText(bt,{x:396+(bw-tw(bt,13))/2,y:797-413,size:13,font:font,color:WHT})}
     /* 적요(맨 아래 인수자 줄 밑에 찍히던 것)를 왼쪽 위 도장 밑에도 — 위·아래 반쪽 다 (2026-10-27 사장님)
        자리: 도장 칸(y792~815)과 「일 자」 줄(y755) 사이, 제목 [공급자 보관용] 앞(x≤255)까지. 길면 글자를 줄이고 그래도 길면 자른다
@@ -6173,7 +6174,7 @@ async function msbBuild(bytes,groups,coversOnly){
  /* 맨 뒤 — 뺀 전표 */
  if(groups.x.length){const cv=out.addPage([W,H]);
   cv.drawText('이 묶음에서 뺀 전표 '+groups.x.length+'건',{x:40,y:H-70,size:20,font:font,color:BLK});
-  cv.drawText('적요에 택배·용차·상차·화물·차량입고·퀵 이 있거나 배차에서 뺀 건 — 원본 PDF 의 쪽 번호',{x:40,y:H-95,size:11,font:font,color:GRY});
+  cv.drawText('적요에 택배·용차·상차·화물·퀵 이 있거나 배차에서 뺀 건 (차량입고는 찾으러옴처럼 묶음에 포함) — 원본 PDF 의 쪽 번호',{x:40,y:H-95,size:11,font:font,color:GRY});
   let y=H-130;groups.x.forEach(function(u,i){if(y<40)return;
    cv.drawText(fit((i+1)+'. '+u.n,11,300),{x:40,y:y,size:11,font:font,color:BLK});
    cv.drawText(fit(u.why+' · '+u.pages.join(',')+'쪽',10,220),{x:350,y:y,size:10,font:font,color:GRY});y-=17})}
