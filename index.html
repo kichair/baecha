@@ -1199,9 +1199,11 @@ const SH2R={};ROUTES.forEach(r=>(r.sh||[]).forEach(s=>SH2R[s]=r.id));
 const EXCL=[['택배','택배'],['차량입고','차량입고'],['상차','상차(용차)'],['퀵','퀵'],['화물','화물'],['찾으러','찾으러옴'],['방문수령','찾으러옴'],['용차','용차'],['입고','입고']];
 /* «아침입고요망»·«9시 입고 부탁» 은 거래처에 갖다 달라는 말 — 빼지 않는다 (2026-11-10 에스앤케이(가구뱅크) 11/10 «입고» 로 빠져 안 나감) */
 const EX_IN_OK=/(아침|오전|오후|일찍|새벽|당일|내일|빨리|급히|\d+\s*시(\s*\d+\s*분|반)?(까지|전)?)\s*입고|입고\s*(요망|부탁|바람|원함|해\s*주세요|해\s*주시|해\s*달라)/;
+const TON_GO_RE=/\d+(?:\.\d+)?\s*톤\s*[-–—](?=[^/]{0,24}[가-힣][시군구읍면동리로길])/;   /* «1톤-전북남원시…» 꼴 용차 지시 (2026-11-17 강현아님, 코아테크) */
 function exLine(m,n){const s=m||'';
  /* «…매장배송으로 변경» — 방문수령·용차 글이 같이 있어도 가게로 갖다 주는 것, 빼지 않는다 (2026-11-13 강현아님, 유진가구(을지) 11/17) */
  if(/매장\s*배송/.test(s))return null;
+ if(TON_GO_RE.test(s))return '용차(톤·주소)';   /* 2026-11-17 강현아님 «1톤-주소는 자동 용차» */
  for(let i=0;i<EXCL.length;i++){if(s.indexOf(EXCL[i][0])>=0){if(EXCL[i][0]==='입고'&&EX_IN_OK.test(s))continue;return EXCL[i][1]}}
  if(/부산/.test(n)&&!/직납|매장/.test(s))return '원거리(화물)';return null}
 
@@ -1641,7 +1643,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261117c';
+const APPVER='20261117d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5935,7 +5937,7 @@ function msbClass(units){
    if(!u.ok){u.g='un';u.why='거래명세표가 아닌 쪽';return}
    /* 주소란에 «명세표주지마세요» — 왼쪽 위 빨간 도장 맨 앞에 (2026-10-30) */
    if(/명세[표서]\s*(를|는|은)?\s*(주지|드리지|넣지)\s*마/.test(String(u.adw||u.ad||'')))u.noms=1;
-   const mx=/매장\s*배송/.test(String(u.memo||''))?null:String(u.memo||'').match(MSB_EXCL);   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) */
+   const mx=/매장\s*배송/.test(String(u.memo||''))?null:(String(u.memo||'').match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) */
    if(mx){u.g='x';u.why='적요 「'+mx[0]+'」';return}
    /* 거래처 «소비자» 는 묶음에서 뺀다 (2026-11-02 사장님) — 맨 뒤 «뺀 전표» 목록에만 */
    if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){u.g='x';u.why='거래처 소비자';return}
