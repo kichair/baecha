@@ -247,6 +247,7 @@ button,select,input{font-family:inherit}
 .ncard textarea:focus{outline:none;border-color:#0f5f37;box-shadow:0 0 0 3px rgba(15,95,55,.12)}
 .ncard .nft{margin-top:7px;font-size:11.5px;color:#9aa8b8;font-weight:700;text-align:right}
 .vtag{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:5px;font-size:10px;font-weight:800;vertical-align:middle}
+.horow{margin:4px 12px 6px;padding:5px 8px;background:#fdecea;color:#c0392b;font-size:12px;font-weight:800;border-radius:6px}
 .vtag.vt{background:#dbeafe;color:#1d4ed8}
 .vtag.vh{background:#e6f4ea;color:#0f7a3d}
 ".vtag.vw{background:#fdecea;color:#c0392b}
@@ -1379,7 +1380,7 @@ let DRVS=LSU('_dv',null)||[['김덕겸','010-2913-1805'],['배진성',''],
  ['장세훈','010-4762-1642'],['김석호','010-6326-4378'],['정석윤','010-3722-5390'],
  ['윤재웅',''],['안정수','010-7711-9978'],['용차','']];
 /* ===== 차량 종류 (우천 배차용) ===== DRVS = [이름, 연락처, 차량] */
-const VEH_DEF={'장세훈':'탑차','배진성':'호로'};
+const VEH_DEF={'안정수':'호로','장세훈':'호로','배진성':'3.5톤'};   /* 2026-11-17 강현아님 «호로차 2대(안정수·장세훈)·배진성 3.5톤» */
 /* 수요일 남양주·원주·춘천 동선 합치기 — 적재 60% 미만이면 5번 마포·을지·중곡으로 붙임 */
 const RW_MERGE_MAX=0.60, RW_MERGE_TO='r5';
 /* 거래처별 동선 고정 — 주소만으로는 판단이 안 되는 예외
@@ -1490,8 +1491,14 @@ let ASV=LSU('_as',{});
 function asOf(n,d){const m=ASV[d||SEL];return (m&&m[n]!==undefined)?(m[n]||''):null}
 function asTag(n,d){const a=asOf(n,d);if(a===null)return '';
  return '<em class="astag" title="A/S 출동'+(a?' — '+a:'')+'">🔧A/S'+(a?' '+a:'')+'</em>'}
-const VEH_OPT=['탑차','호로','카고'];
+const VEH_OPT=['탑차','호로','카고','3.5톤'];   /* 2026-11-17 배진성 3.5톤 */
+const HORO_CHAIR_CAP=30;   /* 호로차 1대 의자류 상한 — 탑을 못 쌓는다 (2026-11-17 강현아님 «의자 60개가 못 들어가». 30은 짐작값 — 정확한 수를 들으면 고칠 것) */
+const HORO_FURN_RE=/책장|서랍|캐비닛|캐비넷|사물함|옷장|락카|선반|수납|유리|상판|도어|책상|테이블|탁자|데스크|금고|파티션|침대|매트리스|침상|소파|쇼파|서가/i;
+function horoChairs(list){let c=0;(list||[]).forEach(function(o){(o.items||[]).forEach(function(it){if(!HORO_FURN_RE.test(String(it.p||'')))c+=Math.round(+it.q||0)})});return c}
 DRVS=DRVS.map(function(d){return [d[0],d[1]||'',d[2]||VEH_DEF[d[0]]||'카고']});
+/* 옛 기본값(장세훈=탑차·안정수=카고·배진성=호로)으로 저장돼 있으면 2026-11-17 지시대로 바로잡는다 — 공유 스냅샷이 덮어도 다시 */
+function vehFix(){DRVS.forEach(function(d){if(d[0]==='장세훈'&&d[2]==='탑차')d[2]='호로';if(d[0]==='안정수'&&d[2]==='카고')d[2]='호로';if(d[0]==='배진성'&&d[2]==='호로')d[2]='3.5톤'})}
+vehFix();
 function vehOf(n){const d=DRVS.filter(function(x){return x[0]===n})[0];return (d&&d[2])||VEH_DEF[n]||'카고'}
 function covered(n){const v=vehOf(n);return v==='탑차'||v==='호로'}
 function vehTag(n){const v=vehOf(n);return v==='카고'?'':'<span class="vtag '+(v==='탑차'?'vt':'vh')+'">'+v+'</span>'}
@@ -1643,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261117d';
+const APPVER='20261117e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1768,7 +1775,7 @@ function applySnap(o){applying=true;try{
    if(IN[k]===undefined&&(IV['s:'+k]||0)>(ASGV['s:'+k]||0))delete STK[k];
   }
  }
- if(o['_dv'])DRVS=o['_dv'].map(function(d){return [d[0],d[1]||'',d[2]||VEH_DEF[d[0]]||'카고']});
+ if(o['_dv']){DRVS=o['_dv'].map(function(d){return [d[0],d[1]||'',d[2]||VEH_DEF[d[0]]||'카고']});vehFix()}   /* 스냅샷이 덮어도 차종 바로잡기 유지 (2026-11-17) */
  if(o['_raw']&&(o['_rawv']||0)>RAWV){RAW=o['_raw'];RAWV=o['_rawv']||RAWV;if(o['_fe'])FEE=o['_fe'];rawStore()}
  if(o['_ad'])ADDR=Object.assign({},ADDR_DB,BUILTIN.A,o['_ad']);
  if(o['_gp'])GRP=Object.assign({},BUILTIN.G,o['_gp']);
@@ -3262,6 +3269,7 @@ function secHTML(id,nm,cl,zone,list,dvs){
  +[1,2,3,4].map(v=>'<option value="'+v+'"'+(n===v?' selected':'')+'>'+v+'대</option>').join('')+'</select>'
  +'<button class="btn s" onclick="openPick(\''+id+'\')" style="flex:0 0 40px;padding:8px 0">＋</button></div>'
  +'<div class="load '+(p>100?'o':p>85?'w':'')+'"><i style="width:'+Math.min(p,100)+'%"></i></div>'
+ +(vehOf(dv)==='호로'?(function(){const hc=horoChairs(list),cn=HORO_CHAIR_CAP*n;return hc>cn?'<div class="horow">⚠ 호로차('+dv+') — 의자류 '+hc+'개, 탑을 못 쌓아 '+cn+'개까지만</div>':''})():'')
  +'<div style="display:flex;justify-content:space-between;padding:0 12px 8px;font-size:11.5px;font-weight:700"><span style="color:#5f7086">의자 '+qty+'개'+(list.length?' · ⏱ 약 '+fmtDur(estRoute(id,list)):'')+'</span><span style="color:'+(p>100?'#e04b45':p>85?'#c98a1a':'#03C75A')+'">적재 '+p.toFixed(0)+'%'+(p>100?' ⚠초과':'')+'</span></div>'}
  if(op){let inner;
   const mk=o=>'<div id="hit'+o.i+'" class="cardw">'+(EXP[o.key]===false?ccard(o):('<div class="colbar" onclick="toggleExp(\''+o.key+'\')">▲ 접기</div>'+card(o)))+'</div>';
