@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261117h';
+const APPVER='20261117i';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5945,7 +5945,7 @@ function msbClass(units){
    if(!u.ok){u.g='un';u.why='거래명세표가 아닌 쪽';return}
    /* 주소란에 «명세표주지마세요» — 왼쪽 위 빨간 도장 맨 앞에 (2026-10-30) */
    if(/명세[표서]\s*(를|는|은)?\s*(주지|드리지|넣지)\s*마/.test(String(u.adw||u.ad||'')))u.noms=1;
-   const mx=/매장\s*배송/.test(String(u.memo||''))?null:(String(u.memo||'').match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) */
+   const mx=(/매장\s*배송/.test(String(u.memo||''))||/차량\s*입고/.test(String(u.memo||'')))?null:(String(u.memo||'').match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) · 차량입고가 적혀 있으면 «18일상차» 같은 낱말이 있어도 묶음에 넣는다 (2026-11-17 대신(사당)) */
    if(mx){u.g='x';u.why='적요 「'+mx[0]+'」';return}
    /* 거래처 «소비자» 는 묶음에서 뺀다 (2026-11-02 사장님) — 맨 뒤 «뺀 전표» 목록에만 */
    if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){u.g='x';u.why='거래처 소비자';return}
