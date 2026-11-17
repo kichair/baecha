@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261117f';
+const APPVER='20261117g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -6295,7 +6295,8 @@ function msbH(){return {apikey:MSB_KEY,Authorization:'Bearer '+MSB_KEY}}
 async function msbBoard12(){const r=await fetch(MSB_SB+'/rest/v1/board?id=eq.12&select=data',{headers:msbH()});const j=await r.json();return (j&&j[0]&&j[0].data)||{}}
 async function msbFile(d){const r=await fetch(MSB_SB+'/storage/v1/object/statements/'+d+'.pdf?t='+Date.now(),{headers:msbH(),cache:'no-store'});if(!r.ok)return null;return await r.arrayBuffer()}
 function msbSetD(v){MSBD=v;try{localStorage.setItem(KEY+'_msbd',v)}catch(e){}}
-async function msbByDate(force,onlyNew,coversOnly){
+function msbMine(){return msbByDate(0,false,false,'mine')}
+async function msbByDate(force,onlyNew,coversOnly,pc){
  const d=(document.getElementById('msbd')||{}).value||MSBD||mnNextBiz();if(!/^\d{4}-\d\d-\d\d$/.test(d)){msbSt('⚠ 날짜를 고르세요');return}
  msbSetD(d);
  try{
@@ -6303,9 +6304,9 @@ async function msbByDate(force,onlyNew,coversOnly){
   if(!force){msbSt(d+' 명세표 찾는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf',false,coversOnly);return}}
   /* 자동실행컴에 뽑아 달라고 한다 */
   const cur=await msbBoard12();const ts=Date.now();
-  cur.req={d:d,ts:ts,who:ME||'사이트'};
+  cur.req={d:d,ts:ts,who:ME||'사이트',pc:pc||'auto'};
   await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:12,data:cur,updated_at:new Date().toISOString()}])});
-  msbSt('🖨 자동실행컴에 '+d+' 명세표를 sERP 에서 뽑아 달라고 했습니다 — 2~5분 걸립니다…');
+  msbSt(pc==='mine'?'💻 '+d+' 뽑기 요청을 적어 뒀습니다 — 이 PC 바탕화면 「거래명세표뽑기(이PC)」를 눌러 주세요 (이 PC sERP 로그인 필요). 끝나면 여기서 저절로 이어집니다…':'🖨 자동실행컴에 '+d+' 명세표를 sERP 에서 뽑아 달라고 했습니다 — 2~5분 걸립니다…');
   const end=Date.now()+15*60000;
   while(Date.now()<end){
    await new Promise(r=>setTimeout(r,5000));
@@ -6314,7 +6315,7 @@ async function msbByDate(force,onlyNew,coversOnly){
     if(s.state==='끝'){msbSt('받는 중…');const b=await msbFile(d);if(b){await msbRun(b,'sERP '+d+'.pdf');return}msbSt('⚠ 뽑았다는데 파일이 없습니다');return}
     if(s.state==='실패'){msbSt('⚠ 자동실행컴이 못 뽑았습니다: '+(s.msg||'')+' — 파일로 올려 주세요');return}
     msbSt('🖨 자동실행컴: '+(s.msg||'하는 중')+' …')}
-   else if(Date.now()-ts>90000)msbSt('⏳ 자동실행컴이 아직 안 받았습니다 (원장팩스 대기가 켜져 있어야 합니다) …');
+   else if(Date.now()-ts>90000)msbSt(pc==='mine'?'⏳ 아직 이 PC에서 안 돌렸습니다 — 바탕화면 「거래명세표뽑기(이PC)」를 눌러 주세요 …':'⏳ 자동실행컴이 아직 안 받았습니다 (원장팩스 대기가 켜져 있어야 합니다) …');
   }
   msbSt('⚠ 15분이 지나도 안 끝났습니다 — 자동실행컴을 확인하거나 파일로 올려 주세요');
  }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
@@ -6329,7 +6330,8 @@ function tabMsb(){
  if(!MSB.doneAt||Date.now()-MSB.doneAt>30000){MSB.doneAt=Date.now();msbDoneAll().then(function(a){MSB.doneAll=a;const e=document.getElementById('msbdone');if(e)e.innerHTML=msbDoneTxt(md0)})}
  h+='<div style="margin:10px 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
   +'<b>📅 날짜</b><input type="date" id="msbd" value="'+esc(md0)+'" onchange="msbSetD(this.value)" style="font-size:15px;padding:4px 6px">'
-  +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbByDate(0)">📥 ERP에서 묶기</button>'
+  +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbByDate(0)" title="자동실행컴 sERP로 뽑아 묶습니다 — 원장팩스 대기가 켜져 있어야 합니다">📥 자동실행컴에서 묶기</button>'
+  +'<button class="btn" style="background:#7c5cd6;color:#fff" onclick="msbMine()" title="이 PC의 sERP로 뽑아 묶습니다 — 누른 뒤 바탕화면 「거래명세표뽑기(이PC)」를 누르면 날짜가 자동으로 잡힙니다 (2026-11-17)">💻 이 PC에서 묶기</button>'
   +'</div>';   /* 추가분만·보고서만·새로 뽑기 단추는 뺐다 (2026-11-10 사장님 «ERP에서 묶기만 빼고 없애») */
  h+='<div style="margin:6px 2px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#6b7c90;font-size:12.5px">또는 직접 받은 PDF 파일로: <input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)" style="display:none">'
   +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbPickOpen(0)" title="sERP 에서 직접 받은 거래명세표 PDF 를 골라 전부 도장 찍습니다">📄 이 파일 도장찍기</button>'
