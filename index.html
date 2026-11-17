@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261117i';
+const APPVER='20261117l';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -4220,6 +4220,11 @@ const YC_BASE={'0.5':38000,'0.6':45000,'1':80000,'1L':90000,'1.4':110000,'2.5':1
 /* 초장축은 5톤 값에 20% 더 붙는다 (장부상 5톤초장축 실지급 기준) */
 function ycTon(t){if(String(t)[0]==='m')return t;return t==='5L'?'5':(t==='1L'?'1':(t==='0.6'?'0.5':t))}
 function ycUp(t){if(String(t)[0]==='m')return 1;return t==='5L'?1.2:(t==='1L'?1.12:1)}
+/* 적요의 «충북 보은» 같은 도+고을 — 운임 장부에 없어도 지역 칸에는 그대로 (2026-11-17 강현아님, 우드림D&C 보은) */
+function ycGeo(t){const m=String(t||'').match(/(?:충북|충남|전북|전남|경북|경남|경기|강원|제주|충청북도|충청남도|전라북도|전라남도|경상북도|경상남도)\s*([가-힣]{2,6})/);
+ if(!m)return null;const w=m[1];
+ if(/방향|방면|지역|근처|쪽|도착|상차|하차/.test(w))return null;
+ return w}
 /* 주소·거래처 이름에서 운임 장부의 지역명을 찾는다 */
 let _ycKeys=null;
 function ycRegion(txt){
@@ -4619,7 +4624,7 @@ function ycbAdd(i){
 }
 function ycbRowOf(o){
  const DD=destOf(o)||{};
- const reg=ycRegion(o.memo)||(DD.src==='적요'?ycRegionAny(DD.t):null)||(o.dst?ycRegionAny(o.dst):null)||ycRegion(ADDR[o.n]||'')||ycRegion(o.n)||'';
+ const reg=ycRegion(o.memo)||ycGeo(o.memo)||(DD.src==='적요'?ycRegionAny(DD.t):null)||(o.dst?ycRegionAny(o.dst):null)||ycRegion(ADDR[o.n]||'')||ycRegion(o.n)||'';   /* 적요의 도+고을이 거래처 주소보다 먼저 (2026-11-17) */
  const tk=ycbTruckOf(o.memo,o.load), f=ycFee(reg,tk.t);
  /* 장부에 그 지역·그 차 실적이 없으면 추정치 — 화면에 표시해 준다 */
  return {d:ycbDate(),n:o.n,reg:reg,tk:tk.t,tnm:tk.nm,mm:String(o.memo||'').slice(0,120),co:'광일',fee:f.v,est:(f.how==='실적'?0:1),hw:f.how}}
@@ -4794,7 +4799,7 @@ function kkMmElse(mm,ad){const A=String(ad||'').replace(/\s/g,'');if(!mm)return 
  const r=ycRegionAny(mm);if(r&&A.indexOf(r)<0)return true;
  const M0=String(mm).replace(/특별시|광역시|특별자치시|특별자치도/g,'');
  /* «경북울진»·«서울금천» — 시도 바로 뒤 낱말 앞 두 글자 */
- const SD=/(?:서울|인천|부산|대구|대전|광주|울산|세종|경기|강원|충남|충북|전남|전북|경남|경북|제주)([가-힣]{2})/g;let sm;
+ const SD=/(?:서울|인천|부산|대구|대전|광주|울산|세종|경기|강원|충남|충북|전남|전북|경남|경북|제주)\s*([가-힣]{2})/g;let sm;   /* «충북 보은» 띄어쓰기도 (2026-11-17 우드림 보은) */
  while((sm=SD.exec(M0))){if(!/가구|사무|창고|매장|공장|지점|본사|용차|출고|도착|상차|하차/.test(sm[1])&&A.indexOf(sm[1])<0)return true}
  const t=M0.replace(/(서울|인천|부산|대구|대전|광주|울산|세종|경기|강원|충남|충북|전남|전북|경남|경북|제주)/g,' ');
  const gu=[];(t.match(/[가-힣]{1,8}(?:구|동)(?![가-힣])/g)||[]).forEach(function(w){(w.match(/[가-힣]+?(?:구|동)/g)||[w]).forEach(function(g){gu.push(g)})});
@@ -5453,14 +5458,22 @@ function ycbItems(x){try{
       if(bd!==x.d)tag='<span style="color:#c9761a;font-weight:700">'+esc(md(bd))+' 전표</span> · ';
      }}}}}
  if(!os.length)return '';
- const bag={};let tot=0;
+ const bag={};let tot=0,ld=0;
  os.forEach(function(o){(o.items||[]).forEach(function(it){if(!it||!it.p)return;const q=+it.q||0;tot+=q;
+  try{ld+=q/((capOfIt(it)||{}).c||60)}catch(e){}   /* 적재기준으로 1톤 환산 (2026-11-17) */
   const p=String(it.p).trim();bag[p]=(bag[p]||0)+q})});
  const ks=Object.keys(bag);if(!ks.length)return '';
  ks.sort(function(a,b){return bag[b]-bag[a]});
  return tag+ks.slice(0,4).map(function(p){return esc(p.length>12?p.slice(0,12)+'…':p)+' <b>'+bag[p]+'</b>'}).join(' · ')
   +(ks.length>4?' <span style="color:#8b9aab">외 '+(ks.length-4)+'가지</span>':'')
-  +' <span style="color:#8b9aab">= '+tot+'개</span>';
+  +' <span style="color:#8b9aab">= '+tot+'개</span>'
+  +(function(){if(!(ld>0))return '';
+    const tr=YC_TRUCK.filter(function(u){return !u.mx&&u.c>=ld-0.001})[0];
+    const cur=YC_TRUCK.filter(function(u){return u.t===x.tk})[0];
+    const ldt=String(Math.round(ld*100)/100);
+    let h=' <span style="color:#2F7FE8;font-weight:700" title="적재기준으로 1톤 환산한 짐 크기와 알맞은 차">· ≈'+ldt+'톤분'+(tr?' → '+esc(tr.nm):' → 나눠 실어야')+'</span>';
+    if(cur&&cur.c<ld-0.001)h+=' <b style="color:#c0392b">⚠ '+esc(cur.nm)+' 모자람</b>';
+    return h})();
 }catch(e){return ''}}
 /* 옮기기·빼기를 고르기 한 칸으로 — 단추가 가로로 길었다 (2026-11-13 강현아님 «여기 열을 줄여 — 선택할 수 있게하던지») */
 function ycbActSel(co,k){
