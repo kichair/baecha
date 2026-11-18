@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261118e';
+const APPVER='20261118g';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2167,7 +2167,9 @@ function isSJ(o){return (o.items||[]).some(sjItem)}
 function qtySplit(o){let ch=0,sj=0;(o.items||[]).forEach(function(it){if(!it||it.x)return;const q=+it.q||0;if(sjItem(it))sj+=q;else ch+=q});
  if(!ch&&!sj)ch=+o.qty||0;return {ch:ch,sj:sj}}
 function qtyTxt(o){const s=qtySplit(o);const b='<span class="sjq" style="cursor:pointer" title="누르면 삼정 품목이 보여요" onclick="sjPop('+(o.i!=null?o.i:-1)+',event)">삼정 '+s.sj+'</span>';
- if(s.sj&&s.ch)return '의자 '+s.ch+' · '+b;if(s.sj)return b;return s.ch+'<small>개</small>'}
+ /* 개수를 누르면 품목 내역 거품 — 카드는 안 접힌다 (2026-11-18 강현아님) */
+ const c='<span class="sjq" style="cursor:pointer;color:inherit" title="누르면 품목 내역이 보여요" onclick="itPop('+(o.i!=null?o.i:-1)+',event)">';
+ if(s.sj&&s.ch)return c+'의자 '+s.ch+'</span> · '+b;if(s.sj)return b;return c+s.ch+'<small>개</small></span>'}
 /* 「삼정 N」 딱지 → 삼정 품목 거품 (2026-11-17 강현아님 «접지 말고 내역이 보이게») */
 function sjPop(i,ev){if(ev){ev.stopPropagation();ev.preventDefault()}
  const o=(typeof ORDERS!=='undefined'?ORDERS:[]).filter(function(x){return x&&x.i===i})[0];if(!o)return;
@@ -2180,6 +2182,20 @@ function sjPop(i,ev){if(ev){ev.stopPropagation();ev.preventDefault()}
   +'</div><div style="margin-top:5px;color:#8b9aab;font-size:11px">다른 곳을 누르면 닫혀요</div>';
  document.body.appendChild(el);
  const x=Math.max(8,Math.min((ev&&ev.clientX)||120,window.innerWidth-380)),y=Math.max(8,Math.min(((ev&&ev.clientY)||120)+12,window.innerHeight-el.offsetHeight-12));
+ el.style.left=x+'px';el.style.top=y+'px';
+ setTimeout(function(){const h=function(){const e2=document.getElementById('sjpop');if(e2)e2.remove();document.removeEventListener('click',h)};document.addEventListener('click',h)},0)}
+/* 개수 칩 → 품목 내역 거품 (2026-11-18 강현아님 «의자를 클릭하면 내역만») — 삼정 품목은 [삼정] 주황 */
+function itPop(i,ev){if(ev){ev.stopPropagation();ev.preventDefault()}
+ const o=(typeof ORDERS!=='undefined'?ORDERS:[]).filter(function(x){return x&&x.i===i})[0];if(!o)return;
+ const L=(o.items||[]).filter(function(it){return it&&!it.x});
+ let el=document.getElementById('sjpop');if(el)el.remove();
+ el=document.createElement('div');el.id='sjpop';
+ el.style.cssText='position:fixed;z-index:9999;background:#fff;border:1.5px solid #0f5f37;border-radius:10px;box-shadow:0 10px 26px rgba(15,25,40,.28);padding:10px 12px;max-width:380px;max-height:320px;overflow:auto;font-size:12.5px;line-height:1.5';
+ el.innerHTML='<b style="color:#0f5f37">품목 — '+esc(o.n)+' <span style="color:#8b9aab;font-weight:600">'+(+o.qty||0)+'개</span></b><div style="margin-top:5px">'
+  +(L.length?L.map(function(it){return (sjItem(it)?'<span style="color:#c2410c;font-weight:700">[삼정]</span> ':'')+esc(String(it.p||''))+(it.s?' <span style="color:#8b9aab">'+esc(String(it.s))+'</span>':'')+' <b>×'+(+it.q||0)+'</b>'}).join('<br>'):'(품목 내역이 없는 전표 — 수량 '+(+o.qty||0)+'개)')
+  +'</div><div style="margin-top:5px;color:#8b9aab;font-size:11px">다른 곳을 누르면 닫혀요</div>';
+ document.body.appendChild(el);
+ const x=Math.max(8,Math.min((ev&&ev.clientX)||120,window.innerWidth-400)),y=Math.max(8,Math.min(((ev&&ev.clientY)||120)+12,window.innerHeight-el.offsetHeight-12));
  el.style.left=x+'px';el.style.top=y+'px';
  setTimeout(function(){const h=function(){const e2=document.getElementById('sjpop');if(e2)e2.remove();document.removeEventListener('click',h)};document.addEventListener('click',h)},0)}
 function qtyTxtL(list){let ch=0,sj=0;(list||[]).forEach(function(o){const s=qtySplit(o);ch+=s.ch;sj+=s.sj});
@@ -6158,8 +6174,12 @@ async function msbBuild(bytes,groups,coversOnly){
   const np=g.units.reduce(function(s,u){return s+u.pages.length},0);
   /* 표지 */
   /* 2026-11-04 사장님 «동선보고서 뽑을 때 거래처명 옆에 도착지주소·주의사항·금액» — 한 줄에 한 전표, 둘째 줄에 주소·주의사항. 넘치면 표지를 한 장 더 */
+  /* 표지 제목 오른쪽에 기사 이름 크게 — «동선별·1차분량별 기사이름 기재» (2026-11-18 강현아님) */
+  const dnm=(drvs.length&&g.id!=='jn')?drvs.join('·'):'';
   const head=function(pg2,cont){pg2.drawRectangle({x:30,y:H-120,width:W-60,height:80,color:col});
-   pg2.drawText(lab+(r&&/^r\d+$/.test(g.id)?'  '+r.nm.replace(/^\d+\.\s*/,''):'')+(cont?'  (이어서)':''),{x:48,y:H-78,size:26,font:font,color:WHT});
+   const dw=dnm?tw(dnm,22):0;
+   pg2.drawText(fit(lab+(r&&/^r\d+$/.test(g.id)?'  '+r.nm.replace(/^\d+\.\s*/,''):'')+(cont?'  (이어서)':''),26,W-96-(dnm?dw+18:0)),{x:48,y:H-78,size:26,font:font,color:WHT});
+   if(dnm)pg2.drawText(dnm,{x:W-48-dw,y:H-78,size:22,font:font,color:WHT});
    pg2.drawText((drvs.length&&g.id!=='jn'?'기사 '+drvs.join('·')+' · ':'')+dtxt(g.units[0].date||d0)+' · '+g.units.length+'건 '+np+'장 · 의자 '+g.units.reduce(function(s,u){return s+(u.qty||0)},0)+'개',{x:48,y:H-108,size:13,font:font,color:WHT})};
   let cv=out.addPage([W,H]);head(cv,false);
   let y=H-150;const x=40,RX=W-40;
@@ -6194,7 +6214,9 @@ async function msbBuild(bytes,groups,coversOnly){
   const TN2=['1차','2차'];   /* 2026-11-18 강현아님 «1차 2차 이렇게» */
   const tripCover=function(t,units2){const pg2=out.addPage([W,H]);
    pg2.drawRectangle({x:30,y:H-116,width:W-60,height:76,color:col});
-   pg2.drawText(lab+'-'+t+'   '+(TN2[t-1]||t+'차')+'  — 한 차 분량',{x:48,y:H-76,size:24,font:font,color:WHT});
+   const dw2=dnm?tw(dnm,22):0;   /* 1차/2차 표지에도 기사 이름 크게 (2026-11-18 강현아님) */
+   pg2.drawText(fit(lab+'-'+t+'   '+(TN2[t-1]||t+'차')+'  — 한 차 분량',24,W-96-(dnm?dw2+18:0)),{x:48,y:H-76,size:24,font:font,color:WHT});
+   if(dnm)pg2.drawText(dnm,{x:W-48-dw2,y:H-76,size:22,font:font,color:WHT});
    const q2=units2.reduce(function(s2,u){return s2+(u.qty||0)},0),np2=units2.reduce(function(s2,u){return s2+u.pages.length},0);
    const L2=units2.reduce(function(s2,u){return s2+((u.o&&u.o.load)||0.08)},0);
    pg2.drawText((drvs.length?'기사 '+drvs.join('·')+' · ':'')+dtxt(g.units[0].date||d0)+' · '+units2.length+'건 '+np2+'장 · 의자 '+q2+'개 · 적재 약 '+Math.round(L2*100)+'%',{x:48,y:H-104,size:12.5,font:font,color:WHT});
