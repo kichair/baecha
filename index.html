@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261118b';
+const APPVER='20261118c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5929,6 +5929,10 @@ async function msbReadPage(p){
   const r=rows.find(function(r){return Math.abs(r.y-y)<=3});const left=r?r.a.filter(function(a){return a.x<190}).map(function(a){return a.s}).join(''):'';
   if(/수량\s*(총|합)\s*계|총\s*계|합\s*계/.test(left)||/운반비|배송비|택배비|퀵비/.test(left))return;   /* sERP 는 «수량총계» 줄 */
   u.qty+=parseInt(s.replace(/,/g,''),10)||0});
+ /* 거래처 전화번호 — 왼쪽 머리 «전화번호:» 자리(x72,y702). 팩스(x210)·광일 번호(오른쪽 x342~)는 안 집는다 (2026-11-18 강현아님) */
+ u.tel='';tc.items.forEach(function(it){if(u.tel)return;const x=it.transform[4],y=it.transform[5];
+  if(x>=200||y<694||y>712)return;const m=String(it.str||'').match(/0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}/);
+  if(m)u.tel=m[0].replace(/\s+/g,'')});
  return u;
 }
 /* 쪽을 전표 단위로 묶는다 — PAGE 2/2 처럼 이어지는 쪽은 앞 전표에 붙인다 */
@@ -5939,7 +5943,7 @@ async function msbParse(bytes){
   const u=await msbReadPage(await doc.getPage(i));
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
   if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;last.qty=(last.qty||0)+(u.qty||0);if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
-  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,qty:u.qty||0,rtag:u.rtag||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
+  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,tel:u.tel||'',qty:u.qty||0,rtag:u.rtag||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
  MSB_NP=doc.numPages;
  try{doc.destroy()}catch(e){}
  return units;
@@ -6229,6 +6233,8 @@ async function msbBuild(bytes,groups,coversOnly){
     const isAdd=/추가(?!\s*예정)/.test(String(u.memo||''));
     if(isAdd)memo=memo.replace(/(^|[\s\/,·])추가(?=$|[\s\/,·])/g,'$1').replace(/^[\s\/,·.-]+|[\s\/,·.-]+$/g,'').replace(/\s*\/\s*\/\s*/g,' / ').trim();
     /* 일찍·오전일찍·오전배송 — 글씨 키워 동그라미 안에. 자리: 일자·거래처 줄 오른쪽 빈칸(공급자 칸 x298 앞). 위·아래 반쪽 다 */
+    /* 직납인데 적요에 전화가 없으면 — 거래처 전화를 적요에 덧붙인다 (2026-11-18 강현아님 «기사님 정보필요») */
+    if(u.jik&&u.tel&&!/01\d[-.\s]?\d{3,4}[-.\s]?\d{4}|0\d{1,2}[-.)\s]\d{3,4}[-.\s]?\d{4}/.test(memo))memo=(memo?memo+' / ':'')+'전화 '+u.tel;
     /* 왼쪽 위 도장 줄을 16pt 올린다 — 적요 자리를 넓히려고. «명세표 주지마세요» 띠가 있는 전표만 그 자리를 비켜 그대로 */
     const SUP=u.noms?0:16;
     if(memo){let ms=10;while(ms>8&&tw(memo,ms)>232)ms-=0.5;
