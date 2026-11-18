@@ -1392,6 +1392,7 @@ const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계
 const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/하나로사무용가구\(일산|아모스아인스가구\(일산/,'r3'],   /* 2026-11-16 강현아님 «고양시는 동선별로 묶어» — sERP 번호표 [1] 이 r1 로 끌던 두 곳 */
  [/계룡에프앤지|계룡OA/,'r9'],   /* 2026-11-16 강현아님 «계룡은 대전 동구인데 왜 2동선» — 번호표 [2] 가 주소(대전)를 이기던 것 */
+ [/성남대성/,'r7'],   /* 2026-11-18 강현아님 «경기 성남시가 왜 1동선» — 대성사무용가구(성남): 번호표 1 학습이 주소(성남)를 이기던 것 */
  [/삼신\s*탈렌토/,'r4'],
  [/대우토탈/,'r4',1],   /* 2026-11-13 강현아님 «사당대우토탈 4동선» — 사업장주소가 파주 자택이라 3동선으로 잡히던 것, 배송지는 동작구 동작대로 207 (도로명 칸 «[4]배송:…» 은 주소 끝 번호표가 아니라 못 배움). 1 = 적요에 딴 배송지 있으면 그 주소 동선 */
  [/대한사무용중역가구|토파즈/,'r9'],   /* 청주 — 2026-11-11 강현아님 «9동선은 대전·진천·중부·청주» 로 9 로 되돌림 (11/09 엔 10) */
@@ -1650,7 +1651,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261118g';
+const APPVER='20261118i';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -5873,7 +5874,7 @@ function msSjUp(f){if(!f)return;
    글자 위치는 sERP 거래명세표 PDF(A4 세로 595×842pt) 실측 — 거래처 y737 · 주소 y720 · 일자 y755 · PAGE y774 · 전미수잔액 y487 · 적요 y446 */
 const MSB_EXCL=/택배|용차|상차|화물|퀵/;   /* 차량입고는 찾으러옴처럼 묶음에 포함 — 도장 «차량입고» (2026-11-16 강현아님) */
 const MSB_PICK=/찾으러|방문수령/;
-const MSB_DRV=['장세훈','안정수','배진성'];   /* 명세서에 이름을 찍는 기사 — 호로차 둘·3.5톤 */
+/* 2026-10-29 «호로차·3.5톤만 이름» → 2026-11-18 강현아님 «기사님 이름 다 쓰고» — 이제 모든 기사 이름을 찍는다 (MSB_DRV 백색명단 없앰) */
 /* 2026-11-02 사장님: 전표 아래 «10만 기업이 선택한 sERP» 자리를 지우고 계좌 줄을 찍는다 (종이에 미리 찍혀 있던 것 — 묶음 PDF 는 백지에 뽑으니까). 위·아래 반쪽 다 */
 const MSB_BANK='국민 170001-04-212477   신한 140-007-999709   외환 630-004685-891   우리 1005-001-929468   기업 032-576-5361   농협 351-0600-978683';   /* 예금주는 빼고 글씨 키움 (2026-11-02 사장님) */
 /* 품목명에 이 말이 있으면 그 말에 빨간 동그라미 (2026-11-02 사장님 «좌판만·링사발·도금사발·코지오발 이런 거») */
@@ -6046,7 +6047,7 @@ function msbClass(units){
    /* 2026-11-03 사장님 «그래도 동선 밀어넣어야지, 안 보낼 거 아니잖아» — 사이트 명세서에 아직 없는 전표(자동 받기 전에 뽑은 PDF)나
       아직 미배차인 건은 거래처 주소·적요로 동선을 추정해서 넣는다. 표지에 (추정) 으로 표시 */
    const okR=function(r){return r&&r!=='_'&&!offRoute(r)&&ROUTES.some(function(x){return x.id===r})};
-   const estPut=function(r,po){u.g=r;u.drv=CAR[r]||'';if(MSB_DRV.indexOf(u.drv)<0)u.drv='';u.trip=1;u.est=1;u.o=po};
+   const estPut=function(r,po){u.g=r;u.drv=CAR[r]||'';u.trip=1;u.est=1;u.o=po};
    if(!o){
     const rn=resolveCust(String(u.n||'').replace(/\s+/g,''))||u.n;
     const po={n:rn,d:D,od:D,memo:u.memo||'',items:[],i:-1,key:'~'+rn};
@@ -6064,10 +6065,8 @@ function msbClass(units){
    {const am=String(u.memo||'').match(ADRE);
     if(am&&looksAddr(am[0])&&!(um&&nz(o.memo).indexOf(um)>=0)&&!ASGV[o.key]){const hd=rtHard(o.n);
      if(!hd||rtHardLoc(o.n)){const r3=hitRoute(am[0]);
-      if(okR(r3)&&r3!==r){u.g=r3;u.drv=CAR[r3]||'';if(MSB_DRV.indexOf(u.drv)<0)u.drv='';u.trip=1;u.jik=true;u.pdfR=1;return}}}}
+      if(okR(r3)&&r3!==r){u.g=r3;u.drv=CAR[r3]||'';u.trip=1;u.jik=true;u.pdfR=1;return}}}}
    u.g=r;u.drv=effDrv(o)||'';u.o=u.o||o;u.tripMan=!!TRIP[o.key];u.trip=Math.min(TRIP_MAX,+TRIP[o.key]||1);
-   /* 기사 이름은 호로차(장세훈·안정수)·3.5톤(배진성)만 찍는다 (2026-10-29 사장님) */
-   if(MSB_DRV.indexOf(u.drv)<0)u.drv='';
   });
   units.forEach(function(u){(by[u.g]=by[u.g]||[]).push(u)});
   /* 동선 안 순서 = 동선별 탭과 같은 순서(잠근 순서·방문순서) */
@@ -6093,25 +6092,28 @@ function msbClass(units){
  {const J=[];groups.forEach(function(g){if(g.id==='pick'||g.id==='un')return;const keep=[];g.units.forEach(function(u){(u.jik?J:keep).push(u)});g.units=keep});
   for(let i=groups.length-1;i>=0;i--)if(!groups[i].units.length)groups.splice(i,1);
   if(J.length)groups.unshift({id:'jn',units:J})}
- /* 회차 나누기 — 동선별+코스별+한차분량 (2026-11-17 강현아님). 배차 화면과 같은 셈:
-    그 동선 대수(CAR[id_n]) 기준 적재량 누적 분할, 먼 곳부터 1차. 손 지정(TRIP)은 그대로. */
- groups.forEach(function(g){
-  if(!RID[g.id]||g.id==='jn')return;
-  const n=Math.max(1,Math.min(2,+CAR[g.id+'_n']||1));   /* 2026-11-18 «2차가 끝» */
-  if(n>1){
-   const ld=function(u){return (u.o&&u.o.load)||0.08};
-   const auto=g.units.filter(function(u){return !u.tripMan});
-   const total=g.units.reduce(function(s2,u){return s2+ld(u)},0),target=total/n;
-   const src2=auto.slice();
-   if(src2.every(function(u){return u.o}))try{src2.sort(function(a,b){return byFarFirst(a.o,b.o)})}catch(e){}
-   let t=0,acc=g.units.filter(function(u){return u.tripMan&&(u.trip||1)===1}).reduce(function(s2,u){return s2+ld(u)},0);
-   src2.forEach(function(u){if(t<n-1&&acc>=target*(t+1))t++;acc+=ld(u);u.trip=t+1});
-   /* 꼬리 끼워싣기 — 2차 몫이 0.15대분 이하(상판 몇 장)면 1차에 (2026-11-18 강현아님) */
-   const t2=g.units.filter(function(u){return !u.tripMan&&(u.trip||1)>1});
-   if(t2.length&&t2.reduce(function(s2,u){return s2+ld(u)},0)<=0.15*(capFactor(g.id)||1))t2.forEach(function(u){u.trip=1});
-  }
-  g.units.sort(function(a,b){return (a.trip||1)-(b.trip||1)});
- });
+ /* 회차 — 배차 화면과 똑같은 셈을 그대로 받아온다 (2026-11-18 강현아님 «1차분량이면 1동선-1·1동선-2, 기사 이름 다»).
+    drvRows = 화면의 적재 분할 + 손 지정(TRIP) + 기사별 2차 상한 + 꼬리 끼워싣기. 옛 «대수(CAR[id_n]) 2대» 기준은 화면과 어긋났다. */
+ {const keep2=SEL,keepC2=CAR;try{
+  const dts={};groups.forEach(function(g){g.units.forEach(function(u){if(u.date)dts[u.date]=1})});
+  const tm={};
+  Object.keys(dts).forEach(function(D2){
+   SEL=D2;CAR=CARD[D2]||DAY_DRV[D2]||autoRotate(D2);
+   const rr=drvRows(ORDERS.filter(function(o){return o.d===D2&&!offRoute(ASSIGN[o.i])}));
+   const cnt={};
+   rr.rows.forEach(function(a){if(a.d==='용차')return;const k=a.d+'§'+a.rid;
+    const n2=a.tp?Math.min(2,a.tp):(cnt[k]=Math.min(2,(cnt[k]||0)+1));
+    a.list.forEach(function(o){const kk=D2+'§'+o.i;if(tm[kk]===undefined)tm[kk]=n2})});
+  });
+  groups.forEach(function(g){
+   if(!RID[g.id]||g.id==='jn')return;
+   g.units.forEach(function(u){
+    if(u.tripMan)return;   /* 손 지정은 그대로 */
+    const o=u.o;if(!o||o.i==null||o.i<0){u.trip=u.trip||1;return}
+    u.trip=tm[(u.date||'')+'§'+o.i]||1});
+   g.units.sort(function(a,b){return (a.trip||1)-(b.trip||1)});
+  });
+ }finally{SEL=keep2;CAR=keepC2}}
  return groups;
 }
 /* 새 PDF — 동선마다 표지 한 장 + 그 동선 전표들(도장 찍어서), 맨 뒤에 뺀 전표 목록 */
