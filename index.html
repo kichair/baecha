@@ -1378,7 +1378,7 @@ function seqLearnClear(){_sqrC={}}
 let DRVS=LSU('_dv',null)||[['김덕겸','010-2913-1805'],['배진성',''],
  ['김태용','010-2552-5242'],['고광희','010-5800-6609'],['강효길','010-8938-5716'],
  ['장세훈','010-4762-1642'],['김석호','010-6326-4378'],['정석윤','010-3722-5390'],
- ['윤재웅',''],['안정수','010-7711-9978'],['용차','']];
+ ['윤재웅',''],['안정수','010-7711-9978'],['박남호',''],['용차','']];   /* 박남호 2026-11-02 입사 (2026-11-18 강현아님) */
 /* ===== 차량 종류 (우천 배차용) ===== DRVS = [이름, 연락처, 차량] */
 const VEH_DEF={'안정수':'호로','장세훈':'호로','배진성':'3.5톤'};   /* 2026-11-17 강현아님 «호로차 2대(안정수·장세훈)·배진성 3.5톤» */
 /* 수요일 남양주·원주·춘천 동선 합치기 — 적재 60% 미만이면 5번 마포·을지·중곡으로 붙임 */
@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261118d';
+const APPVER='20261118e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3271,6 +3271,8 @@ function driverTrips(list){
   });
   flush();
  });
+ /* 꼬리 끼워싣기 — 같은 동선에서 갈린 뒷차가 0.15대분 이하면 앞 차에 (2026-11-18 강현아님) */
+ for(let i=rows.length-1;i>0;i--){if(rows[i].rid===rows[i-1].rid&&rows[i].L<=0.15*(capFactor(rows[i].rid)||1)){rows[i-1].list=rows[i-1].list.concat(rows[i].list);rows[i-1].cont=(rows[i-1].cont||[]).concat(rows[i].cont||[]);rows[i-1].L+=rows[i].L;rows.splice(i,1)}}
  const ord=ROUTES.map(x=>x.id);
  rows.forEach(r=>r.ri=ord.indexOf(r.rid));
  rows.sort((a,b)=>a.ri-b.ri);
@@ -3304,8 +3306,11 @@ function secHTML(id,nm,cl,zone,list,dvs){
    const src=list.slice().sort(byFarFirst);
    let g=0,acc=0;const gls=Array.from({length:n},()=>[]);
    src.forEach(o=>{if(g<n-1&&acc>=target*(g+1))g++;acc+=o.load;gls[g].push(o)});
+   /* 꼬리 끼워싣기 — 뒷차 몫이 0.15대분 이하(상판 몇 장 등)면 앞 차에 싣는다. 그것만 들고 한 번 더 안 나간다 (2026-11-18 강현아님 «상판은 끼워넣으면 되잖아») */
+   for(let gi=gls.length-1;gi>0;gi--){if(!gls[gi].length)continue;if(gls[gi].reduce((a,o)=>a+o.load,0)<=0.15*(capFactor(id)||1)){gls[gi-1]=gls[gi-1].concat(gls[gi]);gls[gi]=[]}break}
    const TN=['1차','2차'];   /* 2026-11-18 강현아님 «1차 2차 이렇게» */
-   inner=gls.map((gl,gi)=>gl.length?('<div class="subcar">🚚 '+(TN[gi]||(gi+1)+'차')+' — 의자 '+gl.reduce((a,o)=>a+o.qty,0)+'개 · 적재 '+Math.round(gl.reduce((a,o)=>a+o.load,0)*100)+'% · ⏱ 약 '+fmtDur(estRoute(id,gl))+'</div>'+gl.map(mk).join('')):'').join('');
+   const act=gls.filter(gl=>gl.length);
+   inner=act.length<2?list.map(mk).join(''):gls.map((gl,gi)=>gl.length?('<div class="subcar">🚚 '+(TN[gi]||(gi+1)+'차')+' — 의자 '+gl.reduce((a,o)=>a+o.qty,0)+'개 · 적재 '+Math.round(gl.reduce((a,o)=>a+o.load,0)*100)+'% · ⏱ 약 '+fmtDur(estRoute(id,gl))+'</div>'+gl.map(mk).join('')):'').join('');
   }else inner=list.map(mk).join('');
   h+='<div class="body" data-d="'+id+'">'+inner+'</div>'
   +(dvs&&list.length>1?'<div class="lifo">🧭 상차는 <b>맨 아래(마지막 배송)부터</b> 실으세요 — ①번이 차 문쪽(첫 배송)</div>':'');}
@@ -3376,6 +3381,8 @@ function drvRows(car){
   });
   flush();
  });
+ /* 꼬리 끼워싣기 (2026-11-18 강현아님) */
+ for(let i=rows.length-1;i>0;i--){if(rows[i].d===rows[i-1].d&&rows[i].rid===rows[i-1].rid&&!rows[i].tp&&!rows[i-1].tp&&rows[i].L<=0.15*(capFactor(rows[i].rid)||1)){rows[i-1].list=rows[i-1].list.concat(rows[i].list);rows[i-1].L+=rows[i].L;rows[i-1].q+=rows[i].q;rows.splice(i,1)}}
  rows.forEach(a=>{
   a.tot=a.list.length;a.dn=a.list.filter(o=>ST[o.i]==='done').length;
   a.cap=capFactor(a.rid)||1;
@@ -6083,6 +6090,9 @@ function msbClass(units){
    if(src2.every(function(u){return u.o}))try{src2.sort(function(a,b){return byFarFirst(a.o,b.o)})}catch(e){}
    let t=0,acc=g.units.filter(function(u){return u.tripMan&&(u.trip||1)===1}).reduce(function(s2,u){return s2+ld(u)},0);
    src2.forEach(function(u){if(t<n-1&&acc>=target*(t+1))t++;acc+=ld(u);u.trip=t+1});
+   /* 꼬리 끼워싣기 — 2차 몫이 0.15대분 이하(상판 몇 장)면 1차에 (2026-11-18 강현아님) */
+   const t2=g.units.filter(function(u){return !u.tripMan&&(u.trip||1)>1});
+   if(t2.length&&t2.reduce(function(s2,u){return s2+ld(u)},0)<=0.15*(capFactor(g.id)||1))t2.forEach(function(u){u.trip=1});
   }
   g.units.sort(function(a,b){return (a.trip||1)-(b.trip||1)});
  });
