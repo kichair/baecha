@@ -1650,7 +1650,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261118a';
+const APPVER='20261118b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2089,6 +2089,8 @@ function guess(o){let r=guess0(o);
  return r}
 function guess0(o){
  if(o.ex)return 'x';
+ /* 수량이 마이너스뿐(반품·차감 전표)이면 갈 곳이 없다 — 배차 안 함 (2026-11-18 강현아님, 사계절공간연출 -20 헛걸음) */
+ if(o.items&&o.items.length&&o.items.every(function(it){return +((it&&it.q)||0)<0}))return 'x';
  // 0) 무조건 고정 — 적요 직납보다도 우선 (예: 심플즈는 주소가 화성이어도 사당 코스)
  /* 10동선 고정(당진·홍성 쪽, 거래처 위치 기준)은 적요에 배송지가 있으면 그 주소 동선으로 (2026-11-05 «주소 동선으로» — 당진OK 봉담 → 6동선) */
  {const _h=rtHard(o.n);if(_h){if(rtHardLoc(o.n)){const D0=destOf(o);if(D0&&D0.src==='적요'){const r0=hitRoute(D0.t);if(r0)return r0}}return _h}}
@@ -5977,6 +5979,8 @@ function msbClass(units){
    /* 전미수잔액이 마이너스면 «선입금» — 웰스라움은 잔액이 마이너스여도 안 찍는다 (2026-11-05 사장님) */
    u.flags=[];if(u.pre!=null&&u.pre<0&&!/웰스라움/.test(String(u.n||'')))u.flags.push('선입금');
    if(!u.ok){u.g='un';u.why='거래명세표가 아닌 쪽';return}
+   /* 수량 합이 마이너스(반품·차감 전표) — 장을 안 찍고 뺀 전표 목록에만 (2026-11-18 강현아님) */
+   if((u.qty||0)<0){u.g='x';u.why='수량 마이너스(차감 전표)';return}
    /* 주소란에 «명세표주지마세요» — 왼쪽 위 빨간 도장 맨 앞에 (2026-10-30) */
    if(/명세[표서]\s*(를|는|은)?\s*(주지|드리지|넣지)\s*마/.test(String(u.adw||u.ad||'')))u.noms=1;
    const mx=(/매장\s*배송/.test(String(u.memo||''))||/차량\s*입고/.test(String(u.memo||'')))?null:(String(u.memo||'').match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) · 차량입고가 적혀 있으면 «18일상차» 같은 낱말이 있어도 묶음에 넣는다 (2026-11-17 대신(사당)) */
