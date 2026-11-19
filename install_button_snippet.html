@@ -1,0 +1,61 @@
+<!--
+  "바탕화면 아이콘 설치" 단추 — 영업관리(오피스필로스) 사이트에 붙여 넣는 조각
+
+  왜 바꾸나:
+    브라우저의 앱 설치(beforeinstallprompt)는 윈도우에서 아이콘을 바탕화면이 아니라
+    시작메뉴(Chrome 앱 폴더)에 두는 경우가 많다(엣지·웨일은 거의 항상). 웹페이지는
+    바탕화면에 직접 아이콘을 놓을 권한이 없다.
+  그래서:
+    - 윈도우 PC  → make_desktop_shortcut.bat 를 내려받게 하고, 두 번 클릭하면
+                   바탕화면에 아이콘이 생긴다(앱 창으로 열림).
+    - 휴대폰     → 기존대로 앱 설치 창(홈 화면에 추가). 아이폰은 안내문.
+
+  준비: make_desktop_shortcut.bat 를 사이트의 정적 파일 폴더에 올리고
+        아래 BAT_URL 을 그 주소로 바꾼다. (bat 안의 URL 은 사이트 주소로 맞춰 둘 것)
+-->
+<button id="btnDesktopIcon" type="button">🖥️ 바탕화면 아이콘 설치</button>
+<p id="desktopIconHint" style="display:none;margin-top:8px;font-size:13px;line-height:1.6"></p>
+
+<script>
+(function(){
+  var BAT_URL = '/static/make_desktop_shortcut.bat';   // ← 사이트에 올린 bat 주소
+  var ua = navigator.userAgent;
+  var isWin = /Windows/i.test(ua);
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var deferred = null;
+
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred = e; });
+
+  function hint(msg){
+    var p = document.getElementById('desktopIconHint');
+    p.innerHTML = msg; p.style.display = 'block';
+  }
+
+  document.getElementById('btnDesktopIcon').addEventListener('click', function(){
+    if (isWin) {
+      // PC: 바로가기 만들기 파일 내려받기
+      var a = document.createElement('a');
+      a.href = BAT_URL; a.download = '바탕화면_바로가기_만들기.bat';
+      document.body.appendChild(a); a.click(); a.remove();
+      hint('내려받은 <b>바탕화면_바로가기_만들기.bat</b> 를 두 번 클릭하면 바탕화면에 아이콘이 생깁니다.<br>'
+         + '· 크롬이 "컴퓨터를 손상시킬 수 있습니다"라고 하면 <b>보관</b>, 윈도우가 "PC를 보호했습니다"라고 하면 <b>추가 정보 → 실행</b>.<br>'
+         + '· 이미 앱으로 설치돼 있다면: 시작 메뉴 → <b>Chrome 앱</b> 폴더 안의 아이콘을 바탕화면으로 끌어다 놓아도 됩니다.');
+      return;
+    }
+    if (deferred) {
+      // 안드로이드 크롬 등: 앱 설치 창
+      deferred.prompt();
+      deferred.userChoice.then(function(r){
+        deferred = null;
+        hint(r.outcome === 'accepted' ? '홈 화면에 추가됐습니다.' : '취소했습니다. 다시 누르면 설치할 수 있습니다.');
+      });
+      return;
+    }
+    if (isIOS) {
+      hint('아이폰: 사파리 아래 <b>공유</b> 단추 → <b>홈 화면에 추가</b>를 누르세요.');
+    } else {
+      hint('브라우저 메뉴(⋮) → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 누르세요.');
+    }
+  });
+})();
+</script>
