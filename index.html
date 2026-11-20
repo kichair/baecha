@@ -1668,7 +1668,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261120b';
+const APPVER='20261120c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2377,15 +2377,20 @@ function autoRotate(dateStr){
   const yc=CARD[yk]||DAY_DRV[yk]||{};
   const hardY={};['rw','r9','r10'].forEach(function(r){if(yc[r])hardY[yc[r]]=1});
   pool=pool.filter(function(n){return !hardY[n]}).concat(pool.filter(function(n){return hardY[n]}));}
- const base=rts.map((r,k)=>pool[k%pool.length]);
+ const base=rts.map((r,k)=>pool[k]||'');   /* 모자라면 빈칸 — 두 동선 안 줌 (2026-11-20 강현아님) */
  if(isRain(dateStr)){
   /* ☔ 우천: 탑차·호로차 기사를 물량 많은 근거리 앞 동선(1.인천 · 2.부천 · 4.강남 …)에 우선 배치 — 원거리가 앞으로 와도 이 규칙은 근거리 순서로 센다 */
   const near=['r1','r2','r4','r5','r3','r6','r7'].filter(function(r){return rts.indexOf(r)>=0})
    .concat(rts.filter(function(r){return ['r1','r2','r4','r5','r3','r6','r7'].indexOf(r)<0}));
-  const cov=base.filter(covered),opn=base.filter(function(x){return !covered(x)});
+  const cov=base.filter(function(x){return x&&covered(x)}),opn=base.filter(function(x){return x&&!covered(x)});
   const mixed=cov.concat(opn);
-  near.forEach((r,k)=>{o[r]=mixed[k%mixed.length]});
+  near.forEach((r,k)=>{o[r]=mixed[k]||''});
  }else rts.forEach((r,k)=>{o[r]=base[k]});
+ /* 빈칸은 손으로 메우기 쉬운 자리로 옮긴다 — 1동선(인천) → 수요일 장거리(5동선에 붙일 수 있음) → … (2026-11-20 강현아님 «빈칸으로 둬») */
+ {const PREF=['r1','rw','r3','r6','r7','r5','r4','r2','r10','r9'];
+  const B=rts.filter(function(r){return !o[r]});
+  const W=PREF.filter(function(r){return rts.indexOf(r)>=0}).slice(0,B.length);
+  B.forEach(function(b){if(W.indexOf(b)>=0)return;const w=W.filter(function(x){return o[x]})[0];if(w){o[b]=o[w];o[w]=''}});}
  return o}
 let DUPN=0;   /* 자동조회 재입력으로 걷어낸 줄 수 */
 /* 2026-11-02 사장님 «수원제일로 — 수원 동선으로 잡힌 거 맞아?»: 적요 «수원제일로» 는 거래처가 아니라 배송지 이름이라 못 알아듣고
