@@ -1512,7 +1512,7 @@ function asTag(n,d){const a=asOf(n,d);if(a===null)return '';
 const VEH_OPT=['탑차','호로','카고','3.5톤'];   /* 2026-11-17 배진성 3.5톤 */
 const HORO_CHAIR_CAP=40;   /* 호로차 1대 의자류 상한 — 탑을 못 쌓는다. 흑로 기준 한 켜 17~18개 + 위 켜 반쯤 = 40 안팎 (2026-11-17 강현아님 «40개는 되지 않을까» 셈 확인) */
 const HORO_FURN_RE=/책장|서랍|캐비닛|캐비넷|사물함|옷장|락카|선반|수납|유리|상판|도어|책상|테이블|탁자|데스크|금고|파티션|침대|매트리스|침상|소파|쇼파|서가/i;
-function horoChairs(list){let c=0;(list||[]).forEach(function(o){(o.items||[]).forEach(function(it){if(!HORO_FURN_RE.test(String(it.p||'')))c+=Math.round(+it.q||0)})});return c}
+function horoChairs(list){let c=0;(list||[]).forEach(function(o){(o.items||[]).forEach(function(it){if(!HORO_FURN_RE.test(String(it.p||''))&&!isPanelIt(it))c+=Math.round(+it.q||0)})});return c}   /* 판재(28T 등) 상판은 의자 아님 (2026-11-20) */
 DRVS=DRVS.map(function(d){return [d[0],d[1]||'',d[2]||VEH_DEF[d[0]]||'카고']});
 /* 옛 기본값(장세훈=탑차·안정수=카고·배진성=호로)으로 저장돼 있으면 2026-11-17 지시대로 바로잡는다 — 공유 스냅샷이 덮어도 다시 */
 function vehFix(){DRVS.forEach(function(d){if(d[0]==='장세훈'&&d[2]==='탑차')d[2]='호로';if(d[0]==='안정수'&&d[2]==='카고')d[2]='호로';if(d[0]==='배진성'&&d[2]==='호로')d[2]='3.5톤'})}
@@ -1668,7 +1668,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261120a';
+const APPVER='20261120b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2007,6 +2007,11 @@ function capOf(n){
  for(const c of CAP_DEF)for(const k of c.k)if(nb.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l};
  return{c:CAPS.etc||60,l:'기타'}}
 const loadOf=o=>o.items.reduce((s,it)=>s+it.q/(capOfIt(it).c||60),0);
+/* 규격에 두께(60mm 이하, 28T 등)가 붙어 «판재» 로 셈되는 품목 — 이름에 '상판' 이 없어도 상판 (2026-11-20 강현아님 «PLANMAX 다 상판, 눕혀서») */
+function isPanelIt(it){try{return /판재/.test((capOfIt(it)||{}).l||'')}catch(e){return false}}
+function panelNote(L){const pn=(L||[]).filter(function(it){return it&&!it.x&&isPanelIt(it)});if(!pn.length)return '';
+ const pq=pn.reduce(function(a,it){return a+(+it.q||0)},0),pl=pn.reduce(function(a,it){return a+(+it.q||0)/((capOfIt(it)||{}).c||60)},0);
+ return '<div style="color:#0f8a5f;font-weight:800;margin-top:3px;font-size:12px">상판 '+pq+'장 — 눕혀서 쌓기 · 약 '+(Math.round(pl*100)/100)+'대분</div>'}
 /* ===== 삼정 반조립 (2026-10-26 사장님) =====
    삼정 가구는 반조립(상판+다리)으로 나간다 → 책상·테이블·탁자는 완제 높이로 세우지 않고 상판을 포개 싣는다.
    상판을 두께 30mm 판재로 보고 12단(다리 뭉치 자리 포함) → 1800×1200 책상이 1톤에 24개 ≈ 완제(4개)의 1/6.
@@ -2195,7 +2200,7 @@ function sjPop(i,ev){if(ev){ev.stopPropagation();ev.preventDefault()}
  let el=document.getElementById('sjpop');if(el)el.remove();
  el=document.createElement('div');el.id='sjpop';
  el.style.cssText='position:fixed;z-index:9999;background:#fff;border:1.5px solid #c2410c;border-radius:10px;box-shadow:0 10px 26px rgba(15,25,40,.28);padding:10px 12px;max-width:360px;font-size:12.5px;line-height:1.5';
- el.innerHTML='<b style="color:#c2410c">삼정 품목 — '+esc(o.n)+'</b><div style="margin-top:5px">'
+ el.innerHTML='<b style="color:#c2410c">삼정 품목 — '+esc(o.n)+'</b>'+panelNote(L)+'<div style="margin-top:5px">'
   +(L.length?L.map(function(it){return esc(String(it.p||''))+(it.s?' <span style="color:#8b9aab">'+esc(String(it.s))+'</span>':'')+' <b>×'+(+it.q||0)+'</b>'}).join('<br>'):'(삼정 품목을 못 찾음)')
   +'</div><div style="margin-top:5px;color:#8b9aab;font-size:11px">다른 곳을 누르면 닫혀요</div>';
  document.body.appendChild(el);
@@ -2209,7 +2214,7 @@ function itPop(i,ev){if(ev){ev.stopPropagation();ev.preventDefault()}
  let el=document.getElementById('sjpop');if(el)el.remove();
  el=document.createElement('div');el.id='sjpop';
  el.style.cssText='position:fixed;z-index:9999;background:#fff;border:1.5px solid #0f5f37;border-radius:10px;box-shadow:0 10px 26px rgba(15,25,40,.28);padding:10px 12px;max-width:380px;max-height:320px;overflow:auto;font-size:12.5px;line-height:1.5';
- el.innerHTML='<b style="color:#0f5f37">품목 — '+esc(o.n)+' <span style="color:#8b9aab;font-weight:600">'+(+o.qty||0)+'개</span></b><div style="margin-top:5px">'
+ el.innerHTML='<b style="color:#0f5f37">품목 — '+esc(o.n)+' <span style="color:#8b9aab;font-weight:600">'+(+o.qty||0)+'개</span></b>'+panelNote(L)+'<div style="margin-top:5px">'
   +(L.length?L.map(function(it){return (sjItem(it)?'<span style="color:#c2410c;font-weight:700">[삼정]</span> ':'')+esc(String(it.p||''))+(it.s?' <span style="color:#8b9aab">'+esc(String(it.s))+'</span>':'')+' <b>×'+(+it.q||0)+'</b>'}).join('<br>'):'(품목 내역이 없는 전표 — 수량 '+(+o.qty||0)+'개)')
   +'</div><div style="margin-top:5px;color:#8b9aab;font-size:11px">다른 곳을 누르면 닫혀요</div>';
  document.body.appendChild(el);
@@ -4812,7 +4817,7 @@ const YCB_BOX=38, YCB_HB=2.75;
 const YCB_NONCHAIR=/상판|도어|유리|판재|책상|테이블|탁자|데스크|서랍|캐비닛|캐비넷|사물함|옷장|락카|선반|수납|책장|파티션|침대|매트|소파|쇼파|서가|금고|강연대|좌판만|링사발|발판|받침/;
 function ycBoxLd(items){let v=0;(items||[]).forEach(function(it){if(!it||it.x)return;const q=+it.q||0;if(!q)return;
  /* 품명만 본다 — 색상 규격 «매트회색» 이 '매트' 에 걸리던 것 (2026-11-19) */
- if(YCB_NONCHAIR.test(String(it.p||''))){try{v+=q/((capOfIt(it)||{}).c||60)}catch(e){}}
+ if(YCB_NONCHAIR.test(String(it.p||''))||isPanelIt(it)){try{v+=q/((capOfIt(it)||{}).c||60)}catch(e){}}   /* 판재(28T 등)도 상판 (2026-11-20) */
  else v+=q/YCB_BOX});
  return v}
 function ycbQtyOf(x){if(!x||!x.n||!x.d)return null;
