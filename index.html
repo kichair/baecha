@@ -1668,7 +1668,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261120c';
+const APPVER='20261120d';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -6081,7 +6081,10 @@ function msbClass(units){
    const mx=(/매장\s*배송/.test(String(u.memo||''))||/차량\s*입고/.test(String(u.memo||'')))?null:(String(u.memo||'').match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) · 차량입고가 적혀 있으면 «18일상차» 같은 낱말이 있어도 묶음에 넣는다 (2026-11-17 대신(사당)) */
    if(mx){u.g='x';u.why='적요 「'+mx[0]+'」';return}
    /* 거래처 «소비자» 는 묶음에서 뺀다 (2026-11-02 사장님) — 맨 뒤 «뺀 전표» 목록에만 */
-   if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){u.g='x';u.why='거래처 소비자';return}
+   if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){
+    const am=String(memoSp(u.memo||'')).match(ADRE);
+    if(!(am&&looksAddr(am[0]))){u.g='x';u.why='거래처 소비자';return}
+    u.cons=1}   /* 적요에 배송 주소가 있는 소비자 — 묶음에 넣는다 (2026-11-20 강현아님) */
    if(/엠비가구/.test(String(u.n||''))){u.g='x';u.why='거래처 엠비가구';return}   /* 2026-11-03 사장님 «주식회사 엠비가구는 아예 빼» */
    const D=u.date||keepSEL;
    if(D!==SEL){SEL=D;CAR=CARD[D]||DAY_DRV[D]||autoRotate(D)}
@@ -6100,7 +6103,7 @@ function msbClass(units){
    if((o&&o.erp)||/#\s*\]/.test(u.ad||''))u.flags.push('ERP수시');
    /* 2026-10-29 사장님 — 직납: 적요에 직납·직배, 또는 거래처와 다른 시·구 주소(o.dst, 예: «안산시 …»)가 있으면 직납.
       파란 네모 도장 + 아래 반쪽에도 «직납». 금액은 지우지 않는다(수기 명세서를 따로 써서 같이 감) */
-   u.jik=/직납|직배|직접\s*배송/.test(u.memo||'')||!!(o&&o.dst&&um&&nz(o.memo).indexOf(um)>=0);   /* 직납 = 이 전표 적요의 배송지가 거래처 주소가 아닐 때만 (2026-11-05) */
+   u.jik=/직납|직배|직접\s*배송/.test(u.memo||'')||(!u.cons&&!!(o&&o.dst&&um&&nz(o.memo).indexOf(um)>=0));   /* 직납 = 이 전표 적요의 배송지가 거래처 주소가 아닐 때만 (2026-11-05) · 소비자는 적요 주소가 곧 배송지라 직납 아님 (2026-11-20) */
    const em=String(u.memo||'').match(/오전\s*일찍|오전\s*배송|오전\s*중|오전|일찍/);   /* «오전» 만 있어도 동그라미 (2026-11-02 사장님) */u.early=em?em[0].replace(/\s+/g,''):'';
    /* 수금확인 탭과 잇기 (2026-10-28) — 출고정지 / 돈 받을 곳인데 입금 확인 체크가 없으면 «입금 전» (선입금으로 다 받은 곳은 뺌) */
    {const mf=mnFlag(D,(o&&o.n)||u.n),다받음=(u.pre!=null&&u.tot!=null&&u.pre+u.tot<=0);
@@ -6129,7 +6132,7 @@ function msbClass(units){
    {const am=String(u.memo||'').match(ADRE);
     if(am&&looksAddr(am[0])&&!(um&&nz(o.memo).indexOf(um)>=0)&&!ASGV[o.key]){const hd=rtHard(o.n);
      if(!hd||rtHardLoc(o.n)){const r3=hitRoute(am[0]);
-      if(okR(r3)&&r3!==r){u.g=r3;u.drv=CAR[r3]||'';u.trip=1;u.jik=true;u.pdfR=1;return}}}}
+      if(okR(r3)&&r3!==r){u.g=r3;u.drv=CAR[r3]||'';u.trip=1;u.jik=!u.cons;u.pdfR=1;return}}}}
    u.g=r;u.drv=effDrv(o)||'';u.o=u.o||o;u.tripMan=!!TRIP[o.key];u.trip=Math.min(TRIP_MAX,+TRIP[o.key]||1);
   });
   units.forEach(function(u){(by[u.g]=by[u.g]||[]).push(u)});
