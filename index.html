@@ -1668,7 +1668,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261120d';
+const APPVER='20261120e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3373,13 +3373,15 @@ function tripLabels(today){
  const rr=drvRows(car);
  const map={};const dcnt={};
  rr.rows.forEach(a=>{if(a.d!=='용차')dcnt[a.d]=(dcnt[a.d]||0)+1});
+ const r2={};rr.rows.forEach(a=>{if(a.trip===2)r2[a.rid]=1});   /* 2차가 있는 동선 — 1차 묶음에도 «1차» */
  const dseen={};
  rr.rows.forEach(a=>{
   if(a.d==='용차'){a.list.forEach(o=>{if(map[o.i]===undefined)map[o.i]='용차'});return}
-  let n;   /* 번호는 2에서 멈춤 — 기사별 2차가 끝 (2026-11-18 강현아님) */
-  if(a.tp){n=Math.min(2,a.tp);dseen[a.d]=Math.max(dseen[a.d]||0,n)}
+  let n;   /* 번호는 2에서 멈춤 — 기사별 2차가 끝 (2026-11-18 강현아님) · drvRows 가 매긴 회차(2차를 넘겨받은 것 포함) 우선 (2026-11-20) */
+  if(a.trip)n=a.trip;
+  else if(a.tp){n=Math.min(2,a.tp);dseen[a.d]=Math.max(dseen[a.d]||0,n)}
   else{n=(dseen[a.d]=Math.min(2,(dseen[a.d]||0)+1))}
-  const lbl=(dcnt[a.d]>1||a.tp>1)?a.d+n:a.d;
+  const lbl=(n>1||r2[a.rid])?a.d+n:a.d;   /* 숫자는 그 동선에 2차가 있을 때만 — 두 동선을 통째로 맡은 날은 둘 다 그냥 이름 */
   a.list.forEach(o=>{if(map[o.i]===undefined)map[o.i]=lbl})});
  return map}
 /* ===== \uc790\ud22c\ub9ac \ud68c\ucc28 \ubd99\uc774\uae30 =====
@@ -3446,6 +3448,28 @@ function drvRows(car){
  const byd={};rows.forEach(r=>{(byd[r.d]=byd[r.d]||[]).push(r)});
  let merged=[];dord.forEach(d=>{merged=merged.concat(mergeSame(byd[d]||[]))});
  Object.keys(byd).forEach(d=>{if(dord.indexOf(d)<0)merged=merged.concat(byd[d])});
+ /* 회차 번호 — 기사별로 1·2 (손 지정 우선, 2에서 멈춤). 화면 이름표·묶음 도장이 같이 쓴다 */
+ {const seen={};merged.forEach(function(a){if(a.d==='용차')return;const k=a.d+'§'+a.rid;
+   if(a.tp)a.trip=Math.min(2,a.tp);else{a.trip=seen[k]?2:1;seen[k]=1}
+   a.d0=a.d})}
+ /* 같은 기사·동선의 2차 여러 줄(×N대분 줄 빼고)은 한 줄로 */
+ {const first={};for(let i=0;i<merged.length;i++){const a=merged[i];if(a.trip!==2||a.d==='용차'||(a.loads||1)>1)continue;const k=a.d+'§'+a.rid;
+   if(first[k]===undefined){first[k]=i;continue}
+   const b=merged[first[k]];b.list=b.list.concat(a.list);b.L=(b.L||0)+(a.L||0);b.q=(b.q||0)+(a.q||0);b.tot=b.list.length;b.dn=b.list.filter(function(o){return ST[o.i]==='done'}).length;
+   merged.splice(i,1);i--}}
+ /* 2차는 1차를 제일 먼저 마치고 돌아올 것으로 예상되는 기사가 (2026-11-20 강현아님 «혼자만 일 많이 하면 안 되니까 · 빨리 돌아올 사람을 배차 이름에»).
+    긴 2차부터 배정, 한 사람에 2차 하나. 손으로 기사 정한 2차(DRVOV)는 그대로. 2차 안 도는 기사(NO_2ND)·자동 배정 제외(NO_AUTO)는 안 받음 */
+ {const two=merged.filter(function(a){return a.trip===2&&a.d!=='용차'&&(a.loads||1)===1&&a.list.every(function(o){return !DRVOV[o.key]})});
+  if(two.length){
+   const dur1={},own2={};
+   merged.forEach(function(a){if(a.d==='용차'||!a.d)return;if(a.trip===2)own2[a.d]=1;else dur1[a.d]=(dur1[a.d]||0)+estRoute(a.rid,a.list)});
+   const ok=function(n){return n&&can2nd(n)&&autoOK(n)};
+   const given={};
+   two.sort(function(a,b){return estRoute(b.rid,b.list)-estRoute(a.rid,a.list)}).forEach(function(R2){
+    const pool=Object.keys(dur1).filter(function(c){return ok(c)&&!given[c]&&(!own2[c]||c===R2.d0)});
+    if(!pool.length)return;
+    pool.sort(function(a,b){return (dur1[a]-dur1[b])||(a===R2.d0?-1:b===R2.d0?1:0)});
+    given[pool[0]]=1;R2.d=pool[0]})}}
  return {rows:merged,dord:dord}}
 function drvRank(car){
  const rr=drvRows(car);const rows=rr.rows;const dord=rr.dord;
@@ -6156,28 +6180,30 @@ function msbClass(units){
   if(lost.length){lost.forEach(function(u){u.why='묶음에 못 넣음('+(u.g||'')+')';u.g='un'});
    let un=groups.find(function(g){return g.id==='un'});if(!un){un={id:'un',units:[]};groups.push(un)}un.units=un.units.concat(lost)}}
  /* 직납 전표만 한 묶음으로 맨 앞에 (2026-11-10 사장님 «직납 거래명세서만 묶음이 필요») — 동선 묶음에서는 빼고, 도장은 원래 동선으로 찍는다 */
- {const J=[];groups.forEach(function(g){if(g.id==='pick'||g.id==='un')return;const keep=[];g.units.forEach(function(u){(u.jik?J:keep).push(u)});g.units=keep});
+  /* 11/24 전표부터는 직납도 동선 묶음 안에 — 소요시간·한 차 분량에 같이 들어가야 해서 (2026-11-20 강현아님). 직납 도장은 그대로 */
+ {const J=[];groups.forEach(function(g){if(g.id==='pick'||g.id==='un')return;const keep=[];g.units.forEach(function(u){(u.jik&&String(u.date||keepSEL)<'2026-11-24'?J:keep).push(u)});g.units=keep});
   for(let i=groups.length-1;i>=0;i--)if(!groups[i].units.length)groups.splice(i,1);
   if(J.length)groups.unshift({id:'jn',units:J})}
  /* 회차 — 배차 화면과 똑같은 셈을 그대로 받아온다 (2026-11-18 강현아님 «1차분량이면 1동선-1·1동선-2, 기사 이름 다»).
     drvRows = 화면의 적재 분할 + 손 지정(TRIP) + 기사별 2차 상한 + 꼬리 끼워싣기. 옛 «대수(CAR[id_n]) 2대» 기준은 화면과 어긋났다. */
  {const keep2=SEL,keepC2=CAR;try{
   const dts={};groups.forEach(function(g){g.units.forEach(function(u){if(u.date)dts[u.date]=1})});
-  const tm={};
+  const tm={},dm={};
   Object.keys(dts).forEach(function(D2){
    SEL=D2;CAR=CARD[D2]||DAY_DRV[D2]||autoRotate(D2);
    const rr=drvRows(ORDERS.filter(function(o){return o.d===D2&&!offRoute(ASSIGN[o.i])}));
    const cnt={};
    rr.rows.forEach(function(a){if(a.d==='용차')return;const k=a.d+'§'+a.rid;
-    const n2=a.tp?Math.min(2,a.tp):(cnt[k]=Math.min(2,(cnt[k]||0)+1));
-    a.list.forEach(function(o){const kk=D2+'§'+o.i;if(tm[kk]===undefined)tm[kk]=n2})});
+    const n2=a.trip||(a.tp?Math.min(2,a.tp):(cnt[k]=Math.min(2,(cnt[k]||0)+1)));
+    a.list.forEach(function(o){const kk=D2+'§'+o.i;if(tm[kk]===undefined){tm[kk]=n2;dm[kk]=a.d}})});
   });
   groups.forEach(function(g){
    if(!RID[g.id]||g.id==='jn')return;
    g.units.forEach(function(u){
-    if(u.tripMan)return;   /* 손 지정은 그대로 */
     const o=u.o;if(!o||o.i==null||o.i<0){u.trip=u.trip||1;return}
-    u.trip=tm[(u.date||'')+'§'+o.i]||1});
+    const kk=(u.date||'')+'§'+o.i;
+    if(!u.tripMan)u.trip=tm[kk]||1;   /* 손 지정 회차는 그대로 */
+    if(dm[kk]&&!DRVOV[o.key]&&u.g===ASSIGN[o.i])u.drv=dm[kk]});   /* 2차를 넘겨받은 기사 이름 (2026-11-20) */
    g.units.sort(function(a,b){return (a.trip||1)-(b.trip||1)});
   });
  }finally{SEL=keep2;CAR=keepC2}}
@@ -6253,14 +6279,26 @@ async function msbBuild(bytes,groups,coversOnly){
   let cv=out.addPage([W,H]);head(cv,false);
   let y=H-150;const x=40,RX=W-40;
   const wrapC=function(t,s,w){const out2=[];let cur='';String(t||'').split(/(?<=[\s\/·,])/).forEach(function(wd){if(cur&&tw(cur+wd,s)>w){out2.push(cur.trim());cur=wd}else cur+=wd});if(cur.trim())out2.push(cur.trim());return out2};
+  /* 회차별 기사 — 2차를 먼저 돌아올 기사가 받으면 1차·2차 기사가 다르다 (2026-11-20) */
+  const tdrv=function(t){const dd=[];g.units.forEach(function(z){if((z.trip||1)===t&&z.drv&&dd.indexOf(z.drv)<0)dd.push(z.drv)});return dd.join('·')};
+  let _ct=null;
   g.units.forEach(function(u,i){
    const o=u.o||null;
+   /* 1차·2차 소제목 — «한 차 분량» 장 대신 표지 한 장 안에 (2026-11-20 강현아님) */
+   if(has2&&r&&g.id!=='jn'&&(u.trip||1)!==_ct){_ct=(u.trip||1);
+    const uu=g.units.filter(function(z){return (z.trip||1)===_ct});
+    const q3=uu.reduce(function(s2,z){return s2+(z.qty||0)},0),L3=uu.reduce(function(s2,z){return s2+((z.o&&z.o.load)||0.08)},0);
+    if(y<100){cv=out.addPage([W,H]);head(cv,true);y=H-150}
+    cv.drawRectangle({x:x-4,y:y-5,width:RX-x+8,height:19,color:rgb(.94,.95,.97)});
+    cv.drawRectangle({x:x-4,y:y-5,width:6,height:19,color:col});
+    cv.drawText(_ct+'차  '+(tdrv(_ct)||'기사 미지정')+'   ·   '+uu.length+'건 · 의자 '+q3+'개 · 적재 약 '+Math.round(L3*100)+'%',{x:x+8,y:y,size:12.5,font:font,color:BLK});
+    y-=24}
    /* 도착지 — 적요 배송지(직납) > 거래처 등록 주소 > 전표 주소 줄 */
    let addr='';try{const DD=o?(destOf(o)||{}):{};addr=(o&&o.dst)||(DD.src==='적요'?DD.t:'')||ADDR[(o&&o.n)||u.n]||ADDR[resolveCust(String(u.n||'').replace(/\s+/g,''))||'']||String(u.ad||'').replace(/\s*\[.*?\]\s*$/,'')}catch(e){addr=String(u.ad||'')}
    let notes='';try{notes=mnNotes((o&&o.n)||u.n).map(function(z){return z.note}).filter(Boolean).join(' / ')}catch(e){}
    const fl=(u.noms?['명세표 주지마세요']:[]).concat(u.flags||[]);
    if(y<75){cv=out.addPage([W,H]);head(cv,true);y=H-150}
-   const line=(i+1)+'. '+(g.id==='jn'?'['+msbRL(u.g)+'] ':'')+(has2?'['+(u.trip||1)+'차] ':'')+u.n+(u.est?' (추정)':'')+(u.jik?' [직납]':'')+(u.early?' ['+u.early+']':'');
+   const line=(i+1)+'. '+(g.id==='jn'?'['+msbRL(u.g)+'] ':'')+(has2&&!(r&&g.id!=='jn')?'['+(u.trip||1)+'차] ':'')+u.n+(u.est?' (추정)':'')+(u.jik?' [직납]':'')+(u.early?' ['+u.early+']':'');
    const money=u.tot!=null?won(u.tot):'';
    cv.drawText(fit(line,11.5,RX-x-(money?tw(money,11.5)+12:0)),{x:x,y:y,size:11.5,font:font,color:BLK});
    if(money)cv.drawText(money,{x:RX-tw(money,11.5),y:y,size:11.5,font:font,color:BLK});
@@ -6276,12 +6314,13 @@ async function msbBuild(bytes,groups,coversOnly){
    y-=5;
    cv.drawLine({start:{x:x,y:y+2},end:{x:RX,y:y+2},thickness:0.4,color:rgb(.85,.87,.9)});y-=3});
   if(r&&g.id!=='jn'){const Lg=g.units.reduce(function(s2,u){return s2+((u.o&&u.o.load)||0.08)},0);
-   const one=!g.units.some(function(u){return (u.trip||1)>1});
-   cv.drawText('기사 인수 확인:  ______________________  (서명)'+(one?'   ·  적재 약 '+Math.round(Lg*100)+'%':''),{x:40,y:Math.max(42,y-6),size:11,font:font,color:BLK});}
+   if(!has2)cv.drawText('기사 인수 확인:  ______________________  (서명)   ·  적재 약 '+Math.round(Lg*100)+'%',{x:40,y:Math.max(42,y-6),size:11,font:font,color:BLK});
+   else{let ys=Math.max(59,y-6);[1,2].forEach(function(t){const dn=tdrv(t);
+     cv.drawText(t+'차'+(dn?' ('+dn+')':'')+' 인수 확인:  ______________________  (서명)',{x:40,y:ys,size:11,font:font,color:BLK});ys-=17})}}
   if(g.id==='un')cv.drawText('※ 배차 사이트에서 이 날짜 배차가 안 된 거래처입니다. 배차를 마친 뒤 다시 올리면 동선에 들어갑니다.',{x:40,y:40,size:10,font:font,color:GRY});
   /* 전표들 — 공급자 보관용 오른쪽 위: 동선(색) + 기사 / 왼쪽 위: 선입금·ERP 도장 */
-  const TN2=['1차','2차'];   /* 2026-11-18 강현아님 «1차 2차 이렇게» */
-  const tripCover=function(t,units2){const pg2=out.addPage([W,H]);
+  /* 1차·2차 «한 차 분량» 장은 따로 안 낸다 — 동선 표지 한 장 안에 소제목으로 (2026-11-20 강현아님 «왜 2장으로 나와?») */
+  const tripCover=function(t,units2){const pg2=out.addPage([W,H]);const TN2=['1차','2차'];
    pg2.drawRectangle({x:30,y:H-116,width:W-60,height:76,color:col});
    const dw2=dnm?tw(dnm,22):0;   /* 1차/2차 표지에도 기사 이름 크게 (2026-11-18 강현아님) */
    pg2.drawText(fit(lab+'-'+t+'   '+(TN2[t-1]||t+'차')+'  — 한 차 분량',24,W-96-(dnm?dw2+18:0)),{x:48,y:H-76,size:24,font:font,color:WHT});
@@ -6293,7 +6332,7 @@ async function msbBuild(bytes,groups,coversOnly){
     pg2.drawText((i+1)+'. '+fit(u.n+(u.jik?' [직납]':'')+(u.early?' ['+u.early+']':''),11.5,W-130),{x:48,y:yy,size:11.5,font:font,color:BLK});yy-=15.5});
    pg2.drawText('이 묶음이 이 차(회차)에 실을 전부입니다 — 빠지면 상차 전에 말해 주세요.',{x:48,y:64,size:10,font:font,color:GRY});
    pg2.drawText('기사 인수 확인:  ______________________  (서명)',{x:48,y:44,size:12,font:font,color:BLK});};
-  let _lastTrip=null;const _multi=!coversOnly&&r&&g.id!=='jn'&&g.units.some(function(u){return (u.trip||1)>1});
+  let _lastTrip=null;const _multi=false;   /* 2026-11-20 표지 한 장으로 — tripCover 안 씀 */
   if(!coversOnly)g.units.forEach(function(u){
    if(_multi&&(u.trip||1)!==_lastTrip){_lastTrip=(u.trip||1);tripCover(_lastTrip,g.units.filter(function(z){return (z.trip||1)===_lastTrip}))}
    u.pages.forEach(function(_p,pi){
