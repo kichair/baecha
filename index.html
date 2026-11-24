@@ -912,6 +912,26 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 .rlbtn{margin:0 4px;background:#eef3f9;color:#33475c;border:1px solid #cfdae6;border-radius:8px;
  padding:5px 10px;font-weight:800;font-size:12px;cursor:pointer}
 .rlbtn.on{background:#0f5f37;color:#fff;border-color:#0f5f37}
+/* 가구 m 적기 (2026-11-24) */
+#sjmpan{position:fixed;inset:0;z-index:9990;background:rgba(15,25,40,.5);display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow:auto}
+.sjmbx{background:#fff;border-radius:14px;max-width:1080px;width:100%;padding:16px 18px 20px;box-shadow:0 18px 50px rgba(15,25,40,.3);overflow-x:auto}
+.sjmhd{display:flex;align-items:center;gap:12px;font-size:17px;color:#172433}
+.sjmhd span{flex:1;color:#0f8a5f;font-size:13px;font-weight:800}
+.sjmhd button{border:0;background:#0f5f37;color:#fff;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer}
+.sjmnt{margin:8px 0 10px;font-size:12.5px;color:#5f7086;line-height:1.5}
+.sjmtb{width:100%;min-width:760px;border-collapse:collapse;font-size:13px;color:#172433}
+.sjmtb th{background:#f1f5f9;color:#5f7086;font-size:12px;font-weight:800;padding:6px 8px;text-align:left}
+.sjmtb td{border-bottom:1px solid #e5ebf2;padding:7px 8px;text-align:left;vertical-align:top;line-height:1.4}
+.sjmtb small{display:block;color:#8b9aab;font-size:11.5px;font-weight:600;margin-top:1px}
+.sjmtb .sjmit{font-size:12px;color:#4f6072}
+.sjmtb tr.has td{background:#fffaf5}
+.sjmtb input{width:62px;font-size:16px;font-weight:800;padding:5px 7px;border:1.5px solid #cfd8e3;border-radius:8px;text-align:right}
+.sjmtb tr.has input{border-color:#c2410c}
+.sjmtb td em{font-style:normal;margin-left:4px;color:#5f7086;font-weight:700}
+@media(max-width:720px){.sjmbx{padding:12px 12px 16px}.sjmhd{flex-wrap:wrap;gap:6px 10px;font-size:15.5px}.sjmtb{min-width:0}.sjmtb tr:first-child{display:none}
+ .sjmtb tr{display:grid;grid-template-columns:minmax(0,1fr) 98px;border-bottom:1px solid #e5ebf2;padding:8px 0}.sjmtb td{border:0;padding:1px 3px}
+ .sjmtb td:nth-child(1){order:1;grid-column:1/3;font-size:11.5px;color:#5f7086}.sjmtb td:nth-child(1) small{display:inline;margin-left:6px}.sjmtb td:nth-child(2){order:2}.sjmtb td:nth-child(4){order:3;text-align:right}
+ .sjmtb td:nth-child(5){order:4;grid-column:1/3}.sjmtb td:nth-child(3){order:5;grid-column:1/3}}
 /* 반드시 .rthd 를 앞에 붙일 것 — .dcard span{font-size:11px;color:#8b9aab;display:block}
    규칙이 머리띠 글자를 전부 작은 회색으로 눌러버린다 (2026-09-03에 잡음) */
 .rthd{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 14px;background:#0f5f37;color:#fff;
@@ -1023,7 +1043,7 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
   <button class="btn" onclick="menu.close();openDrv()">👤 기사 명단 관리</button>
   <button class="btn" onclick="menu.close();openAs()">🔧 오늘 A/S 출동</button>
   <button class="btn" onclick="menu.close();cleanDup()">🧹 중복 명세서 정리</button>
-  <button class="btn" onclick="menu.close();cap.showModal()">📦 적재 기준</button>
+  <button class="btn" onclick="menu.close();document.getElementById('capBaseIn').value=capBase();cap.showModal()">📦 적재 기준</button>
   <button class="btn" onclick="menu.close();openShare()">🔗 실시간 공유 설정</button>
   <button class="btn" onclick="menu.close();openGps()">📍 GPS 순서 학습 (실제 다닌 순서)</button>
   <button class="btn" onclick="menu.close();openJp()">🧾 전표 인쇄 (동선 색깔)</button>
@@ -1090,7 +1110,7 @@ A/S 기사는 짧은 동선에 배정하는 게 좋습니다. 아래 버튼으�
 <div style="margin-top:14px;text-align:right"><button class="btn" onclick="doAdd()">추가</button></div></div></dialog>
 
 <dialog id="cap"><div class="dh"><h3>적재 기준 · 1톤 만재 대수</h3><button class="btn g" onclick="cap.close()">닫기</button></div>
-<div class="db"><div class="tip">1톤 폭1,600 × 길이4,000 · 의자 60개 기준 / 절반수량(루트·매틱·매직·시소) 120개<br>
+<div class="db"><div class="tip">우리 차 배차는 11/26 전표부터 <b>맨 윗줄 개수 = 한 차</b> · 절반수량(루트·매틱·매직·시소)은 그 두 배 · 그 전 날짜와 용차·합바 계산은 아래 표 그대로(의자 60개 / 절반수량 120개)<br>
 숫자 = <b>그 품목만 실었을 때 만차가 되는 개수</b>. 섞이면 (수량÷만재수)를 더해 적재율을 냅니다.</div>
 <table><thead><tr><th>분류</th><th>키워드</th><th style="text-align:right">만재</th></tr></thead><tbody id="capB"></tbody><tbody id="capU"></tbody></table>
 <div style="margin-top:12px;padding:12px;background:#f2f7f4;border-radius:12px">
@@ -1286,6 +1306,11 @@ CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
 const CAP_VER=20260826;
 /* 버전 도장을 CAPS 안에 넣어 둔다 — 그래야 Supabase 로 들어오는 옛 CAPS 도 걸러진다.
    (localStorage 에만 두면 applySnap 이 CAPS 를 통째로 갈아끼워서 무효가 된다) */
+/* 우리 차 한 차 = 의자 55개 (2026-11-24 강현아님 «의자 55개로하면 대충 한 차 분량이래» → «의자도 55개로») — 적재 기준 창 맨 윗줄에서 고친다(CAPS._base).
+   60개로 잡던 세 가지(기타·그 외 대·중역의자)와 그 두 배인 절반수량(루트·매틱·매직·시소 120 → 110, «110개로»)만, 11/26 전표부터(11/25 는 이미 묶어 찍음). 날짜를 안 주면(용차·합바 계산, 월별 부피) 예전 60개 — 합바 m 이 실제 64건에 맞춘 식이라 */
+const CAP_BASE_D='2026-11-26',CAP_BASE_IDS={etc:1,big:1,exec2:1};
+function capBase(){return +(CAPS&&CAPS._base)||55}
+function capBaseSet(v){v=Math.round(+v||0);if(!(v>=20&&v<=120))return;CAPS._base=v;save();render()}
 function capEnforce(){
  if(!CAPS||typeof CAPS!=='object')CAPS={};
  CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
@@ -1326,6 +1351,76 @@ let CTS=LSU('_cts',{});
 let SJA=LSU('_sja',{});
 /* sERP 거래처 주소 끝의 동선 번호표 «[7]» «[5#]» — 거래명세표 PDF 를 읽을 때 외워 둔다 {거래처(빈칸 뺀 이름):'r7'} (2026-11-04 사장님 «번호표 써») */
 let TAGRT=LSU('_tagrt',{});
+/* 거래명세표 PDF 에 찍힌 거래처 주소 — 주소록(ADDR)에 없는 거래처만 외운다 {거래처(빈칸 뺀 이름):'인천광역시 …'} (2026-11-24 강현아님) */
+let PADR=LSU('_padr',{});
+function padKey(n){return String(n||'').replace(/\s+/g,'')}
+/* ===== 가구 m — 삼정이 종이 맨 밑에 손으로 적어 주는 길이를 사이트에 적어 두면 그것으로 적재를 센다 (2026-11-24 강현아님) =====
+   0.6m = 1줄 = 의자 12개. 의자 55개(2.75m) = 1톤 한 대(100%) — «의자 55개로하면 대충 한 차 분량이래» (1톤 짐칸 2.8m 와도 맞음). 줄로 안 떨어지면 비례(1m = 의자 20개).
+   가구(삼정 품목)만 m 로 세고 광일 의자는 개수 그대로. 안 적은 건은 지금처럼 품목 크기로 어림.
+   {건열쇠:{m, s:적을 때 삼정 품목 지문, e:적을 때 어림 대수, ts}} — m 0 은 지운 것. 나중에 적은 쪽이 남는다 */
+let SJM=LSU('_sjm',{});
+const SJM_ROW=0.6,SJM_RQ=12,SJM_KEEP=200*864e5;
+function sjmFull(){return capBase()/SJM_RQ*SJM_ROW}   /* 한 차 = 55개 → 2.75m */
+if(!SJM||typeof SJM!=='object'||Array.isArray(SJM))SJM={};
+Object.keys(SJM).forEach(function(k){if(!SJM[k]||Date.now()-(+SJM[k].ts||0)>SJM_KEEP)delete SJM[k]});
+let SJMV={};
+function sjSig(o){const t=(o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)&&(+it.q||0)>0}).map(function(it){return String(it.p||'').replace(/\s+/g,'')+'x'+(+it.q||0)}).sort().join('|');
+ let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return t?(h>>>0).toString(36):''}
+/* 날짜·적요가 바뀌어 건열쇠가 달라진 건 — 옛 열쇠의 전표가 이제 없으면 같은 거래처·같은 삼정 품목에 이어 준다 (21일 안) */
+function sjmIdx(){SJMV={};const ks=Object.keys(SJM);if(!ks.length)return;const have={};ORDERS.forEach(function(o){have[o.key]=1});
+ ks.forEach(function(k){const v=SJM[k];if(!v||!(+v.m>0)||have[k]||Date.now()-(+v.ts||0)>21*864e5)return;const x=k.split('§')[0]+'\u0001'+v.s,b=SJMV[x];if(!b||(+v.ts||0)>(+b.ts||0))SJMV[x]=v})}
+function sjmGet(o){const s=sjSig(o),v=SJM[o.key]||SJMV[String(o.key).split('§')[0]+'\u0001'+s];if(!v||!(+v.m>0))return null;
+ if(v.s===s)return {m:+v.m,w:0};
+ const e=+v.e||0,k=e>0&&o.sjE>0?o.sjE/e:1;return {m:Math.round(v.m*k*100)/100,w:1}}   /* 적은 뒤 품목이 바뀜 — 어림 비율로 맞추고 ⚠ */
+function sjmFmt(m){return String(Math.round(m*100)/100)}
+function sjmTxt(m){const r=m/SJM_ROW;return (Math.round(r*10)/10)+'줄 · 의자 '+Math.round(r*SJM_RQ)+'개분 · '+Math.round(m/sjmFull()*100)+'%'}
+function sjmChip(o){return o.sjm?' · '+sjmFmt(o.sjm)+'m'+(o.sjmw?'⚠':''):''}
+function sjmParse(v){const t=String(v==null?'':v).replace(/,/g,'.').replace(/[^\d.+]/g,'');if(!t)return 0;
+ let m=t.split('+').reduce(function(a,x){return a+(parseFloat(x)||0)},0);
+ if(m>=1000)m/=1000;else if(m>=30)m/=100;   /* 1800(mm)·180(cm) 으로 적어도 1.8m */
+ return Math.round(m*100)/100}
+function sjmSet(key,v){const o=ORDERS.filter(function(x){return x.key===key})[0],m=sjmParse(v);if(!o)return m;
+ if(!m&&!SJM[key]&&!o.sjm)return 0;
+ SJM[key]={m:m,s:sjSig(o),e:Math.round((o.sjE||0)*1000)/1000,ts:Date.now()};save();return m}
+function sjmList(d){const ix=function(o){const k=ROUTES.findIndex(function(r){return r.id===ASSIGN[o.i]});return k<0?99:k};
+ return ORDERS.filter(function(o){const r=ASSIGN[o.i];return o.d===d&&ST[o.i]!=='del'&&o.sjE>0&&r!=='x'&&r!=='nb'})
+  .sort(function(a,b){return ix(a)-ix(b)||String(a.n).localeCompare(String(b.n),'ko')})}
+function sjmBtn(d){const L=sjmList(d);if(!L.length)return '';const n=L.filter(function(o){return o.sjm}).length;
+ return '<button class="btn g rlbtn'+(n===L.length?' on':'')+'" onclick="sjmOpen(\''+d+'\')" title="삼정 종이 맨 밑에 손으로 적힌 가구 길이(m)를 적으면 적재량이 그 m 으로 바뀝니다">📏 가구 m 적기 '+n+'/'+L.length+'</button>'}
+function sjmBtnUp(d){const e=document.getElementById('msbsjm');if(e)e.innerHTML=sjmBtn(d)}
+function sjmRes(o,m,w){const est='어림 '+sjmFmt(Math.round((o.sjE||0)*sjmFull()*10)/10)+'m · '+Math.round((o.sjE||0)*100)+'%';
+ return m?'<b>'+sjmTxt(m)+'</b>'+(w?'<small style="color:#c0392b;font-weight:800">⚠ 적은 뒤 삼정 품목이 바뀜 — '+sjmFmt(m)+'m 로 맞춤, 다시 적어 주세요</small>':'')+'<small>'+est+'</small>':'<small>'+est+'</small>'}
+function sjmCnt(){const e=document.getElementById('sjmcnt'),a=[].slice.call(document.querySelectorAll('#sjmpan input.sjmin'));
+ if(e)e.textContent=a.filter(function(x){return sjmParse(x.value)||x.dataset.w}).length+' / '+a.length+'곳 적음'}
+/* 그날 삼정 나가는 곳을 한 판에 — 종이를 넘기며 이어서 적게 */
+function sjmOpen(d){const L=sjmList(d);let el=document.getElementById('sjmpan');
+ if(!el){el=document.createElement('div');el.id='sjmpan';document.body.appendChild(el)}
+ el.onclick=function(ev){if(ev.target===el)sjmClose()};
+ el.innerHTML='<div class="sjmbx"><div class="sjmhd"><b>📏 가구 m 적기 — '+(+d.slice(5,7))+'/'+(+d.slice(8))+' 삼정 '+L.length+'곳</b><span id="sjmcnt"></span><button onclick="sjmClose()">닫기</button></div>'
+  +'<div class="sjmnt">삼정 종이 맨 밑에 손으로 적힌 m 을 그대로 적으세요 (예 <b>1.8</b>). <b>0.6m = 1줄 = 의자 12개</b>, 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대. 비워 두면 지금처럼 품목 크기로 어림합니다. Enter 를 누르면 다음 칸으로 갑니다.</div>'
+  +'<table class="sjmtb"><tr><th style="width:118px">동선</th><th style="width:27%">거래처 · 배송지</th><th>삼정 품목</th><th style="width:96px">가구 m</th><th style="width:186px">적재</th></tr>'
+  +L.map(function(o,k){const r=ASSIGN[o.i],rl=RID[r]?msbRL(r)+rgNm(r):'미배차',A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'';
+   const its=(o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)}).map(function(it){return esc(String(it.p||'').trim())+' <b>×'+(+it.q||0)+'</b>'}).join(', ');
+   const v=SJM[o.key],val=o.sjm&&!o.sjmw?sjmFmt(o.sjm):'';
+   return '<tr class="'+(o.sjm?'has':'')+'" id="sjmt'+k+'"><td>'+esc(rl)+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td><td class="sjmit">'+its+'</td>'
+    +'<td><input class="sjmin" inputmode="decimal" autocomplete="off" data-k="'+esc(o.key)+'" data-n="'+k+'"'+(o.sjmw?' data-w="1"':'')+' value="'+val+'" placeholder="'+(o.sjmw&&v?'전 '+sjmFmt(v.m):'')+'" onkeydown="sjmKey(event,this)" onchange="sjmIn(this)"><em>m</em></td>'
+    +'<td id="sjmr'+k+'">'+sjmRes(o,o.sjm,o.sjmw)+'</td></tr>'}).join('')+'</table></div>';
+ document.addEventListener('keydown',sjmEsc);sjmCnt();
+ const f=el.querySelector('input.sjmin[value=""]')||el.querySelector('input.sjmin');if(f)f.focus()}
+function sjmIn(t){const o=ORDERS.filter(function(x){return x.key===t.dataset.k})[0];if(!o)return;const m=sjmSet(t.dataset.k,t.value);
+ t.value=m?sjmFmt(m):'';delete t.dataset.w;t.placeholder='';
+ const c=document.getElementById('sjmr'+t.dataset.n),r=document.getElementById('sjmt'+t.dataset.n);if(c)c.innerHTML=sjmRes(o,m,0);if(r)r.className=m?'has':'';sjmCnt()}
+function sjmKey(ev,t){const c=ev.keyCode;if(c!==13&&c!==40&&c!==38)return;ev.preventDefault();
+ const a=[].slice.call(document.querySelectorAll('#sjmpan input.sjmin')),i=a.indexOf(t)+(c===38?-1:1);if(a[i]){a[i].focus();a[i].select()}else t.blur()}
+function sjmEsc(ev){if(ev.keyCode===27)sjmClose()}
+function sjmClose(){const el=document.getElementById('sjmpan');if(!el)return;const f=document.activeElement;if(f&&f.classList&&f.classList.contains('sjmin'))f.blur();
+ document.removeEventListener('keydown',sjmEsc);el.remove();render()}
+/* 「삼정 N」 거품 안 한 칸 */
+function sjmPopRow(o){if(!(o.sjE>0))return '';const v=SJM[o.key];
+ return '<div style="margin-top:6px;padding:7px 9px;background:#fff6ef;border-radius:8px">📏 가구 길이 <input inputmode="decimal" autocomplete="off" data-k="'+esc(o.key)+'" value="'+(o.sjm&&!o.sjmw?sjmFmt(o.sjm):'')+'" placeholder="'+(o.sjmw&&v?'전 '+sjmFmt(v.m):'1.8')+'" style="width:64px;font-size:14px;font-weight:800;padding:3px 6px;border:1.5px solid #e5b08f;border-radius:7px;text-align:right" onkeydown="if(event.keyCode===13)this.blur()" onchange="sjmPop(this)"> m'
+  +'<div style="margin-top:3px;font-size:11.5px;color:#7a5a45">'+(o.sjm?sjmTxt(o.sjm)+(o.sjmw?' <b style="color:#c0392b">⚠ 적은 뒤 품목이 바뀜</b>':''):'비워 두면 품목 크기로 어림 (지금 '+Math.round(o.sjE*100)+'%)')+'</div></div>'}
+function sjmPop(t){sjmSet(t.dataset.k,t.value);
+ setTimeout(function(){const e=document.getElementById('sjpop');if(e)e.remove();render()},160)}
 let JNT=LSU('_jnt',{});   /* 직납내역서 시간 칸에 손으로 넣은 것 {주문key:{t,ts}} (2026-11-09) */
 let JNM=LSU('_jnm',{});   /* 직납내역서 적요 칸에 손으로 고쳐 쓴 것 {주문key:{m,ts}} — m='' 는 지운 것 (2026-11-13 강현아님 «수정가능하게») */
 function tagRt(n){const r=TAGRT[String(n||'').replace(/\s+/g,'')];if(!r||!RID[r])return null;
@@ -1421,7 +1516,8 @@ const RW_MERGE_MAX=0.60, RW_MERGE_TO='r5';
    광명시는 기본이 2번(부천·구로·영등포)인데, 아래 거래처는 6번(시흥·시화·화성) 코스에 붙여서 감 */
 const RT_FIX={'SL퍼니처':'r6','퍼니퍼니':'r6','아이스타일':'r2','광일퍼니처(윤광)2':'r2','파란들가구(계산)2':'r2'};
 /* 주소는 인천이지만 본사(석남동) 출발 기준으로는 2번 부천 코스가 맞는 곳 */
-const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계산/,'r2']];
+const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계산/,'r2'],
+ [/야무진친구들/,'r7']];   /* 경기 광주 창고 — sERP 번호표 [1] 에 끌려 1동선으로 가던 것. 적요에 다른 배송지가 있으면 그 주소가 먼저 (2026-11-24 강현아님 «고정해») */
 /* 적요에 직납 주소가 있어도 무조건 이 동선으로 보내는 거래처 */
 const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
  [/하나로사무용가구\(일산|아모스아인스가구\(일산/,'r3'],   /* 2026-11-16 강현아님 «고양시는 동선별로 묶어» — sERP 번호표 [1] 이 r1 로 끌던 두 곳 */
@@ -1678,7 +1774,7 @@ let SAVEERR=0;
 function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v))}catch(e){SAVEERR++;console.warn('저장 실패',KEY+k,e)}};
  const SU=(k,v)=>{try{localStorage.setItem(UKEY+k,JSON.stringify(v))}catch(e){SAVEERR++;console.warn('저장 실패',UKEY+k,e)}};
  S('',ASSIGN);S('_s',ST);S('_card',CARD);rawStore();S('_rawv',RAWV);S('_op',OPEN);
- SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_seqf',SEQF);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);SU('_itx',ITX);SU('_tagrt',TAGRT);SU('_jnt',JNT);SU('_jnm',JNM);
+ SU('_jbn',JBN);cdrvClear();SU('_drvh',DRVH);SU('_trph',TRPH);SU('_rt2',RT2);SU('_dov',DRVOV);SU('_l',LEARN);SU('_do',DOVR);SU('_cu',CUSTOM);SU('_dv',DRVS);SU('_c',CAPS);SU('_sq',SEQ);SU('_seqf',SEQF);SU('_sql',SEQL);SU('_fe',FEE);SU('_dv2',DRV2);SU('_capu',CAPU);SU('_trip',TRIP);SU('_wxd',WXD);SU('_wxr',WXR);SU('_rno',RNO);SU('_rwm',RWMK);SU('_as',ASV);SU('_note',NOTE);SU('_seen',SEEN);SU('_asg',ASGK);SU('_stk',STK);SU('_asgv',ASGV);SU('_inbs',INBS);SU('_itx',ITX);SU('_tagrt',TAGRT);SU('_padr',PADR);SU('_sjm',SJM);SU('_jnt',JNT);SU('_jnm',JNM);
  const diff=(cur,base)=>{const o={};for(const k in cur)if(cur[k]!==base[k])o[k]=cur[k];return o};
  const AB=Object.assign({},ADDR_DB,(typeof BUILTIN!=='undefined'?BUILTIN.A:{}));
  SU('_ad',diff(ADDR,AB));SU('_gp',diff(GRP,BUILTIN.G));SU('_tel',diff(TEL,BUILTIN.T));
@@ -1687,7 +1783,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261124d';
+const APPVER='20261124j';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1709,10 +1805,10 @@ const SB_URL=localStorage.getItem('SB_URL')||'https://api.kwangilchair.com/p/sb'
 const SB_REAL=/\.supabase\.co/.test(SB_URL);   /* 진짜 Supabase 면 실시간(websocket), 우리 서버면 1분 되물음 */
 const SB_KEY=localStorage.getItem('SB_KEY')||'UOFDJ--4Oe3RFnlEbp5eOX9w';   /* 조회API 배차열쇠와 같아야 한다 */
 let SB=null,SB_ON=false,pushT=null,applying=false,NEEDPUSH=0;
-const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts','_sja','_tagrt','_jnt','_jnm'];
+const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts','_sja','_tagrt','_padr','_jnt','_jnm','_sjm'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_sja']=SJA;o['_itx']=ITX;o['_tagrt']=TAGRT;o['_jnt']=JNT;o['_jnm']=JNM;
+ o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_sja']=SJA;o['_itx']=ITX;o['_tagrt']=TAGRT;o['_padr']=PADR;o['_sjm']=SJM;o['_jnt']=JNT;o['_jnm']=JNM;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -1746,6 +1842,11 @@ function applySnap(o){applying=true;try{
  if(o['_jnt']&&typeof o['_jnt']==='object'){const T=o['_jnt'];for(const k in T){const a=T[k],b=JNT[k];if(a&&(+a.ts||0)>(+(b&&b.ts)||0))JNT[k]=a}}
  if(o['_jnm']&&typeof o['_jnm']==='object'){const T=o['_jnm'];for(const k in T){const a=T[k],b=JNM[k];if(a&&(+a.ts||0)>(+(b&&b.ts)||0))JNM[k]=a}}
  if(o['_tagrt']&&typeof o['_tagrt']==='object'){const T=o['_tagrt'];for(const k in T){if(T[k]&&TAGRT[k]!==T[k])TAGRT[k]=T[k]}}
+ if(o['_padr']&&typeof o['_padr']==='object'){const T=o['_padr'];for(const k in T){if(T[k]&&PADR[k]!==T[k])PADR[k]=T[k]}}
+ /* 가구 m — 건마다 나중에 적은 쪽만. 내 쪽이 새것이면(옛 화면이 덮어 없어진 것 포함) 다시 올린다 (2026-11-24) */
+ {const T=o['_sjm']&&typeof o['_sjm']==='object'?o['_sjm']:{};
+  for(const k in T){const a=T[k],b=SJM[k];if(a&&Date.now()-(+a.ts||0)<SJM_KEEP&&(+a.ts||0)>(+(b&&b.ts)||0))SJM[k]=a}
+  for(const k in SJM){const a=T[k],b=SJM[k];if((+(b&&b.ts)||0)>(+(a&&a.ts)||0)){NEEDPUSH=1;break}}}
  /* 연락처도 칸(사내·운반)별로 나중에 고친 쪽만 남긴다 (2026-10-21) */
  if(o['_cts']&&typeof o['_cts']==='object'){const IC=o['_cts'],IV4=o['_asgv']||{};
   if(!CTS||typeof CTS!=='object')CTS={};
@@ -2000,7 +2101,7 @@ function capOf(n){
  const nb=String(n).replace(/받침대/g,'받침');
  for(let z=0;z<SIZE_SKIP.length;z++){
   if(nb.indexOf(SIZE_SKIP[z])<0)continue;
-  for(const c of CAP_DEF)for(const k of c.k)if(k&&nb.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l};
+  for(const c of CAP_DEF)for(const k of c.k)if(k&&nb.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l,id:c.id};
  }
  // 사이즈 명시 시: 바닥면적(1톤 장축 1600×4000=6.4㎡) × 단수(적재높이 2100 기준)
  /* 2026-10-13 세 번째 치수가 '28T' 처럼 두 자리(두께)여도 읽는다 — PLANMAX 상판 [1600x800x28T] 15장이
@@ -2023,9 +2124,9 @@ function capOf(n){
  const sw=n.match(/W(\d{3,4})/);
  if(sw){const W=+sw[1];const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/600),Math.floor(1600/600)*Math.floor(4000/W));return{c:per,l:'사이즈 W'+sw[1]+' · 1단'}}
  for(const u of CAPU)for(const k of (u.k||[]))if(k&&n.indexOf(k)>=0)return{c:u.c||60,l:u.nm+'(직접등록)'};
- for(const c of CAP_DEF)for(const k of c.k)if(nb.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l};
- return{c:CAPS.etc||60,l:'기타'}}
-const loadOf=o=>o.items.reduce((s,it)=>s+it.q/(capOfIt(it).c||60),0);
+ for(const c of CAP_DEF)for(const k of c.k)if(nb.indexOf(k)>=0)return{c:CAPS[c.id]||c.c||60,l:c.l,id:c.id};
+ return{c:CAPS.etc||60,l:'기타',id:'etc'}}
+const loadOf=(o,d)=>o.items.reduce((s,it)=>s+it.q/(capOfIt(it,d).c||60),0);   /* d = 전표 날짜 (우리 차 적재) · 없으면 60개 기준 */
 /* 규격에 두께(60mm 이하, 28T 등)가 붙어 «판재» 로 셈되는 품목 — 이름에 '상판' 이 없어도 상판 (2026-11-20 강현아님 «PLANMAX 다 상판, 눕혀서») */
 function isPanelIt(it){try{return /판재/.test((capOfIt(it)||{}).l||'')}catch(e){return false}}
 function panelNote(L){const pn=(L||[]).filter(function(it){return it&&!it.x&&isPanelIt(it)});if(!pn.length)return '';
@@ -2038,7 +2139,7 @@ function panelNote(L){const pn=(L||[]).filter(function(it){return it&&!it.x&&isP
    책장·이동서랍(이동형파일서랍)·캐비닛·사물함·옷장·락카는 완제로 가니 그대로. */
 const SJ_SEMI_RE=/책상|테이블|탁자|데스크|desk|table/i, SJ_FULL_RE=/책장|서랍|캐비닛|캐비넷|사물함|옷장|락카|선반|수납|유리|상판|도어/;   /* 유리·상판은 판재 규칙이 더 맞다 */
 const SJ_SEMI_LY=12;
-function capOfIt(it){
+function capOfIt(it,d){
  const n=String((it&&it.p)||'');
  if(sjItem(it)&&SJ_SEMI_RE.test(n)&&!SJ_FULL_RE.test(n)){
   const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})/);
@@ -2046,7 +2147,11 @@ function capOfIt(it){
    const per=Math.max(1,Math.floor(1600/W)*Math.floor(4000/D),Math.floor(1600/D)*Math.floor(4000/W));
    return {c:Math.min(per*SJ_SEMI_LY,300),l:'삼정 반조립 상판 '+W+'×'+D+' · '+SJ_SEMI_LY+'단'}}
   return {c:24,l:'삼정 반조립(사이즈 없음) · 1톤 24개'}}
- return capOf(n);
+ const r=capOf(n);
+ if(d&&String(d)>=CAP_BASE_D){
+  if(CAP_BASE_IDS[r.id]&&+r.c===60)return {c:capBase(),l:r.l,id:r.id};
+  if(r.id==='half'&&+r.c===120)return {c:capBase()*2,l:r.l,id:r.id}}
+ return r;
 }
 
 /* 2026-09-02: '인천 중구' 처럼 구 이름이 한 글자면 못 읽었다.
@@ -2110,6 +2215,7 @@ const FAR_RE=/^\s*(대구광역시|대구|부산광역시|부산|울산광역시
 function hitRoute(t){
  if(!t)return null;
  t=String(t).replace(/바이오/g,'');   /* «…바이오산업…» 의 «오산» 이 7동선에 걸리던 함정 (2026-11-17) */
+ t=t.replace(/충청북도/g,'충북');   /* 충북 = 9동선. «충청» 은 10동선 낱말이라 «충청북도 청주» 가 10동선에 걸리던 것 (2026-11-24 이승태갤러리) */
  if(FAR_RE.test(t))return null;
  let bestId=null,bestPos=1e9,bestLen=0;
  for(const r of ROUTES)for(const k of r.k){
@@ -2208,7 +2314,7 @@ function isSJ(o){return (o.items||[]).some(sjItem)}
 /* 2026-10-13 수량을 '의자 N · 삼정 N' 으로 나눠 보여준다 (사용자: "25개가 의자 몇개 삼정 몇개 이런식으로") */
 function qtySplit(o){let ch=0,sj=0;(o.items||[]).forEach(function(it){if(!it||it.x)return;const q=+it.q||0;if(sjItem(it))sj+=q;else ch+=q});
  if(!ch&&!sj)ch=+o.qty||0;return {ch:ch,sj:sj}}
-function qtyTxt(o){const s=qtySplit(o);const b='<span class="sjq" style="cursor:pointer" title="누르면 삼정 품목이 보여요" onclick="sjPop('+(o.i!=null?o.i:-1)+',event)">삼정 '+s.sj+'</span>';
+function qtyTxt(o){const s=qtySplit(o);const b='<span class="sjq" style="cursor:pointer" title="누르면 삼정 품목이 보여요" onclick="sjPop('+(o.i!=null?o.i:-1)+',event)">삼정 '+s.sj+sjmChip(o)+'</span>';
  /* 개수를 누르면 품목 내역 거품 — 카드는 안 접힌다 (2026-11-18 강현아님) */
  const c='<span class="sjq" style="cursor:pointer;color:inherit" title="누르면 품목 내역이 보여요" onclick="itPop('+(o.i!=null?o.i:-1)+',event)">';
  if(s.sj&&s.ch)return c+'의자 '+s.ch+'</span> · '+b;if(s.sj)return b;return c+s.ch+'<small>개</small></span>'}
@@ -2219,7 +2325,8 @@ function sjPop(i,ev){if(ev){ev.stopPropagation();ev.preventDefault()}
  let el=document.getElementById('sjpop');if(el)el.remove();
  el=document.createElement('div');el.id='sjpop';
  el.style.cssText='position:fixed;z-index:9999;background:#fff;border:1.5px solid #c2410c;border-radius:10px;box-shadow:0 10px 26px rgba(15,25,40,.28);padding:10px 12px;max-width:360px;font-size:12.5px;line-height:1.5';
- el.innerHTML='<b style="color:#c2410c">삼정 품목 — '+esc(o.n)+'</b>'+panelNote(L)+'<div style="margin-top:5px">'
+ el.onclick=function(e){e.stopPropagation()};
+ el.innerHTML='<b style="color:#c2410c">삼정 품목 — '+esc(o.n)+'</b>'+sjmPopRow(o)+panelNote(L)+'<div style="margin-top:5px">'
   +(L.length?L.map(function(it){return esc(String(it.p||''))+(it.s?' <span style="color:#8b9aab">'+esc(String(it.s))+'</span>':'')+' <b>×'+(+it.q||0)+'</b>'}).join('<br>'):'(삼정 품목을 못 찾음)')
   +'</div><div style="margin-top:5px;color:#8b9aab;font-size:11px">다른 곳을 누르면 닫혀요</div>';
  document.body.appendChild(el);
@@ -2539,12 +2646,19 @@ function build(fresh){
   ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / '),dst:c.dst||''})});
  CUSTOM.forEach((c,j)=>{const k='cu'+j;
   ORDERS.push({n:c.n,ex:null,od:c.d||SEL,key:k,d:DOVR[k]||c.d||SEL,items:c.items,memo:c.memo||'',cu:1})});
+ sjmIdx();
  ORDERS.forEach((o,i)=>{o.i=i;
   /* 따로 가는 줄은 표시만 해 두고 개수·적재량에서 뺀다 */
   o.items.forEach(function(it){it.x=ITX[itxKey(o,it)]?1:0});
   const use=o.items.filter(function(it){return !it.x});
   o.nx=o.items.length-use.length;
-  o.qty=use.reduce((a,b)=>a+b.q,0);o.load=loadOf({items:String(o.d)>=NEWTRIP_D?use.filter(function(it){return !NOLOAD_RE.test(String(it.p||''))}):use});
+  o.qty=use.reduce((a,b)=>a+b.q,0);const ldI=String(o.d)>=NEWTRIP_D?use.filter(function(it){return !NOLOAD_RE.test(String(it.p||''))}):use;
+  o.load=loadOf({items:ldI},o.d);
+  o.loadY=String(o.d)>=CAP_BASE_D?loadOf({items:ldI}):o.load;   /* 용차·합바 계산은 60개 기준 그대로 (2026-11-24) */
+  /* 가구 m 을 적어 둔 건은 삼정 품목 어림 대신 그 m 으로 (2026-11-24 강현아님) */
+  o.sjE=0;o.sjm=0;o.sjmw=0;
+  if(String(o.d)>=NEWTRIP_D){const sl=ldI.filter(sjItem);o.sjE=loadOf({items:sl},o.d);
+   if(o.sjE>0){const r=sjmGet(o);if(r){const k=r.m/sjmFull();o.sjm=r.m;o.sjmw=r.w;o.load=Math.max(0,o.load-o.sjE)+k;o.loadY=Math.max(0,o.loadY-loadOf({items:sl}))+k}}}
   o.urg=/일찍|오전|새벽|아침/.test(o.memo||'')?0:1;
   o.sk=o.urg+'|'+((ADDR[o.n]||'힣힣').slice(0,14))});
  DATES=[];ORDERS.forEach(o=>{if(o.d&&DATES.indexOf(o.d)<0)DATES.push(o.d)});DATES.sort();
@@ -2574,7 +2688,13 @@ function build(fresh){
  }
  ASSIGN={};ST={};
  ORDERS.forEach(function(o){
-  if(ASGK[o.key]===undefined||ASGK[o.key]==='_'){const g2=guess(o);if(ASGK[o.key]===undefined||(g2&&g2!=='_'))ASGK[o.key]=g2}   /* 미배차로 남은 건은 규칙이 늘면 다시 잡는다 (2026-11-04) */
+  if(ASGK[o.key]===undefined||ASGK[o.key]==='_'){let g2=guess(o);
+   /* 주소록에 없어 미배차면 — 전표에 찍힌 주소로 (2026-11-24 강현아님 «고쳐»). 지난 날짜 미배차와 삼정 물건만 있는 건(광일 전표 없음)은 그대로 둔다 */
+   const pa=PADR[padKey(o.n)];
+   if(pa){const now=o.d>=mnToday(),kw=(o.items||[]).some(function(it){return it&&!sjItem(it)});
+    if((!g2||g2==='_')&&!ADDR[o.n]&&now&&kw){ADDR[o.n]=pa;g2=guess(o)}
+    else if(ASGK[o.key]==='_'&&ADDR[o.n]===pa&&!(now&&kw))g2='_'}
+   if(ASGK[o.key]===undefined||(g2&&g2!=='_'))ASGK[o.key]=g2}   /* 미배차로 남은 건은 규칙이 늘면 다시 잡는다 (2026-11-04) */
   /* 고정 동선(RT_HARD)이 새로 생기면 자동으로 잡혀 있던 배차도 바꾼다 — 손으로 바꾼 것(ASGV)·뺀 것(x)·오늘 이전 날짜는 그대로 (2026-11-04 더블유퍼니처·한양(천안)) */
   /* 값은 guess 로 — 고정 > 적요 배송지 > 번호표 순서를 지킨다 (번호표가 적요 배송지를 덮어쓰지 않게, 2026-11-05 아산병원) */
   else if((rtHard(o.n)||tagRt(o.n))&&!ASGV[o.key]&&/^r/.test(String(ASGK[o.key]||''))&&o.d>=mnToday()){const h=guess(o);if(h&&/^r/.test(h)&&ASGK[o.key]!==h)ASGK[o.key]=h}
@@ -2818,7 +2938,7 @@ function card(o,big){
   o.nx?'<span class="chip x" style="background:#fdf1e2;color:#c9761a">따로 '+o.nx+'건 뺌</span>':'',
   o.d!==SEL?'<span class="chip d">'+o.d+'</span>':'',
   DOVR[o.key]?'<span class="chip c">일자변경</span>':''].join('');
- const items=o.items.map(function(it){const c=capOfIt(it);
+ const items=o.items.map(function(it){const c=capOfIt(it,o.d);
   const k=o.items.indexOf(it);
   return '<li'+(it.x?' class="itxoff"':'')+'><span title="'+c.l+' · 1톤 '+c.c+'개 만재">'+it.p+(it.s==='[삼정가구]'?' <i style="color:#b5651d;font-weight:700">삼정</i>':(it.s?' <i>'+it.s+'</i>':''))+(it.x?' <i class="itxtag">따로 감</i>':'')+'</span><b>'+it.q+'</b>'
    +'<u class="itxb" title="'+(it.x?'다시 목록에 넣기':'따로 가는 건 — 목록에서 빼기')+'" onclick="event.stopPropagation();itxTog('+o.i+','+k+')">'+(it.x?'\u21a9':'\u2715')+'</u></li>'}).join('');
@@ -3529,7 +3649,7 @@ function loadPlan(D){
   const rows=drvRows(car).rows.filter(function(a){return a.d&&a.d.indexOf('용차')!==0});
   const D1={},D2={};
   rows.forEach(function(a){const cf=a.cap||1,L=a.L||0,o=a.list[0]||{};
-   if(a.big){res.over.push({L:L,txt:nmR(a.rid)+' '+o.n+' '+(L/cf<1.15?'적재 '+pc(L,cf):f(L)+'대분')+' — 한 건이 한 차를 넘음 (동선 기사 '+a.d+'): '+ordItems(o).join(', ')});return}
+   if(a.big){res.over.push({L:L,txt:nmR(a.rid)+' '+o.n+' '+(L/cf<1.15?'적재 '+pc(L,cf):f(L)+'대분')+' — 한 건이 한 차를 넘음 (동선 기사 '+a.d+'): '+ordItems(o).join(', ')+(o.sjm?' · 가구'+sjmChip(o).replace(' · ',' '):'')});return}
    if(a.trip===3){res.over.push({L:L,txt:nmR(a.rid)+' '+a.d+' '+(can2nd(a.d)?'1차·2차에 싣고 남은 ':'1차만 도는 기사라 남은 ')+a.list.length+'건 '+f(L)+'대분: '+a.list.map(function(z){return z.n}).join(', ')});return}
    if(L>cf*(1+TRIP_EPS)+0.0001)res.over.push({L:L-cf,txt:nmR(a.rid)+' '+a.d+' '+a.trip+'차 — 손으로 정한 분량이 '+pc(L,cf)+' (100% 넘는 '+f(L-cf)+'대분)'});
    if(a.trip===2){res.two.push(nmR(a.rid)+' '+a.d+' '+a.list.length+'건 '+pc(L,cf)+(/^(r9|r10|rw)$/.test(a.rid)?' [먼 동선 — 같은 날 두 번 어려움]':''));D2[a.d]=1}
@@ -3740,7 +3860,7 @@ function rlTable(x,g,nm,rlc){
    if(k===0)h+='<td class="c5" rowspan="'+rs+'" onclick="event.stopPropagation()">'+btn+'</td>';
    h+='</tr>';
   });
-  h+='<tr class="rtsum rtend rtb'+(j%2)+'"><td class="c3">합계</td><td class="c4">'+o.qty+'</td></tr>';
+  h+='<tr class="rtsum rtend rtb'+(j%2)+'"><td class="c3">합계'+(o.sjm?' · 가구'+sjmChip(o).replace(' · ',' '):'')+'</td><td class="c4">'+o.qty+'</td></tr>';
  });
  return h+'</table></div>';
 }
@@ -3770,7 +3890,7 @@ function tabRoute(today){
  h+=wxHTML(SEL);
  h+='<div class="hd2">🛣️ 동선별 '
   +'<button class="btn g rlbtn'+(RLIST?'':' on')+'" onclick="rlistSet(0)">▦ 카드</button>'
-  +'<button class="btn g rlbtn'+(RLIST?' on':'')+'" onclick="rlistSet(1)">☰ 목록 — 주소·품명 다 보기</button>'
+  +'<button class="btn g rlbtn'+(RLIST?' on':'')+'" onclick="rlistSet(1)">☰ 목록 — 주소·품명 다 보기</button>'+sjmBtn(SEL)
   +'<span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 거래처 이름을 누르면 품목, 기사 칸을 눌러 바꿉니다</span></div><div class="dlist">';
  /* ⚠️ 미배정 — 화면에서 버려져 안 보이던 것 (2026-11-19 강현아님 «하움데코가 아예 없는데» · «미배차는 없어야 해») */
  {const un=today.filter(function(o){const r=ASSIGN[o.i];return !(r&&(by[r]||r==='x'))});
@@ -4333,7 +4453,8 @@ function addCap(){
  CAPU.push({nm:nm,k:kw.split(',').map(function(x){return x.trim()}).filter(Boolean),c:c});
  document.getElementById('cuNm').value='';document.getElementById('cuKw').value='';document.getElementById('cuC').value='';
  save();render();drawCapU();toast('적재 기준 추가: '+nm)}
-document.getElementById('capB').innerHTML=CAP_DEF.map(function(c){
+document.getElementById('capB').innerHTML='<tr style="background:#fff6ef"><td><b>우리 차 한 차 (의자)</b></td><td style="color:#8b9aab;font-size:11px">기타 · 그 외 대(大) · 중역의자 (절반수량은 이 두 배) — 11/26 전표부터. 가구 m 도 이 개수로</td><td style="text-align:right"><input type="number" id="capBaseIn" min="20" max="120" value="'+capBase()+'" onchange="capBaseSet(this.value)"></td></tr>'
++CAP_DEF.map(function(c){
  return '<tr><td><b>'+c.l+'</b></td>'
  +'<td style="color:#8b9aab;font-size:11px">'+(c.k.join(', ')||'그 외 전부')+'</td>'
  +'<td style="text-align:right"><input type="number" min="1" value="'+CAPS[c.id]+'" '
@@ -4816,7 +4937,7 @@ function ycbAdd(i){
 function ycbRowOf(o){
  const DD=destOf(o)||{};
  const reg=ycRegion(o.memo)||ycGeo(o.memo)||(DD.src==='적요'?ycRegionAny(DD.t):null)||(o.dst?ycRegionAny(o.dst):null)||ycRegion(ADDR[o.n]||'')||ycRegion(o.n)||'';   /* 적요의 도+고을이 거래처 주소보다 먼저 (2026-11-17) */
- const tk=ycbTruckOf(o.memo,o.load), f=ycFee(reg,tk.t);
+ const tk=ycbTruckOf(o.memo,o.loadY), f=ycFee(reg,tk.t);
  /* 장부에 그 지역·그 차 실적이 없으면 추정치 — 화면에 표시해 준다 */
  return {d:ycbDate(),n:o.n,reg:reg,tk:tk.t,tnm:tk.nm,mm:String(o.memo||'').slice(0,120),co:'광일',fee:f.v,est:(f.how==='실적'?0:1),hw:f.how}}
 function ycbRows(co){ycbFix();return YCB[co||ycbCo()]}
@@ -4932,7 +5053,7 @@ function ycbQtyOf(x){if(!x||!x.n||!x.d)return null;
  let ldB=0;
  ORDERS.forEach(function(o){if(ns.indexOf(o.n)<0||ST[o.i]==='del')return;
   let sd='';if(o.d!==x.d){try{sd=shipDate(o)||''}catch(e){}if(sd!==x.d)return}
-  const q=qtySplit(o);ch+=q.ch;sj+=q.sj;ld+=(+o.load||0);ldB+=ycBoxLd(o.items);hit++});
+  const q=qtySplit(o);ch+=q.ch;sj+=q.sj;ld+=(+(o.loadY!=null?o.loadY:o.load)||0);ldB+=ycBoxLd(o.items);hit++});
  if(!hit||!(ch+sj))return null;
  return {ch:ch,sj:sj,ld:ld,len:ycLen(ld),ldB:ldB}}
 function ycbQtyTxt(x){const q=ycbQtyOf(x);if(!q)return '';
@@ -5708,7 +5829,7 @@ function ycbItems(x,paper,co,k){try{
     const over=!tr||ld>3.7;
     /* 합바(혼적) m — 쌓아 싣는 적재량 기준(ycHbM, 2026-11-24). 같은 차로 묶인 곳은 차 줄에 합쳐서 한 번만. 7m 가 넘으면 합바로 안 가니 생략 */
     let hl=0,hn=1;if(!x.link){const G=(co!=null&&k!=null)?kkGroup(co,k):[x];hn=G.length||1;
-     (hn>1?G:[x]).forEach(function(r){(r===x?os:ycbOs(r).os).forEach(function(o){hl+=(+o.load||0)})})}
+     (hn>1?G:[x]).forEach(function(r){(r===x?os:ycbOs(r).os).forEach(function(o){hl+=(+(o.loadY!=null?o.loadY:o.load)||0)})})}
     const hm=hl>0?ycHbM(hl):0;
     let h=' <span style="color:#2F7FE8;font-weight:700" title="신품 박스 기준 1톤 환산(의자 38개=1톤분)과 알맞은 차 · 합바차(혼적)로 부를 땐 몇 m(쌓아 싣는 적재량 기준, 실제 합바 64건)">· 박스 ≈'+ldt+'톤분'+(over?' → 5톤 기본 ×'+Math.ceil(ld/c5):' → '+esc(tr.nm))+(hm&&hm<=7?' · 합바면 '+(hm%1?hm.toFixed(1):hm)+'m'+(hn>1?'(같은 차 '+hn+'곳 합쳐)':''):'')+'</span>';
     if(cur&&!cur.mx&&cur.c<ld-0.001)h+=' <b style="color:#c0392b">⚠ '+esc(cur.nm)+' 모자람</b>';
@@ -6115,6 +6236,22 @@ function msbSpace(t){
    /* 번지 뒤 건물 이름 — 도로·동 낱말 바로 뒤의 숫자만 («66으로»·«14택배» 는 그대로) */
    .replace(/((?:로|길|동|리|가)\s\d+(?:-\d+)?)(?=[가-힣])(?![층호동번시일개톤차가길로분단대장박월명인으])/g,'$1 ')
    .replace(/\s{2,}/g,' ').trim()}).filter(Boolean).join(' / ')}
+/* 주소 줄을 인쇄 명령에서 글자 그대로 — 실제 빈칸만 남는다. 못 맞추면 '' (2026-11-24) */
+async function msbAdTrue(p,adw){const ol=await p.getOperatorList(),O=pdfjsLib.OPS,S=[];
+ ol.fnArray.forEach(function(f,k){if(f!==O.showText&&f!==O.showSpacedText)return;
+  S.push((ol.argsArray[k][0]||[]).map(function(g){return g&&typeof g==='object'?(g.unicode||''):''}).join(''))});
+ const nz=function(t){return String(t||'').replace(/\s+/g,'')},want=nz(adw);
+ for(let i=0;i<S.length;i++){if(!S[i].trim()||want.indexOf(nz(S[i]))!==0)continue;
+  let t='',j=i;while(j<S.length&&nz(t).length<want.length)t+=S[j++];
+  if(nz(t)===want)return t.replace(/\s+/g,' ').trim()}
+ return ''}
+async function msbDlvRead(bytes,units){
+ const L=units.filter(function(u){return u.ok&&u.g&&u.g!=='x'&&!u.adx&&/배송/.test(String(u.adw||'').replace(/\s+/g,''))&&msbDlvUp(u)});if(!L.length)return 0;
+ const doc=await pdfjsLib.getDocument({data:new Uint8Array(bytes.slice(0))}).promise;
+ for(let i=0;i<L.length;i++){msbSt('거래처 주소의 배송지 읽는 중 '+(i+1)+'/'+L.length);
+  try{L[i].adx=await msbAdTrue(await doc.getPage(L[i].pages[0]),L[i].adw)}catch(e){console.warn('배송지 다시 읽기 실패',L[i].n,e)}}
+ try{doc.destroy()}catch(e){}
+ return L.length}
 async function msbReadPage(p){
  const H=p.getViewport({scale:1}).height;
  const tc=await p.getTextContent();
@@ -6178,7 +6315,7 @@ async function msbParse(bytes){
   const u=await msbReadPage(await doc.getPage(i));
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
   if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;last.sraws.push(u.sraw);last.core+='+'+u.core;last.qty=(last.qty||0)+(u.qty||0);last.its=(last.its||[]).concat(u.its||[]);if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
-  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,tel:u.tel||'',qty:u.qty||0,its:u.its||[],rtag:u.rtag||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,sraws:[u.sraw],core:u.core,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
+  last={n:u.n,ad:u.ad,adw:u.adw,adx:'',date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,tel:u.tel||'',qty:u.qty||0,its:u.its||[],rtag:u.rtag||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,sraws:[u.sraw],core:u.core,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
  MSB_NP=doc.numPages;
  try{doc.destroy()}catch(e){}
  return units;
@@ -6272,10 +6409,11 @@ function msbClass(units){
     const po={n:rn,d:D,od:D,memo:u.memo||'',items:[],i:-1,key:'~'+rn};
     const r=guess(po);
     if(okR(r)){estPut(r,po);return}
+    {const r4=msbAdGuess(u,D);if(okR(r4)){estPut(r4,po);return}}
     if(force&&u.fw){u.g='fo';u.trip=1;return}
     u.g='un';u.why='배차에 없음';return}
    let r=ASSIGN[o.i];
-   if(!r||r==='_'){const r2=guess(o);if(okR(r2)){estPut(r2,o);return}if(force&&u.fw){u.g='fo';u.trip=1;return}u.g='un';u.why='아직 미배차';return}
+   if(!r||r==='_'){const r2=guess(o);if(okR(r2)){estPut(r2,o);return}const r4=msbAdGuess(u,D);if(okR(r4)){estPut(r4,o);return}if(force&&u.fw){u.g='fo';u.trip=1;return}u.g='un';u.why='아직 미배차';return}
    if(offRoute(r)&&force){u.g='fo';u.fw=u.fw||'배차 제외';u.drv='';u.trip=1;return}
    if(offRoute(r)){u.g='x';u.why=(r==='x'?(String(u.memo||'').trim()?'배차에서 뺀 건':'배차에서 뺀 건 ⚠ 적요 빈 전표 — 매장 배송 아닌지 확인'):'실물 명세서 없음');return}
    /* 모르는 동선 값(예: 옛 'rc')이면 조용히 빠뜨리지 말고 미배차로 (2026-11-03 평택삼성 사고) */
@@ -6494,8 +6632,9 @@ async function msbBuild(bytes,groups,coversOnly){
     cv.drawText(_ct+'차  '+(tdrv(_ct)||'기사 미지정')+'   ·   '+uu.length+'건 · 의자 '+q3+'개 · '+(_lt||'적재 약 '+Math.round(L3*100)+'%'),{x:x+8,y:y,size:12.5,font:font,color:BLK});
     y-=24}
    /* 도착지 — 적요 배송지(직납) > 거래처 등록 주소 > 전표 주소 줄 */
-   let addr='';try{const DD=o?(destOf(o)||{}):{};addr=(o&&o.dst)||(DD.src==='적요'?DD.t:'')||ADDR[(o&&o.n)||u.n]||ADDR[resolveCust(String(u.n||'').replace(/\s+/g,''))||'']||String(u.ad||'').replace(/\s*\[.*?\]\s*$/,'')}catch(e){addr=String(u.ad||'')}
+   let addr='';try{const DD=o?(destOf(o)||{}):{};addr=(o&&o.dst)||(DD.src==='적요'?DD.t:'')||ADDR[(o&&o.n)||u.n]||msbAdClean(u.ad)||ADDR[resolveCust(String(u.n||'').replace(/\s+/g,''))||'']||String(u.ad||'').replace(/\s*\[.*?\]\s*$/,'')}catch(e){addr=String(u.ad||'')}
    {const mt=memoSp(String((o&&o.memo)||u.memo||'')),mi=addr?mt.indexOf(addr):-1;if(mi>=0&&addr.length>=20){const tl=(mt.slice(mi+addr.length).match(/^[^,\/]*/)||[''])[0];if(tl.trim())addr=(addr+tl).trim()}}
+   {const dv=msbDlvUp(u);if(dv)addr=dv.a||!addr?dv.t:addr+'   '+dv.t}
    let notes='';try{notes=mnNotes((o&&o.n)||u.n).map(function(z){return z.note}).filter(Boolean).join(' / ')}catch(e){}
    const fl=(u.moved?[md(u.moved)+' 이미 찍음']:[]).concat(u.noms?['명세표 주지마세요']:[],u.flags||[]);
    if(y<75){cv=out.addPage([W,H]);head(cv,true);y=H-150}
@@ -6582,11 +6721,26 @@ async function msbBuild(bytes,groups,coversOnly){
     /* 일찍·오전일찍·오전배송 — 글씨 키워 동그라미 안에. 자리: 일자·거래처 줄 오른쪽 빈칸(공급자 칸 x298 앞). 위·아래 반쪽 다 */
     /* 직납인데 적요에 전화가 없으면 — 거래처 전화를 적요에 덧붙인다 (2026-11-18 강현아님 «기사님 정보필요») */
     if(u.jik&&u.tel&&!/01\d[-.\s]?\d{3,4}[-.\s]?\d{4}|0\d{1,2}[-.)\s]\d{3,4}[-.\s]?\d{4}/.test(memo))memo=(memo?memo+' / ':'')+'전화 '+u.tel;
+    /* 거래처 주소 칸의 «배송…» (2026-11-24) */
+    const dvo=msbDlvUp(u),dvu=dvo?dvo.t:'';
     /* 왼쪽 위 도장 줄을 16pt 올린다 — 적요 자리를 넓히려고. «명세표 주지마세요» 띠가 있는 전표만 그 자리를 비켜 그대로 */
     const SUP=u.noms?0:16;
-    if(memo){let ms=10;while(ms>8&&tw(memo,ms)>232)ms-=0.5;
+    if(dvu&&memo){const up=SUP>0,wrp=function(t,sz,w1){const out=[];let cur='';t.split(/(?<=[\s\/·,])/).forEach(function(w){const lim=out.length===0?w1:232;if(cur&&tw(cur+w,sz)>lim){out.push(cur.trim());cur=w}else cur+=w});if(cur.trim())out.push(cur.trim());return out};
+     let z=up?11:10,A=null,B=null;
+     for(;z>=5.5;z-=0.5){
+      const a2=wrp(memo,z,232),b2=wrp(dvu,z,232),f2=a2.concat(b2).every(function(x){return tw(x,z)<=232});
+      if(a2.length+b2.length<=2&&f2){A=a2;B=b2;break}
+      const a3=wrp(memo,z,up?190:232),ok3=a3.concat(b2).every(function(x,i){return tw(x,z)<=(i?232:(up?190:232))});
+      if(z<=(up?10:7)&&a3.length+b2.length<=3&&ok3){A=a3;B=b2;break}
+      if(z<=(up?7.5:6)&&a3.length+b2.length<=4&&ok3){A=a3;B=b2;break}}
+     if(!A){z=5.5;A=wrp(memo,z,232);B=wrp(dvu,z,232)}
+     const n=A.length+B.length,gap=n<=2?13:n===3?(up?12:8):(up?8.6:6.6),y0=766+(n-1)*gap+(n<=2?3:0),rh=n<=2?12.5:n===3?(up?11.5:8):(up?8.6:6.6);
+     [0,413].forEach(function(dy){
+      B.forEach(function(t,i){pg.drawRectangle({x:20,y:y0-(A.length+i)*gap-dy-2.5,width:Math.min(tw(t,z),232)+4,height:rh,color:rgb(1,.92,.3)})});
+      A.concat(B).forEach(function(t,i){pg.drawText(t,{x:22,y:y0-i*gap-dy,size:z,font:font,color:BLK})})})}
+    else if(memo=memo||dvu){let ms=10;while(ms>8&&tw(memo,ms)>232)ms-=0.5;
      /* 직납이거나 적요에 주소가 있으면 글자 뒤에 노란 형광펜 — 거래처와 같은 시로 가는 주소도 칠한다 (2026-11-05 피움(아트뱅크) 안성시청) */
-     const am0=memo.match(ADRE),hl=u.jik||!!(am0&&looksAddr(am0[0]));
+     const am0=memo.match(ADRE),hl=u.jik||!!dvu||!!(am0&&looksAddr(am0[0]));
      /* 직납·주소 적요는 붙여 쓴 주소에 띄어쓰기를 넣고, 길면 2~3줄로 — 기사가 보기 좋게 (2026-11-05). 자리: 도장 칸 밑 ~ «일자» 줄 위 */
      if(hl)memo=msbSpace(memo);
      /* 도장 줄을 위로 올린 만큼 적요 자리가 넓다 — 3줄도 크게 (2026-11-05 사장님). 첫 줄은 제목 밑줄에 안 닿게 짧게 */
@@ -6674,6 +6828,47 @@ async function msbDoneSet(d,sigs,replace,names,core){
  const lim=new Date(Date.now()-14*86400000).toISOString().slice(0,10);Object.keys(a).forEach(function(k){if(k<lim)delete a[k]});
  await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:15,data:a,updated_at:new Date().toISOString()}])});
 }
+/* ===== 거래처 주소 칸에 같이 적힌 «배송…» 을 전표 왼쪽 위(적요 자리)로 — 모든 거래처 (2026-11-24 강현아님 «이승태갤러리는 배송지가 위에 나오게해» → «네, 전부 올려») =====
+   sERP 주소 칸은 길면 종이에서 뒤가 잘려 기사님이 못 본다. 노란 칠, 위·아래 반쪽 다.
+   모양: «(배송지:시흥시 …)» «배송[4]: …» «[9#]배송/…» = 배송 뒤의 글 · «*수원대한으로배송» «에스컬레이터밑으로 배송» = 배송 앞의 말 · «배송시 -건물 뒤에다…» · «배송-화.목»
+   안 올리는 때(그날 갈 곳은 적요): 직납·찾으러옴·차량입고, 적요에 주소가 있거나 «○○로(배송)» 라고 적혔거나, 적요에 이미 같은 말이 있을 때 */
+function msbDlv(u){
+ const a=(u.adx||String(u.adw||u.ad||'').replace(/([(\[])\s+/g,'$1').replace(/\s+([)\]])/g,'$1').replace(/(\d)\s*-\s*(?=\d)/g,'$1-')).replace(/\s+/g,' ').trim();
+ const m=a.match(/배\s*송\s*(지|처)?\s*(변경)?\s*(.*)$/);if(!m)return null;
+ const cl=function(t){t=t.replace(/\[[^\]]*\]?/g,' ').replace(/^[\s:;\/\-~.,*)]+/,'').replace(/[\s*\/,.\-(]+$/,'').replace(/\s+/g,' ').trim();
+  const op=(t.match(/\(/g)||[]).length;let cp=(t.match(/\)/g)||[]).length;
+  while(cp>op&&/\)$/.test(t)){t=t.slice(0,-1).trim();cp--}
+  if(op>cp)t+=')';return t};
+ let lab=m[1]?'배송지':'',t;
+ if(!m[1]&&/^시(?=[\s\-:])/.test(m[3])){lab='배송시';t=cl(m[3].slice(1))}
+ else t=cl(m[3]);
+ if(!t){const e=m.index+(a.slice(m.index).match(/^배\s*송/)||[''])[0].length,h=a.slice(0,e),k=Math.max(h.lastIndexOf(')'),h.lastIndexOf('*'),h.lastIndexOf(','),h.lastIndexOf('/'),h.lastIndexOf(']'));
+  t=h.slice(k+1).trim();if(/^배\s*송$/.test(t)||!t)return null;return {t:t,c:t,a:false}}
+ const ad=/\d/.test(t)&&/(시|군|구|동|읍|면|리|로|길|가|번지|블럭)/.test(t);
+ if(!lab)lab=ad?'배송지':/배송$/.test(t)?'':'배송';
+ return {t:(lab?lab+' ':'')+msbSpace(t),c:t,a:ad}}
+const MSB_DLV_TO=/(?:^|[\s\/,·(*])(?!\S*(?:바로|따로|새로|별도로|그대로|제대로|추가로|무상으로|유상으로|현금으로|선불로|착불로)(?:$|[\s\/,(·~)]))[가-힣A-Za-z0-9&.]{2,}(?:으로|로)\s*(?:배송|배달|납품|입고|출고)?\s*(?:$|[\/,(·~)])/;
+function msbDlvUp(u){if(u.jik||u.carin||u.g==='pick'||u.g==='fo')return null;
+ const memo=String(u.memo||''),m=memo.match(ADRE);if((m&&looksAddr(m[0]))||MSB_DLV_TO.test(memo))return null;
+ try{if(u.o){const D=destOf(u.o);if(D&&D.src==='적요')return null}}catch(e){}
+ const d=msbDlv(u);if(!d)return null;
+ const nz=function(x){return String(x||'').replace(/[^가-힣A-Za-z0-9]/g,'')};
+ return nz(memo).indexOf(nz(d.c))>=0?null:d}
+/* 전표 주소 줄 다듬기 — 번호표 [7]·«주소변경»·별표를 떼고, 주소처럼 생긴 것만. «배송지:» 뒤가 주소로 읽히면 그 주소(실제 갈 곳) */
+function msbAdClean(t){const a=String(t||'').replace(/\[[^\]]*\]/g,' ').replace(/\*+/g,' ').replace(/주소\s*변경/g,' ').replace(/\s+/g,' ').trim();
+ const k=a.search(/배\s*송\s*(?:지|처)?\s*(?:변경)?\s*[:;\/\-]/);
+ if(k>=0){const sg=a.slice(k).replace(/^배\s*송\s*(?:지|처)?\s*(?:변경)?\s*[:;\/\-]+\s*/,'').trim(),m2=sg.match(ADRE);if(m2&&looksAddr(m2[0]))return sg.split('(').length<sg.split(')').length?sg.replace(/\)\s*$/,''):sg}
+ const m=a.match(ADRE);return m&&looksAddr(m[0])?a:''}
+/* 전표 주소로 동선 짐작 (고정·요일 규칙은 guess 그대로) */
+function msbAdGuess(u,D){const a=msbAdClean(u.ad);if(!a)return '';try{return guess({n:u.n,d:D,od:D,memo:'',items:[],dst:a,i:-1,key:'~'+u.n})}catch(e){return ''}}
+/* 주소록에 없는 거래처의 주소를 전표에서 외운다 → 외운 수 */
+function msbLearnAd(units){const have={};Object.keys(ADDR).forEach(function(n){have[padKey(n)]=n});const hk=Object.keys(have),ex={};ORDERS.forEach(function(o){ex[padKey(o.n)]=1});let np=0;
+ units.forEach(function(u){if(!u.ok)return;const k=padKey(u.n),a=msbAdClean(u.ad);if(!k||!a)return;
+  const old=PADR[k],nm=have[k];
+  if(nm?!(old&&ADDR[nm]===old):(!ex[k]&&k.length>=6&&hk.some(function(x){return x.indexOf(k)===0})))return;   /* 원래 주소록에 있는 거래처(이름이 잘려 찍힌 것 포함)는 그대로 */
+  if(old===a)return;
+  if(nm)ADDR[nm]=a;PADR[k]=a;np++});
+ return np}
 /* 그 날짜(sERP 일자) 명세서에 이 전표 품목이 있나 — 사이트가 받은 명세서로 본다 */
 function msbHasOrd(u,d){
  const nz=function(t){return String(t||'').replace(/\s+/g,'')},un=nz(u.n);
@@ -6713,7 +6908,8 @@ async function msbRun(bytes,name,onlyNew,coversOnly){
   const all=units.filter(function(u){return u.ok}).length;
   /* 주소 끝 번호표를 외운다 → 배차를 다시 짜서(자동으로 잡힌 것만 바뀜) 그 동선으로 찍는다 (2026-11-04 사장님 «번호표 써») */
   {let nt=0;units.forEach(function(u){if(!u.ok||!u.rtag)return;const r='r'+u.rtag;if(!RID[r])return;const k=String(u.n||'').replace(/\s+/g,'');if(TAGRT[k]!==r){TAGRT[k]=r;nt++}});
-   if(nt){MSB.tagN=nt;try{build();save();if(!window.NOPUSH)syncPush()}catch(e){console.warn('번호표 반영 실패',e)}}}
+   let np=0;try{np=msbLearnAd(units)}catch(e){console.warn('전표 주소 외우기 실패',e)}
+   if(nt||np){MSB.tagN=nt;MSB.padN=np;try{build();if(np)build();save();if(!window.NOPUSH)syncPush()}catch(e){console.warn('번호표·주소 반영 실패',e)}}}
   if(onlyNew){
    const done=await msbDoneGet(d,base);
    if(!done.length){msbSt('⚠ '+d+' 은 아직 한 번도 묶지 않았습니다 — 먼저 «ERP에서 묶기» 나 «이 파일 도장찍기» 로 전체를 한 번 묶으세요');return}
@@ -6726,6 +6922,7 @@ async function msbRun(bytes,name,onlyNew,coversOnly){
    if(!units.length){msbSt('➕ '+d+' — 지난 묶기 뒤 새로 들어오거나 바뀐 전표가 없습니다 (전체 '+all+'건)');return}
   }
   const groups=msbClass(units);
+  try{await msbDlvRead(bytes,units)}catch(e){console.warn('배송지 읽기 실패',e)}
   try{await msbMarkMoved(units)}catch(e){console.warn('이미 찍은 전표 찾기 실패',e)}
   const pdf=await msbBuild(bytes,groups,coversOnly);
   MSB.units=units;MSB.groups=groups;MSB.coversOnly=!!coversOnly;MSB.outName=(coversOnly?'거래명세표_보고_':'거래명세표_동선별_')+d+(onlyNew?'_추가':'')+'.pdf';
@@ -6780,15 +6977,16 @@ function tabMsb(){
  let h='<div class="hd2">📄 명세서 묶기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">sERP 거래명세표 PDF → 동선·기사 찍고 동선별로 다시 묶기</span></div>';
  h+='<div class="ycnote"><b>날짜를 고르고 「📥 자동실행컴에서 묶기」·「💻 이 PC에서 묶기」</b>를 누르면 그 컴의 sERP 일별영업현황에 들어가 그날 거래명세표를 <b>그 자리에서 새로 뽑아</b>(2~5분) 가져와 묶습니다. 평일 <b>14:35</b> 에 다음 영업일 것이 저절로 뽑힙니다(일별영업현황 → 거래명세표 → 미발행·개별발행·통합발행을 모아 PDF, 수집이 돌고 있으면 끝난 뒤) — 원본은 공유폴더 <b>\\\\Kic-server2\\새공유문서\\거래명세표PDF\\&lt;날짜&gt;.pdf</b>. <b>16:20</b> 에는 14:35 뒤 들어온 전표만 다시 뽑아 같은 곳 <b>&lt;날짜&gt;_추가.pdf</b> (새 장 목록·빼야 할 옛 장은 <b>&lt;날짜&gt;_추가.txt</b>) — «➕ 이 파일 추가분만 도장찍기» 로 올리세요. 직납 전표는 맨 앞에 <b>직납 묶음</b>으로 따로 모입니다(도장은 원래 동선). sERP 에서 직접 받은 PDF 는 <b>「📄 이 파일 도장찍기」</b>(전부) · <b>「➕ 이 파일 추가분만 도장찍기」</b>. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
   +'적요에 <b>택배·용차·상차·화물·퀵·맞교환·회수</b> 가 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴·차량입고</b>는 따로 모읍니다. 적요에 <b>전표o</b>(전표ㅇ·전표0)가 있으면 무조건 찍고, <b>전표x</b> 면 안 찍습니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시) · 적요에 <b>기사님 바로 전화·도착 전 연락·기사님 정보</b> 같은 부탁이 있으면 빨간 동그라미 <b>«기사님 전화»·«기사님 정보»</b>(공급자용에만). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
+  +'거래처 주소 칸에 <b>배송…</b> 이 적혀 있으면 그 글을 왼쪽 위에 노란 칠로 찍습니다(직납·찾으러옴이거나 적요에 갈 곳이 적혀 있으면 안 찍음). '
   +'<b>배차를 다 마친 뒤</b> 올려야 동선·기사가 다 채워집니다.</div>';
  const md0=MSBD||mnNextBiz();
  /* 이 날짜를 마지막으로 묶은 때 — 추가분이 «언제 뒤» 인지 보이게 (2026-11-02 사장님 «몇시에 올리는건지 알꺼아냐») */
  if(!MSB.doneAt||Date.now()-MSB.doneAt>30000){MSB.doneAt=Date.now();msbDoneAll().then(function(a){MSB.doneAll=a;const e=document.getElementById('msbdone');if(e)e.innerHTML=msbDoneTxt(md0)})}
  h+='<div style="margin:10px 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-  +'<b>📅 날짜</b><input type="date" id="msbd" value="'+esc(md0)+'" onchange="msbSetD(this.value)" style="font-size:15px;padding:4px 6px">'
+  +'<b>📅 날짜</b><input type="date" id="msbd" value="'+esc(md0)+'" onchange="msbSetD(this.value);sjmBtnUp(this.value)" style="font-size:15px;padding:4px 6px">'
   +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbByDate(1)" title="자동실행컴 sERP 일별영업현황에서 그 자리에서 새로 뽑아 묶습니다 — 원장팩스 대기가 켜져 있어야 합니다">📥 자동실행컴에서 묶기</button>'
   +'<button class="btn" style="background:#7c5cd6;color:#fff" onclick="msbMine()" title="이 PC의 sERP로 뽑아 묶습니다 — 누른 뒤 바탕화면 「거래명세표뽑기(이PC)」를 누르면 날짜가 자동으로 잡힙니다 (2026-11-17)">💻 이 PC에서 묶기</button>'
-  +'</div>';   /* 추가분만·보고서만·새로 뽑기 단추는 뺐다 (2026-11-10 사장님 «ERP에서 묶기만 빼고 없애») */
+  +'<span id="msbsjm">'+sjmBtn(md0)+'</span></div>';   /* 추가분만·보고서만·새로 뽑기 단추는 뺐다 (2026-11-10 사장님 «ERP에서 묶기만 빼고 없애») */
  h+='<div style="margin:6px 2px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#6b7c90;font-size:12.5px">또는 직접 받은 PDF 파일로: <input type="file" id="msbf" accept="application/pdf,.pdf" onchange="msbPick(this)" style="display:none">'
   +'<button class="btn" style="background:#2F7FE8;color:#fff" onclick="msbPickOpen(0)" title="sERP 에서 직접 받은 거래명세표 PDF 를 골라 전부 도장 찍습니다">📄 이 파일 도장찍기</button>'
   +'<button class="btn" style="background:#0f8a5f;color:#fff" onclick="msbPickOpen(1)" title="직접 받은 PDF 에서 지난 묶기에 없던 전표(새 것·바뀐 것)만 도장 찍습니다">➕ 이 파일 추가분만 도장찍기</button>'
@@ -7413,7 +7611,7 @@ function tabYc(today){
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
  h+='<div class="ycnote"><b>검색 한 줄</b>로 물어보세요 — <b>부산 5톤초장축</b> 은 그 지역 운임, <b>무지개 30개</b> 는 물량·어떤 차, <b>부산 무지개 30개</b> 는 둘 다 나옵니다.<br>'
-  +'의자 적재 기준은 <b>신부장님 기준 그대로</b>(의자 60개 = 1톤 1대 · 3.5톤 대형은 1톤의 1.2배)입니다 — 바꾸지 않았습니다.<br>'
+  +'용차 계산의 의자 적재 기준은 <b>신부장님 기준 그대로</b>(의자 60개 = 1톤 1대 · 3.5톤 대형은 1톤의 1.2배)입니다. 우리 차 배차는 11/26 전표부터 <b>의자 '+capBase()+'개 = 한 차</b>로 셉니다.<br>'
   +'합바차는 실은 <b>적재길이(m)</b>로 값을 매깁니다 — <b>부산 3m</b> 처럼 물어보세요.</div>';
 
  /* ---- 운임·물량 검색 — 2026-11-13 강현아님: «어떤 차를 불러야 하나» 창(지역·날짜·거래처·개수·직접재기)을 검색 한 줄로 바꿈 ---- */
@@ -7447,7 +7645,7 @@ function tabYc(today){
   let s2=0;let r2='';
   jn.forEach(function(o){
    const ad=(o.dst||'')+' '+(o.memo||'')+' '+(ADDR[o.n]||'')+' '+o.n;
-   const reg=ycRegion(ad);const P=ycPlan(o.load,reg);s2+=P.fee;
+   const reg=ycRegion(ad);const P=ycPlan(o.loadY!=null?o.loadY:o.load,reg);s2+=P.fee;
    r2+='<tr><td class="ycn">'+o.n.slice(0,18)+'</td><td>'+o.load.toFixed(2)+'</td><td class="ycn">'+P.txt+'</td><td class="ycn">'+(reg||'<span style="color:#c00">모름</span>')+'</td><td style="text-align:right"><b>'+won(P.fee)+'</b><em class="ychow">'+P.how+'</em></td></tr>';
   });
   h+='<div class="hd2">🎯 직납 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 우리 차에 못 실으면 용차</span></div>'
