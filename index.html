@@ -1687,7 +1687,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261124b';
+const APPVER='20261124c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -6129,7 +6129,10 @@ async function msbReadPage(p){
  u.memo=line(446,0).replace(/10만 기업이 선택한 sERP/,'').trim();
  /* 전표 지문 — 위 반쪽 글자 전부(품목·수량·금액·적요)로. 같은 거래처라도 품목이 바뀌면 지문이 달라져 «추가분» 에 잡힌다 (2026-11-02) */
  /* 전미수잔액·합계·총합계·입금액·총미수잔액 줄(y455~505)은 뺀다 — 입금만 들어와도 지문이 바뀌어 «추가분» 에 잘못 잡히지 않게 */
- u.sig=msbHash(tc.items.filter(function(it){const y=it.transform[5];return it.str.trim()&&y>=H*0.5&&!(y>=455&&y<=505)}).map(function(it){return it.str.trim()}).join('|'));
+ u.sraw=tc.items.filter(function(it){const y=it.transform[5];return it.str.trim()&&y>=H*0.5&&!(y>=455&&y<=505)}).map(function(it){return it.str.trim()}).join('|');
+ u.sig=msbHash(u.sraw);
+ /* 내용 지문 — 거래처 + 품목 줄(날짜 칸 빼고). 날짜·적요가 바뀌어도 같다 (2026-11-24) */
+ u.core=msbHash(u.n+'|'+tc.items.filter(function(it){const y=it.transform[5];return it.str.trim()&&y>=500&&y<=652}).map(function(it){return it.str.trim()}).map(function(t){return t.replace(/^\d{1,2}\/\d{1,2}(?:\s+|$)/,'')}).filter(Boolean).join('|'));
  /* 품목 줄(y501~652, 품목·비고 칸 x<290)에서 동그라미 칠 말의 자리 — 글자 하나 너비는 그 토막 너비를 글자 수로 나눠 어림 */
  /* 글자 폭 —한글은 1, 영문·숫자는 0.55, 빈칸 0.3 으로 무게를 주고 토막 너비를 나눠 가진다 */
  const wt=function(ch){return /[가-힣一-鿿]/.test(ch)?1:ch===' '?0.3:0.55};
@@ -6170,8 +6173,8 @@ async function msbParse(bytes){
  for(let i=1;i<=doc.numPages;i++){msbSt('읽는 중 '+i+'/'+doc.numPages+'쪽');
   const u=await msbReadPage(await doc.getPage(i));
   const m=u.pg.match(/(\d+)\s*\/\s*(\d+)/);
-  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;last.qty=(last.qty||0)+(u.qty||0);last.its=(last.its||[]).concat(u.its||[]);if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
-  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,tel:u.tel||'',qty:u.qty||0,its:u.its||[],rtag:u.rtag||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
+  if(m&&+m[1]>1&&last&&last.n===u.n){last.pages.push(i);last.circs.push(u.circ||[]);last.sig+='+'+u.sig;last.sraws.push(u.sraw);last.core+='+'+u.core;last.qty=(last.qty||0)+(u.qty||0);last.its=(last.its||[]).concat(u.its||[]);if(u.pre!=null)last.pre=u.pre;if(u.memo)last.memo=u.memo;continue}
+  last={n:u.n,ad:u.ad,adw:u.adw,date:u.date,memo:u.memo,pre:u.pre,tot:u.tot,tel:u.tel||'',qty:u.qty||0,its:u.its||[],rtag:u.rtag||0,ok:/거래명세표/.test(u.title)&&!!u.n,sig:u.sig,sraws:[u.sraw],core:u.core,circs:[u.circ||[]],pages:[i],sugi:/수기\s*전표/.test((u.ad||'')+' '+(u.memo||''))};units.push(last)}   /* 주소뿐 아니라 적요의 «수기전표» 도 (2026-11-04 진성상사) */
  MSB_NP=doc.numPages;
  try{doc.destroy()}catch(e){}
  return units;
@@ -6189,6 +6192,7 @@ function msbStats(G,U){
  const badOk=all.length-(routed.length+pick.length+un.length+G.x.length);
  const flag=function(f){return routed.concat(pick,un).filter(function(u){return (u.flags||[]).indexOf(f)>=0})};
  return {total:all.length,routed:routed,pick:pick,un:un,x:G.x,jik:jik,trip2:trip2,xs:xs,outPages:outPages,inPages:inPages,badOk:badOk,good:outPages===inPages&&!badOk,np:np,nq:nq,qty:nq(all),qtyR:nq(routed),
+  moved:routed.concat(pick,un).filter(function(u){return u.moved}),
   pre:flag('입금 전'),stop:flag('출고정지'),early:routed.concat(pick,un).filter(function(u){return u.early})};
 }
 function msbSummary(){
@@ -6198,6 +6202,7 @@ function msbSummary(){
  return '<div class="ycnote" style="'+(S.good?'':'border-color:#e04b45;background:#fff5f5')+'"><b>📊 거래명세표 총 '+S.total+'건 · '+S.inPages+'장 · 의자 '+S.qty+'개</b> — '
   +'동선 묶음 <b>'+S.routed.length+'</b>건 '+S.qtyR+'개(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴·차량입고 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
   +' — 장수 대조 '+S.outPages+'/'+S.inPages+' '+(S.good?'✅ 다 들어갔습니다':'⚠ <b style="color:#c0392b">'+(S.inPages-S.outPages)+'장이 어디에도 안 들어갔습니다</b>'+(S.badOk?' · 건수도 '+S.badOk+'건 차이':''))
+  +(S.moved.length?'<div style="color:#c0392b;font-weight:800;margin-top:4px">⚠ 다른 날 묶음에 이미 찍은 전표 '+S.moved.length+'건 (날짜 바뀜) — '+S.moved.map(function(u){return esc(u.n)+' ('+md(u.moved)+' 묶음, 의자 '+(u.qty||0)+'개)'}).join(' · ')+'</div>':'')
   +' · 같은 내용이 묶음 PDF 맨 앞 장(보고)에도 찍힙니다</div>';
 }
 function msbRL(id){if(id==='ov')return '용차 권장';if(/^r\d+$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴·차량입고';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
@@ -6377,6 +6382,12 @@ async function msbBuild(bytes,groups,coversOnly){
    let s1=11;while(s1>7&&tw(t1,s1)>RM-LM-16)s1-=0.25;
    cv.drawRectangle({x:LM,y:y-28,width:RM-LM,height:44,color:S.good?rgb(.92,.98,.94):rgb(1,.94,.94),borderColor:okc,borderWidth:1});
    cv.drawText(t1,{x:LM+8,y:y,size:s1,font:font,color:okc});cv.drawText(t2,{x:LM+8,y:y-18,size:11,font:font,color:okc});y-=48}
+  /* 다른 날 묶음에 이미 찍은 전표 — 날짜 바뀜 (2026-11-24) */
+  if(S.moved.length){const sz=10,lh=14,w=RM-LM-20,wl=[];let cu='';
+   ('이미 다른 날 묶음에 찍은 전표 '+S.moved.length+'건 (날짜 바뀜) — '+S.moved.map(function(u){return u.n+' ('+md(u.moved)+' 묶음, 의자 '+(u.qty||0)+'개, 지금 '+msbRL(u.g)+rgNm(u.g)+')'}).join(', ')).split(/(?<= )/).forEach(function(wd){
+    if(tw(cu+wd,sz)<=w){cu+=wd;return}if(cu.trim())wl.push(cu);const ps=wr(wd,sz,w);ps.slice(0,-1).forEach(function(z){wl.push(z)});cu=ps[ps.length-1]||''});if(cu.trim())wl.push(cu);
+   const bh=wl.length*lh+12;need(bh+6);cv.drawRectangle({x:LM,y:y-bh+14,width:RM-LM,height:bh,color:rgb(1,.97,.88),borderColor:RED,borderWidth:1.2});
+   wl.forEach(function(l){cv.drawText(l,{x:LM+8,y:y,size:sz,font:font,color:RED});y-=lh});y-=18}
   /* ===== 맨 앞 «용차 권장» (2026-11-23 강현아님 «기사들 다 배치하고도 모자라면 용차 권장이라고 보고서 앞에 써야지») ===== */
   {let LP=null;try{LP=loadPlan(d0)}catch(e){console.warn('용차 권장 셈 실패',e)}
    const all=LP?LP.over.slice().sort(function(a,b){return b.L-a.L}).concat(LP.blank):[];   /* 큰 것부터 */
@@ -6476,7 +6487,7 @@ async function msbBuild(bytes,groups,coversOnly){
    let addr='';try{const DD=o?(destOf(o)||{}):{};addr=(o&&o.dst)||(DD.src==='적요'?DD.t:'')||ADDR[(o&&o.n)||u.n]||ADDR[resolveCust(String(u.n||'').replace(/\s+/g,''))||'']||String(u.ad||'').replace(/\s*\[.*?\]\s*$/,'')}catch(e){addr=String(u.ad||'')}
    {const mt=memoSp(String((o&&o.memo)||u.memo||'')),mi=addr?mt.indexOf(addr):-1;if(mi>=0&&addr.length>=20){const tl=(mt.slice(mi+addr.length).match(/^[^,\/]*/)||[''])[0];if(tl.trim())addr=(addr+tl).trim()}}
    let notes='';try{notes=mnNotes((o&&o.n)||u.n).map(function(z){return z.note}).filter(Boolean).join(' / ')}catch(e){}
-   const fl=(u.noms?['명세표 주지마세요']:[]).concat(u.flags||[]);
+   const fl=(u.moved?[md(u.moved)+' 이미 찍음']:[]).concat(u.noms?['명세표 주지마세요']:[],u.flags||[]);
    if(y<75){cv=out.addPage([W,H]);head(cv,true);y=H-150}
    const line=(i+1)+'. '+(g.id==='jn'||g.id==='ov'?'['+msbRL(u.g)+(g.id==='ov'?rgNm(u.g):'')+'] ':'')+(has2&&!(r&&g.id!=='jn')?'['+(u.trip||1)+'차] ':'')+u.n+(u.est?' (추정)':'')+(u.jik?' [직납]':'')+(u.early?' ['+u.early+']':'');
    const money=u.tot!=null?won(u.tot):'';
@@ -6602,6 +6613,10 @@ async function msbBuild(bytes,groups,coversOnly){
     if(u.noms){const t='명세표 주지마세요',w=tw(t,12)+14;
      pg.drawRectangle({x:22,y:818,width:w,height:20,color:RED});
      pg.drawText(t,{x:29,y:823,size:12,font:font,color:WHT})}
+    /* 다른 날 묶음에 이미 찍은 전표(날짜 바뀜) — 오른쪽 위 동선 도장 위 빨간 칸, 공급자용에만 (2026-11-24) */
+    if(u.moved&&!pi){const t=md(u.moved)+' 이미 찍음 (날짜 바뀜)',w=tw(t,11)+14;
+     pg.drawRectangle({x:396,y:818,width:w,height:18,color:RED});
+     pg.drawText(t,{x:403,y:823,size:11,font:font,color:WHT})}
     u.flags.forEach(function(f){const w=tw(f,11)+12;
      pg.drawRectangle({x:fx,y:792+SUP,width:w,height:23,borderColor:RED,borderWidth:1.5});
      pg.drawText(f,{x:fx+6,y:799+SUP,size:11,font:font,color:RED});fx+=w+6});
@@ -6638,15 +6653,43 @@ async function msbDoneGet(d,base){const a=await msbDoneAll();const x=a[d]||{};
 /* 그때까지 묶은 거래처 이름(띄어쓰기 뺀 것) — 추가분에서 «새 전표» 와 «수정된 전표» 를 가르는 데 쓴다 (2026-11-03 사장님 «수정된 거는 왼쪽 위에 수정이라고 동그라미») */
 async function msbDoneNames(d,base){const a=await msbDoneAll();const x=a[d]||{};
  if(base!==''&&base!=null&&x.hist&&x.hist[+base])return x.hist[+base].cnm||[];return x.nm||[]}
-async function msbDoneSet(d,sigs,replace,names){
+async function msbDoneSet(d,sigs,replace,names,core){
  const a=await msbDoneAll();const cur=a[d]||{};const old=replace?[]:(cur.sig||[]);
  const s=old.slice();sigs.forEach(function(x){if(s.indexOf(x)<0)s.push(x)});
  const nmAll=(replace?[]:(cur.nm||[])).slice();(names||[]).forEach(function(x){if(nmAll.indexOf(x)<0)nmAll.push(x)});
  const hist=(cur.hist||[]).slice(-9);hist.push({ts:Date.now(),who:ME||'사이트',n:sigs.length,full:replace?1:0,cum:s,cnm:nmAll});
- a[d]={sig:s,nm:nmAll,ts:Date.now(),who:ME||'사이트',hist:hist};
+ a[d]={sig:s,nm:nmAll,ts:Date.now(),who:ME||'사이트',hist:hist,co:Object.assign({},cur.co||{},core||{})};   /* co = 한 번이라도 찍은 전표의 내용 지문 (2026-11-24) */
  const lim=new Date(Date.now()-14*86400000).toISOString().slice(0,10);Object.keys(a).forEach(function(k){if(k<lim)delete a[k]});
  await fetch(MSB_SB+'/rest/v1/board',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},msbH()),body:JSON.stringify([{id:15,data:a,updated_at:new Date().toISOString()}])});
 }
+/* 그 날짜(sERP 일자) 명세서에 이 전표 품목이 있나 — 사이트가 받은 명세서로 본다 */
+function msbHasOrd(u,d){
+ const nz=function(t){return String(t||'').replace(/\s+/g,'')},un=nz(u.n);
+ const same=function(n){const a=nz(n);return a===un||(un.length>=6&&a.indexOf(un)===0)||(a.length>=6&&un.indexOf(a)===0)};
+ const pool=[];ORDERS.forEach(function(o){if((o.od||o.d)!==d)return;if(!(same(o.n)||(o.items||[]).some(function(it){return same(it.n)})))return;
+  (o.items||[]).forEach(function(it){pool.push({p:nz(it.p).replace(/^일시_/,''),q:+it.q||0})})});
+ return (u.its||[]).every(function(x){const p=nz(x.p).replace(/^일시_/,''),i=pool.findIndex(function(z){return z.q===x.q&&(z.p.indexOf(p.slice(0,8))===0||p.indexOf(z.p.slice(0,8))===0)});
+  if(i<0)return false;pool.splice(i,1);return true})}
+/* 날짜만 바뀌어 다른 날 묶음에 이미 찍은 전표 → u.moved='2026-11-23' (2026-11-24 강현아님 «표시해줘»)
+   · 그 날 묶은 기록에 같은 내용(품목·수량·금액)이 있고, 그 날짜 명세서에는 이제 없으면 = 날짜를 옮긴 전표
+   · 두 날짜 명세서에 다 있으면 = 같은 것을 또 주문한 것 → 표시 안 함 */
+async function msbMarkMoved(units){
+ let all={};try{all=await msbDoneAll()}catch(e){return}
+ const days=Object.keys(all).filter(function(k){return /^\d{4}-\d\d-\d\d$/.test(k)}).sort().reverse(),mem={};
+ const setOf=function(d){if(mem[d])return mem[d];const x=all[d]||{},S={};(x.sig||[]).forEach(function(t){S[t]=1});(x.hist||[]).forEach(function(h){(h.cum||[]).forEach(function(t){S[t]=1})});return mem[d]=S};
+ const mdV=function(d){const p=d.slice(5).split('-');return [p[0]+'/'+p[1],(+p[0])+'/'+(+p[1])]};
+ units.forEach(function(u){u.moved='';if(!u.ok||!u.date||u.g==='x'||!(u.its||[]).length)return;
+  for(let k=0;k<days.length;k++){const d0=days[k];if(d0===u.date)continue;
+   const co=(all[d0]||{}).co||{},S=setOf(d0);let hit=false,pre0=null;
+   if(u.core&&Object.prototype.hasOwnProperty.call(co,u.core)){hit=true;pre0=co[u.core]}
+   else{const A=mdV(u.date),B=mdV(d0);   /* 예전 기록(내용 지문 없음) — 글자 속 날짜를 그 날짜로 바꿔 지문을 다시 낸다 */
+    for(let v=0;v<2&&!hit;v++){const sg=(u.sraws||[]).map(function(r){return msbHash(r.split('|').map(function(t){for(let a=0;a<2;a++){if(t===A[a])return B[v];if(t.indexOf(A[a]+' ')===0)return B[v]+t.slice(A[a].length)}return t.split(u.date).join(d0)}).join('|'))}).join('+');if(S[sg])hit=true}}
+   if(!hit)continue;
+   if(pre0!=null&&u.pre!=null&&u.tot!=null&&u.pre===pre0+u.tot)continue;        /* 먼저 전표가 잔액에 남아 있으면 따로 주문 */
+   const in0=msbHasOrd(u,d0),in1=msbHasOrd(u,u.date);
+   if(in1&&in0)continue;                                                         /* 두 날짜에 다 있으면 따로 주문 */
+   if(!in1&&!(pre0&&u.pre!=null&&pre0===u.pre))continue;                         /* 사이트 명세서로 못 가리는 것(부속만·아직 못 받은 것)은 전미수잔액까지 같을 때만 */
+   u.moved=d0;break}})}
 async function msbRun(bytes,name,onlyNew,coversOnly){
  const base=(document.getElementById('msbbase')||{}).value||'';   /* 어느 묶기까지를 «이미 묶은 것» 으로 볼지 */
  try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew,base:base};
@@ -6671,13 +6714,14 @@ async function msbRun(bytes,name,onlyNew,coversOnly){
    if(!units.length){msbSt('➕ '+d+' — 지난 묶기 뒤 새로 들어오거나 바뀐 전표가 없습니다 (전체 '+all+'건)');return}
   }
   const groups=msbClass(units);
+  try{await msbMarkMoved(units)}catch(e){console.warn('이미 찍은 전표 찾기 실패',e)}
   const pdf=await msbBuild(bytes,groups,coversOnly);
   MSB.units=units;MSB.groups=groups;MSB.coversOnly=!!coversOnly;MSB.outName=(coversOnly?'거래명세표_보고_':'거래명세표_동선별_')+d+(onlyNew?'_추가':'')+'.pdf';
   if(MSB.out)URL.revokeObjectURL(MSB.out);
   MSB.out=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
   msbSt('');render();msbDown();
   /* 내려받은 뒤 지문을 적어 둔다 — 전체 묶기는 새로 쓰고, 추가분은 보탠다. 보고서만 뽑은 것은 기록 안 함 */
-  if(!coversOnly)try{const oks=units.filter(function(u){return u.ok});await msbDoneSet(d,oks.map(function(u){return u.sig}),!onlyNew,oks.map(function(u){return String(u.n||'').replace(/\s+/g,'')}))}catch(e){console.warn('묶은 기록 저장 실패',e)}
+  if(!coversOnly)try{const oks=units.filter(function(u){return u.ok});await msbDoneSet(d,oks.map(function(u){return u.sig}),!onlyNew,oks.map(function(u){return String(u.n||'').replace(/\s+/g,'')}),oks.reduce(function(m,u){if(u.g!=='x'&&u.core)m[u.core]=u.pre==null?null:u.pre;return m},{}))}catch(e){console.warn('묶은 기록 저장 실패',e)}
  }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
 }
 function msbPickOpen(only,covers){MSB.pickOnly=!!only;MSB.pickCovers=!!covers;const f=document.getElementById('msbf');if(!f)return;f.value='';f.click()}
@@ -6746,7 +6790,7 @@ function tabMsb(){
   h+='<div class="hd2">묶은 결과 <span style="font-weight:600;color:#8b9aab">'+esc(MSB.name)+(MSB.only?' · <b style="color:#0f8a5f">추가분만 '+MSB.newN+'건</b> (새 전표 '+(MSB.newN-(MSB.modN||0))+' · 수정 '+(MSB.modN||0)+')':' · 전표 '+tot+'건')+' · 뺀 것 '+G.x.length+'건</span></div><table class="yctb"><tr><th>묶음</th><th>기사</th><th>건</th><th>거래처 (순서대로)</th></tr>';
   G.forEach(function(g){const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
    h+='<tr><td><span style="display:inline-block;padding:2px 8px;border-radius:6px;color:#fff;font-weight:800;background:'+msbCL(g.id)+'">'+esc(msbRL(g.id))+'</span></td><td>'+esc(drvs.join('·'))+'</td><td style="text-align:right">'+g.units.length+'</td>'
-    +'<td style="text-align:left;font-weight:500">'+g.units.map(function(u){return esc(u.n)+u.flags.map(function(f){return ' <b style="color:#c0392b">'+f+'</b>'}).join('')+(g.id==='un'&&u.why?' <i style="color:#8b9aab">'+esc(u.why)+'</i>':'')}).join(' · ')+'</td></tr>'});
+    +'<td style="text-align:left;font-weight:500">'+g.units.map(function(u){return esc(u.n)+(u.moved?' <b style="background:#e04b45;color:#fff;border-radius:4px;padding:0 4px">'+md(u.moved)+' 이미 찍음</b>':'')+u.flags.map(function(f){return ' <b style="color:#c0392b">'+f+'</b>'}).join('')+(g.id==='un'&&u.why?' <i style="color:#8b9aab">'+esc(u.why)+'</i>':'')}).join(' · ')+'</td></tr>'});
   if(G.x.length)h+='<tr><td><span style="display:inline-block;padding:2px 8px;border-radius:6px;color:#fff;font-weight:800;background:#64748B">뺌</span></td><td></td><td style="text-align:right">'+G.x.length+'</td><td style="text-align:left;font-weight:500">'+G.x.map(function(u){return esc(u.n)+' <i style="color:#8b9aab">'+esc(u.why)+'</i>'}).join(' · ')+'</td></tr>';
   h+='</table>';
  }
