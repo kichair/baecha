@@ -1121,7 +1121,7 @@ A/S 기사는 짧은 동선에 배정하는 게 좋습니다. 아래 버튼으�
 <div style="margin-top:14px;text-align:right"><button class="btn" onclick="doAdd()">추가</button></div></div></dialog>
 
 <dialog id="cap"><div class="dh"><h3>적재 기준 · 1톤 만재 대수</h3><button class="btn g" onclick="cap.close()">닫기</button></div>
-<div class="db"><div class="tip">우리 차 배차는 11/26 전표부터 <b>맨 윗줄 개수 = 한 차</b> · 절반수량(루트·매틱·매직·시소)은 그 두 배 · 그 전 날짜와 용차·합바 계산은 아래 표 그대로(의자 60개 / 절반수량 120개)<br>
+<div class="db"><div class="tip">우리 차 배차는 11/27 전표부터 <b>1인용 의자는 크기·종류와 상관없이 맨 윗줄 개수 = 한 차</b> (여러 명 앉는 타공·장의자, 부품, 책상·판재는 아래 표 그대로) · 용차·합바 계산은 아래 표 그대로<br>
 숫자 = <b>그 품목만 실었을 때 만차가 되는 개수</b>. 섞이면 (수량÷만재수)를 더해 적재율을 냅니다.</div>
 <table><thead><tr><th>분류</th><th>키워드</th><th style="text-align:right">만재</th></tr></thead><tbody id="capB"></tbody><tbody id="capU"></tbody></table>
 <div style="margin-top:12px;padding:12px;background:#f2f7f4;border-radius:12px">
@@ -1320,8 +1320,11 @@ const CAP_VER=20260826;
 /* 우리 차 한 차 = 의자 55개 (2026-11-24 강현아님 «의자 55개로하면 대충 한 차 분량이래» → «의자도 55개로») — 적재 기준 창 맨 윗줄에서 고친다(CAPS._base).
    60개로 잡던 세 가지(기타·그 외 대·중역의자)와 그 두 배인 절반수량(루트·매틱·매직·시소 120 → 110, «110개로»)만, 11/26 전표부터(11/25 는 이미 묶어 찍음). 날짜를 안 주면(용차·합바 계산, 월별 부피) 예전 60개 — 합바 m 이 실제 64건에 맞춘 식이라 */
 const CAP_BASE_D='2026-11-26',CAP_BASE_IDS={etc:1,big:1,exec2:1};
-function capBase(){return +(CAPS&&CAPS._base)||55}
-function capBaseSet(v){v=Math.round(+v||0);if(!(v>=20&&v<=120))return;CAPS._base=v;save();render()}
+/* 2026-11-25 강현아님 «모든 배차는 의자 60개 기준으로해 의자크기 상관없이» — 11/27 전표부터 1인용 의자는 종류가 뭐든 60개 = 우리 차 한 차 (적재 기준 창 맨 윗줄 CAPS._base60).
+   여러 명이 앉는 타공·장의자·원목의자, 부품, 강연대·책상·판재·침대·소파는 의자 한 개가 아니라서 그대로. 11/26 전표까지는 55개(이미 찍음), 용차·합바 계산은 예전 그대로 */
+const CHAIR60_D='2026-11-27',CHAIR60_IDS={etc:1,big:1,exec2:1,half:1,cruz:1,hD:1,hJ:1,jsB:1,jinC:1,jinA:1,draw:1,meet:1,exec:1,cog45:1,mid:1,sml:1,fold:1};
+function capBase(d){return d&&String(d)<CHAIR60_D?(+(CAPS&&CAPS._base)||55):(+(CAPS&&CAPS._base60)||60)}
+function capBaseSet(v){v=Math.round(+v||0);if(!(v>=20&&v<=120))return;CAPS._base60=v;save();render()}
 function capEnforce(){
  if(!CAPS||typeof CAPS!=='object')CAPS={};
  CAP_DEF.forEach(function(c){if(CAPS[c.id]==null)CAPS[c.id]=c.c});
@@ -1366,12 +1369,12 @@ let TAGRT=LSU('_tagrt',{});
 let PADR=LSU('_padr',{});
 function padKey(n){return String(n||'').replace(/\s+/g,'')}
 /* ===== 가구 m — 삼정이 종이 맨 밑에 손으로 적어 주는 길이를 사이트에 적어 두면 그것으로 적재를 센다 (2026-11-24 강현아님) =====
-   0.6m = 1줄 = 의자 12개. 의자 55개(2.75m) = 1톤 한 대(100%) — «의자 55개로하면 대충 한 차 분량이래» (1톤 짐칸 2.8m 와도 맞음). 줄로 안 떨어지면 비례(1m = 의자 20개).
+   0.6m = 1줄 = 의자 12개. 의자 60개(3.0m, 11/26 전표까지는 55개 2.75m) = 1톤 한 대(100%) — «의자 55개로하면 대충 한 차 분량이래» (1톤 짐칸 2.8m 와도 맞음). 줄로 안 떨어지면 비례(1m = 의자 20개).
    가구(삼정 품목)만 m 로 세고 광일 의자는 개수 그대로. 안 적은 건은 지금처럼 품목 크기로 어림.
    {건열쇠:{m, s:적을 때 삼정 품목 지문, e:적을 때 어림 대수, ts}} — m 0 은 지운 것. 나중에 적은 쪽이 남는다 */
 let SJM=LSU('_sjm',{});
 const SJM_ROW=0.6,SJM_RQ=12,SJM_KEEP=200*864e5;
-function sjmFull(){return capBase()/SJM_RQ*SJM_ROW}   /* 한 차 = 55개 → 2.75m */
+function sjmFull(d){return capBase(d)/SJM_RQ*SJM_ROW}   /* 한 차 = 60개 → 3.0m (11/26 전표까지는 55개 → 2.75m) */
 if(!SJM||typeof SJM!=='object'||Array.isArray(SJM))SJM={};
 Object.keys(SJM).forEach(function(k){if(!SJM[k]||Date.now()-(+SJM[k].ts||0)>SJM_KEEP)delete SJM[k]});
 let SJMV={};
@@ -1382,9 +1385,9 @@ function sjmIdx(){SJMV={};const ks=Object.keys(SJM);if(!ks.length)return;const h
  ks.forEach(function(k){const v=SJM[k];if(!v||!(+v.m>0)||have[k]||Date.now()-(+v.ts||0)>21*864e5)return;const x=k.split('§')[0]+'\u0001'+v.s,b=SJMV[x];if(!b||(+v.ts||0)>(+b.ts||0))SJMV[x]=v})}
 function sjmGet(o){const s=sjSig(o),v=SJM[o.key]||SJMV[String(o.key).split('§')[0]+'\u0001'+s];if(!v||!(+v.m>0))return null;
  if(v.s===s)return {m:+v.m,w:0};
- const e=+v.e||0,k=e>0&&o.sjE>0?o.sjE/e:1;return {m:Math.round(v.m*k*100)/100,w:1}}   /* 적은 뒤 품목이 바뀜 — 어림 비율로 맞추고 ⚠ */
+ const e=+v.e||0,nw=v.f===3?o.sjE:(o.items||[]).reduce(function(a,it){return a+(it&&!it.x&&sjItem(it)?(+it.q||0)/(capOfIt0(it,o.d).c||60):0)},0),k=e>0&&nw>0?nw/e:1;return {m:Math.round(v.m*k*100)/100,w:1}}   /* 적은 뒤 품목이 바뀜 — 어림 비율로 맞추고 ⚠ */
 function sjmFmt(m){return String(Math.round(m*100)/100)}
-function sjmTxt(m){const r=m/SJM_ROW;return (Math.round(r*10)/10)+'줄 · 의자 '+Math.round(r*SJM_RQ)+'개분 · '+Math.round(m/sjmFull()*100)+'%'}
+function sjmTxt(m,d){const r=m/SJM_ROW;return (Math.round(r*10)/10)+'줄 · 의자 '+Math.round(r*SJM_RQ)+'개분 · '+Math.round(m/sjmFull(d)*100)+'%'}
 function sjmChip(o){return o.sjm?' · '+sjmFmt(o.sjm)+'m'+(o.sjmw?'⚠':''):''}
 function sjmParse(v){const t=String(v==null?'':v).replace(/,/g,'.').replace(/[^\d.+]/g,'');if(!t)return 0;
  let m=t.split('+').reduce(function(a,x){return a+(parseFloat(x)||0)},0);
@@ -1392,7 +1395,7 @@ function sjmParse(v){const t=String(v==null?'':v).replace(/,/g,'.').replace(/[^\
  return Math.round(m*100)/100}
 function sjmSet(key,v){const o=ORDERS.filter(function(x){return x.key===key})[0],m=sjmParse(v);if(!o)return m;
  if(!m&&!SJM[key]&&!o.sjm)return 0;
- SJM[key]={m:m,s:sjSig(o),e:Math.round((o.sjE||0)*1000)/1000,ts:Date.now()};save();return m}
+ SJM[key]={m:m,s:sjSig(o),e:Math.round((o.sjE||0)*1000)/1000,f:String(o.d)>=SJ_M_D?3:2,ts:Date.now()};save();return m}
 function sjmList(d){const ix=function(o){const k=ROUTES.findIndex(function(r){return r.id===ASSIGN[o.i]});return k<0?99:k};
  return ORDERS.filter(function(o){const r=ASSIGN[o.i];return o.d===d&&ST[o.i]!=='del'&&o.sjE>0&&r!=='x'&&r!=='nb'})
   .sort(function(a,b){return ix(a)-ix(b)||String(a.n).localeCompare(String(b.n),'ko')})}
@@ -1400,8 +1403,8 @@ function sjmBtn(d){const L=sjmList(d);if(!L.length)return '';const n=L.filter(fu
  return '<button class="btn g rlbtn'+(n===L.length?' on':'')+'" onclick="sjmOpen(\''+d+'\')" title="삼정 종이 맨 밑에 손으로 적힌 가구 길이(m)를 적으면 적재량이 그 m 으로 바뀝니다">📏 가구 m 적기 '+n+'/'+L.length+'</button>'}
 function sjmBtnUp(d){const e=document.getElementById('msbsjm');if(e)e.innerHTML=sjmBtn(d)}
 /* 어림 m — 칸에 미리 적어 두는 값(0.1 단위). 저장은 안 한다: 손으로 고친 칸만 저장 */
-function sjmEst(o){const m=(o.sjE||0)*sjmFull();return m<0.05?0.1:Math.round(m*10)/10}
-function sjmRes(o,m,w){const ty=m>0,mm=ty?m:(o.sjE||0)*sjmFull(),p=Math.round(ty?m/sjmFull()*100:(o.sjE||0)*100),r=mm/SJM_ROW;
+function sjmEst(o){const m=(o.sjE||0)*sjmFull(o.d);return m<0.05?0.1:Math.round(m*10)/10}
+function sjmRes(o,m,w){const ty=m>0,mm=ty?m:(o.sjE||0)*sjmFull(o.d),p=Math.round(ty?m/sjmFull(o.d)*100:(o.sjE||0)*100),r=mm/SJM_ROW;
  return '<b class="sjmpc'+(p>100?' ov':'')+(ty?' ty':'')+'">'+p+'%</b><small>'+(Math.round(r*10)/10)+'줄 · 의자 '+Math.round(r*SJM_RQ)+'개분</small>'
   +(w?'<small class="sjmwn">⚠ 적은 뒤 품목이 바뀜 — 다시 적어 주세요</small>':ty?'<small class="sjmty">적은 값 (어림 '+sjmFmt(sjmEst(o))+'m)</small>':'')}
 function sjmCnt(){const e=document.getElementById('sjmcnt'),a=[].slice.call(document.querySelectorAll('#sjmpan input.sjmin'));
@@ -1414,7 +1417,7 @@ function sjmOpen(d){const L=sjmList(d),nar=window.innerWidth<=720;let el=documen
  el.onclick=function(ev){if(ev.target===el)sjmClose()};
  const X=L.map(function(o){const r=ASSIGN[o.i],A=rowAddr(o)||{};return {o:o,rl:RID[r]?msbRL(r):'미배차',rg:RID[r]?rgNm(r).replace(/[()]/g,''):'',dv:RID[r]?effDrv(o):'',ad:A.t||'',its:sjmIts(o)}});
  el.innerHTML='<div class="sjmbx"><div class="sjmhd"><b>📏 가구 m 적기 — '+(+d.slice(5,7))+'/'+(+d.slice(8))+' 삼정 '+L.length+'곳</b><span id="sjmcnt"></span><button class="pr" onclick="sjmPrint(\''+d+'\')" title="이 목록을 A4 로 뽑습니다 — 종이 번호와 이 판 번호가 같습니다">🖨 인쇄</button><button onclick="sjmClose()">닫기</button></div>'
-  +'<div class="sjmnt">가구 m 칸에는 품목 크기로 <b>어림한 m</b> 이 미리 적혀 있습니다. 삼정이 적어 준 m 과 다르면 <b>그 칸만 고치세요</b>(주황색). 지우면 다시 어림으로 돌아갑니다. 0.6m = 1줄 = 의자 12개, 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대.</div>'
+  +'<div class="sjmnt">가구 m 칸에는 품목 크기로 <b>어림한 m</b> 이 미리 적혀 있습니다. 삼정이 적어 준 m 과 다르면 <b>그 칸만 고치세요</b>(주황색). 지우면 다시 어림으로 돌아갑니다. 0.6m = 1줄 = 의자 12개, 의자 '+capBase(d)+'개(약 '+sjmFmt(sjmFull(d))+'m) = 1톤 한 대.</div>'
   +'<div class="sjmsc">'
   +(nar?X.map(function(x,k){const o=x.o;return '<div class="sjmcd'+(o.sjm?' has':'')+'" id="sjmt'+k+'"><div class="sjmc1"><b class="sjmno">'+(k+1)+'</b>'+esc(x.rl)+(x.rg?' ('+esc(x.rg)+')':'')+(x.dv?' · '+esc(x.dv):'')+'</div>'
     +'<div class="sjmc2"><div><b>'+esc(o.n)+'</b>'+(x.ad?'<small>'+esc(x.ad)+'</small>':'')+'</div><div class="sjmc3">'+sjmInp(o,k)+'</div></div><div class="sjmc4" id="sjmr'+k+'">'+sjmRes(o,o.sjm,o.sjmw)+'</div>'
@@ -1444,7 +1447,7 @@ function sjmPrint(d){const f=document.activeElement;if(f&&f.classList&&f.classLi
   +'.sjmp td.sp-w{text-align:center;font-size:13px;white-space:nowrap;padding:3px 2px}.sjmp td.sp-w b{font-size:20px;margin-right:2px}.sjmp td.sp-x{border:2px solid #000;text-align:right;vertical-align:bottom;font-size:13px}'
   +'.sjmp tbody{break-inside:avoid;page-break-inside:avoid;border-top:2px solid #000}.sjmp thead{display:table-header-group}.sjmp .sp-f{margin-top:12px;text-align:right;font-size:14px;break-inside:avoid}</style>'
   +'<div class="sjmp"><div class="sp-h"><b>삼정 가구 m — '+dt+' 배송</b><span>'+L.length+'곳 · 출력 '+(nw.getMonth()+1)+'/'+nw.getDate()+' '+P(nw.getHours())+':'+P(nw.getMinutes())+'</span></div>'
-  +'<div class="sp-n">가구 m 은 품목 크기로 <b>어림한 값</b>입니다. 1톤 짐칸에 실었을 때 길이가 다르면 <b>«고칠 m»</b> 칸에 적어 주세요. &nbsp;(0.6m = 1줄 = 의자 12개 · 의자 '+capBase()+'개 약 '+sjmFmt(sjmFull())+'m = 1톤 한 대)</div>'
+  +'<div class="sp-n">가구 m 은 품목 크기로 <b>어림한 값</b>입니다. 1톤 짐칸에 실었을 때 길이가 다르면 <b>«고칠 m»</b> 칸에 적어 주세요. &nbsp;(0.6m = 1줄 = 의자 12개 · 의자 '+capBase(d)+'개 약 '+sjmFmt(sjmFull(d))+'m = 1톤 한 대)</div>'
   +'<table><colgroup>'+[5.8,14.8,23.6,30,6.4,9.2,9.2].map(function(w){return '<col style="width:'+w+'%">'}).join('')+'</colgroup><thead><tr><th>번호</th><th>동선 · 기사</th><th>거래처 · 배송지</th><th>삼정 품목</th><th>수량</th><th>가구 m</th><th>고칠 m</th></tr></thead>'
   +L.map(function(o,k){const r=ASSIGN[o.i],A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'',T0=sjmIts(o),T=T0.length?T0:[{p:'(품목 없음)',q:0}],rs=T.length>1?' rowspan="'+T.length+'"':'';
    return '<tbody>'+T.map(function(x,i){return '<tr>'+(i?'':'<td class="sp-no"'+rs+'>'+(k+1)+'</td><td class="sp-c"'+rs+'><b>'+esc(RID[r]?msbRL(r):'미배차')+'</b>'+(RID[r]&&rgNm(r)?'<small>'+esc(rgNm(r).replace(/[()]/g,''))+'</small>':'')+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td class="sp-nm"'+rs+'><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td>')
@@ -1470,7 +1473,7 @@ function sjmClose(){const el=document.getElementById('sjmpan');if(!el)return;con
 /* 「삼정 N」 거품 안 한 칸 */
 function sjmPopRow(o){if(!(o.sjE>0))return '';const v=SJM[o.key];
  return '<div style="margin-top:6px;padding:7px 9px;background:#fff6ef;border-radius:8px">📏 가구 길이 <input inputmode="decimal" autocomplete="off" data-k="'+esc(o.key)+'" value="'+(o.sjm&&!o.sjmw?sjmFmt(o.sjm):'')+'" placeholder="'+(o.sjmw&&v?'전 '+sjmFmt(v.m):'1.8')+'" style="width:64px;font-size:14px;font-weight:800;padding:3px 6px;border:1.5px solid #e5b08f;border-radius:7px;text-align:right" onkeydown="if(event.keyCode===13)this.blur()" onchange="sjmPop(this)"> m'
-  +'<div style="margin-top:3px;font-size:11.5px;color:#7a5a45">'+(o.sjm?sjmTxt(o.sjm)+(o.sjmw?' <b style="color:#c0392b">⚠ 적은 뒤 품목이 바뀜</b>':''):'비워 두면 품목 크기로 어림 (지금 '+Math.round(o.sjE*100)+'%)')+'</div></div>'}
+  +'<div style="margin-top:3px;font-size:11.5px;color:#7a5a45">'+(o.sjm?sjmTxt(o.sjm,o.d)+(o.sjmw?' <b style="color:#c0392b">⚠ 적은 뒤 품목이 바뀜</b>':''):'비워 두면 품목 크기로 어림 (지금 '+Math.round(o.sjE*100)+'%)')+'</div></div>'}
 function sjmPop(t){sjmSet(t.dataset.k,t.value);
  setTimeout(function(){const e=document.getElementById('sjpop');if(e)e.remove();render()},160)}
 let JNT=LSU('_jnt',{});   /* 직납내역서 시간 칸에 손으로 넣은 것 {주문key:{t,ts}} (2026-11-09) */
@@ -1567,9 +1570,9 @@ const VEH_DEF={'안정수':'호로','장세훈':'호로','배진성':'3.5톤'}; 
 const RW_MERGE_MAX=0.60, RW_MERGE_TO='r5';
 /* 거래처별 동선 고정 — 주소만으로는 판단이 안 되는 예외
    광명시는 기본이 2번(부천·구로·영등포)인데, 아래 거래처는 6번(시흥·시화·화성) 코스에 붙여서 감 */
-const RT_FIX={'SL퍼니처':'r6','퍼니퍼니':'r6','아이스타일':'r2','광일퍼니처(윤광)2':'r2','파란들가구(계산)2':'r2'};
+const RT_FIX={'SL퍼니처':'r6','퍼니퍼니':'r6','아이스타일':'r2','광일퍼니처(윤광)2':'r2','파란들가구(계산)2':'r2','대웅기업(동탄)3':'r7'};   /* 동탄대웅 — sERP 번호표 [6]·주소 «화성» 때문에 6동선으로 가던 것 (2026-11-25 강현아님 «동탄대웅은 7동선») */
 /* 주소는 인천이지만 본사(석남동) 출발 기준으로는 2번 부천 코스가 맞는 곳 */
-const RT_FIX_KW=[[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계산/,'r2'],
+const RT_FIX_KW=[[/대웅기업\(동탄/,'r7'],[/아이스타일/,'r2'],[/윤광/,'r2'],[/파란들가구\(계산/,'r2'],
  [/야무진친구들/,'r7']];   /* 경기 광주 창고 — sERP 번호표 [1] 에 끌려 1동선으로 가던 것. 적요에 다른 배송지가 있으면 그 주소가 먼저 (2026-11-24 강현아님 «고정해») */
 /* 적요에 직납 주소가 있어도 무조건 이 동선으로 보내는 거래처 */
 const RT_HARD=[[/심플즈|네오스코리아/,'r4'],
@@ -1836,7 +1839,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261125d';
+const APPVER='20261125e';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2192,7 +2195,37 @@ function panelNote(L){const pn=(L||[]).filter(function(it){return it&&!it.x&&isP
    책장·이동서랍(이동형파일서랍)·캐비닛·사물함·옷장·락카는 완제로 가니 그대로. */
 const SJ_SEMI_RE=/책상|테이블|탁자|데스크|desk|table/i, SJ_FULL_RE=/책장|서랍|캐비닛|캐비넷|사물함|옷장|락카|선반|수납|유리|상판|도어/;   /* 유리·상판은 판재 규칙이 더 맞다 */
 const SJ_SEMI_LY=12;
+const SJ_M_D='2026-11-27',SJ_BED_W=1.67;   /* 1톤 탑차 짐칸 안쪽 폭 (제조사 1,670~1,685mm) */
+const SJ_JANG_RE=/장(?![식판])|캐비|사물함|락카|로커|서가|책꽂이/,SJ_PLATE_RE=/상판|도어|유리|거울|(^|[^A-Za-z])EP(?![A-Za-z])|마감판|걸레받이|시공목|가림판|판넬|패널/;
+/* 삼정 품목 하나의 m (짐칸 길이) — 2026-11-25 강현아님
+   «가구장은 세워서 가고» : 장류는 세워서 바닥 넓이(가로×세로)÷폭. 높이 600 이상은 안 쌓음, 낮은 것·서랍은 3단까지. 한 건은 가장 깊은 장이 서는 길이보다 작지 않다(«0.1m 는 10cm 인데 800*400*800 이 어떻게 세워» → 0.4m)
+   «상판만 이런거는 세워서 가는거니까 공간차지 안할거고» : 상판·도어·EP·유리는 옆으로 세워 두께만큼
+   반조립 책상·테이블은 12단. 크기가 없거나 침대·소파·의자는 예전 어림 */
+function sjItM(p){
+ const t=String(p||'');if(SIZE_SKIP.some(function(k){return t.replace(/받침대/g,'받침').indexOf(k)>=0}))return null;
+ const z=t.match(/(\d{2,4})\s*[*xX×]\s*(\d{1,4}(?:\.\d+)?)(?:\s*[*xX×]\s*(\d{1,4}(?:\.\d+)?)\s*[tT]?)?/);if(!z)return null;
+ let W=+z[1],D=+z[2],H=z[3]?+z[3]:0;const mn=H>0?Math.min(W,D,H):Math.min(W,D);
+ if((SJ_PLATE_RE.test(t)&&(!H||mn<=60))||(H>0&&H<=60)){
+  const T=mn<=60?mn:(/상판/.test(t)?23:18);return {k:'pl',m:T/1000*Math.max(W,D,H)/1000/SJ_BED_W,W:W,D:D,H:H,l:'세움(두께 '+T+')'}}
+ const jg=SJ_JANG_RE.test(t)&&!/서랍|의자/.test(t);
+ if(jg?(W<150||D<150):(W<300||D<200))return null;
+ if(!jg&&SJ_SEMI_RE.test(t)&&!SJ_FULL_RE.test(t))return {k:'semi',m:W*D/1e6/SJ_BED_W/SJ_SEMI_LY,W:W,D:D,H:H,l:'반조립 '+SJ_SEMI_LY+'단'};
+ if(jg&&H>=150&&H<D){const x=D;D=H;H=x}   /* 벽걸이장은 가로×높이×깊이로 적기도 한다 */
+ const ly=jg?(H>=600||!H?1:Math.max(1,Math.min(3,Math.floor(1800/H)))):(H>=200?Math.max(1,Math.min(3,Math.floor(2100/H))):/테이블|서랍/.test(t)?3:1);
+ const lo=Math.min(W,D)/1000,hi=Math.max(W,D)/1000;
+ return {k:'up',m:W*D/1e6/SJ_BED_W/ly,ml:hi<=SJ_BED_W?lo:hi,W:W,D:D,H:H,l:'세움 '+ly+'단'}}
+/* 한 건(삼정 품목들)의 m */
+function sjOrdM(L,d){let up=0,ml=0,ot=0;
+ L.forEach(function(it){const q=+it.q||0;if(!(q>0))return;const f=sjItM(it.p);
+  if(!f){ot+=q*sjmFull(d)/(capOfIt0(it,d).c||60);return}
+  if(f.k==='up'){up+=q*f.m;if(f.ml>ml)ml=f.ml}else ot+=q*f.m});
+ return Math.max(up,ml)+ot}
 function capOfIt(it,d){
+ const r0=capOfIt0(it,d);
+ if(!(d&&String(d)>=SJ_M_D&&it&&sjItem(it)))return r0;
+ const f=sjItM(it.p);if(!f||!(f.m>0))return r0;
+ return {c:sjmFull(d)/f.m,l:'삼정 '+f.W+'×'+f.D+(f.H?'×'+f.H:'')+' · '+f.l+' · 한 개 '+(Math.round(f.m*100)/100)+'m',m:f.m,id:r0.id}}
+function capOfIt0(it,d){
  const n=String((it&&it.p)||'');
  if(sjItem(it)&&SJ_SEMI_RE.test(n)&&!SJ_FULL_RE.test(n)){
   const sz=n.match(/(\d{3,4})\s*[*xX×]\s*(\d{3,4})/);
@@ -2201,9 +2234,10 @@ function capOfIt(it,d){
    return {c:Math.min(per*SJ_SEMI_LY,300),l:'삼정 반조립 상판 '+W+'×'+D+' · '+SJ_SEMI_LY+'단'}}
   return {c:24,l:'삼정 반조립(사이즈 없음) · 1톤 24개'}}
  const r=capOf(n);
- if(d&&String(d)>=CAP_BASE_D){
-  if(CAP_BASE_IDS[r.id]&&+r.c===60)return {c:capBase(),l:r.l,id:r.id};
-  if(r.id==='half'&&+r.c===120)return {c:capBase()*2,l:r.l,id:r.id}}
+ if(d&&String(d)>=CHAIR60_D){if(CHAIR60_IDS[r.id])return {c:capBase(d),l:r.l,id:r.id}}
+ else if(d&&String(d)>=CAP_BASE_D){
+  if(CAP_BASE_IDS[r.id]&&+r.c===60)return {c:capBase(d),l:r.l,id:r.id};
+  if(r.id==='half'&&+r.c===120)return {c:capBase(d)*2,l:r.l,id:r.id}}
  return r;
 }
 
@@ -2716,7 +2750,8 @@ function build(fresh){
   /* 가구 m 을 적어 둔 건은 삼정 품목 어림 대신 그 m 으로 (2026-11-24 강현아님) */
   o.sjE=0;o.sjm=0;o.sjmw=0;
   if(String(o.d)>=NEWTRIP_D){const sl=ldI.filter(sjItem);o.sjE=loadOf({items:sl},o.d);
-   if(o.sjE>0){const r=sjmGet(o);if(r){const k=r.m/sjmFull();o.sjm=r.m;o.sjmw=r.w;o.load=Math.max(0,o.load-o.sjE)+k;o.loadY=Math.max(0,o.loadY-loadOf({items:sl}))+k}}}
+   if(String(o.d)>=SJ_M_D&&sl.length){const e=sjOrdM(sl,o.d)/sjmFull(o.d);o.load=Math.max(0,o.load-o.sjE)+e;o.sjE=e}
+   if(o.sjE>0){const r=sjmGet(o);if(r){const k=r.m/sjmFull(o.d);o.sjm=r.m;o.sjmw=r.w;o.load=Math.max(0,o.load-o.sjE)+k;o.loadY=Math.max(0,o.loadY-loadOf({items:sl}))+k}}}
   o.urg=/일찍|오전|새벽|아침/.test(o.memo||'')?0:1;
   o.sk=o.urg+'|'+((ADDR[o.n]||'힣힣').slice(0,14))});
  DATES=[];ORDERS.forEach(o=>{if(o.d&&DATES.indexOf(o.d)<0)DATES.push(o.d)});DATES.sort();
@@ -2998,7 +3033,7 @@ function card(o,big){
   DOVR[o.key]?'<span class="chip c">일자변경</span>':''].join('');
  const items=o.items.map(function(it){const c=capOfIt(it,o.d);
   const k=o.items.indexOf(it);
-  return '<li'+(it.x?' class="itxoff"':'')+'><span title="'+c.l+' · 1톤 '+c.c+'개 만재">'+it.p+(it.s==='[삼정가구]'?' <i style="color:#b5651d;font-weight:700">삼정</i>':(it.s?' <i>'+it.s+'</i>':''))+(it.x?' <i class="itxtag">따로 감</i>':'')+'</span><b>'+it.q+'</b>'
+  return '<li'+(it.x?' class="itxoff"':'')+'><span title="'+c.l+' · 1톤 '+(c.c>=10?Math.round(c.c):Math.round(c.c*10)/10)+'개 만재">'+it.p+(it.s==='[삼정가구]'?' <i style="color:#b5651d;font-weight:700">삼정</i>':(it.s?' <i>'+it.s+'</i>':''))+(it.x?' <i class="itxtag">따로 감</i>':'')+'</span><b>'+it.q+'</b>'
    +'<u class="itxb" title="'+(it.x?'다시 목록에 넣기':'따로 가는 건 — 목록에서 빼기')+'" onclick="event.stopPropagation();itxTog('+o.i+','+k+')">'+(it.x?'\u21a9':'\u2715')+'</u></li>'}).join('');
  let acts;
  if(big){acts='<div class="acts">'+(done
@@ -3121,7 +3156,7 @@ function effDrv(o){if(DRVOV[o.key])return DRVOV[o.key];const a=a2Of(o);return a?
    기사 없는 짐만 준다 — ① 기사 빈칸 동선 ② 1차·2차에 싣고도 남은 초과분. 이미 기사가 있는 1차·2차는 절대 안 건드린다(11/23 «끄고 고쳐»).
    · 100% 한 차씩 잘라 큰 것부터, 남는 기사(1차) → 1차만 있는 기사(2차) 한 사람에 한 차. 1차에서 먼저 돌아오는 기사에게 오래 걸리는 것을
    · 2차 안 도는 기사(배진성·정석윤)·자동 제외(김석호 등)·손으로 정한 건·한 건이 한 차를 넘는 큰 주문·3.5톤·추가기타는 뺀다
-   · 호로차는 의자 많은 차를 피한다. 먼 동선(9·10·수요일)은 짐 없는 기사에게만(1차 돌고 와서는 어려움), 0.15대분도 안 되는 자투리는 안 보낸다 */
+   · 호로차는 의자 많은 차를 피한다. 먼 동선(9·10·수요일)의 0.15대분도 안 되는 자투리는 안 보낸다. 2차로 먼 동선을 가는 것은 된다(11/18 강현아님) */
 const A2_D='2026-11-26';
 let A2C={},A2OFF=0;
 function a2Map(D){return A2C[D]||(A2C[D]=a2Calc(D))}
@@ -3152,13 +3187,11 @@ function a2Calc(D){const out={m:{},cn:{}};if(A2OFF)return out;A2OFF=1;const keep
   const ov={};rows.forEach(function(a){if(a.trip===3&&!a.big&&a.rid!=='t35'&&a.rid!=='etc')(ov[a.rid]=ov[a.rid]||[]).push.apply(ov[a.rid]||(ov[a.rid]=[]),a.list)});
   Object.keys(ov).forEach(function(r){cut(r,ov[r],mx[r]||0)});
   const ri=function(r){return ROUTES.findIndex(function(x){return x.id===r})};
-  const far=function(b){return /^(r9|r10|rw)$/.test(b.rid)};
-  let P=C.filter(function(b){return !(far(b)&&b.L/b.cf<0.15)});
+  let P=C.filter(function(b){return !(/^(r9|r10|rw)$/.test(b.rid)&&b.L/b.cf<0.15)});
   P.sort(function(a,b){return b.L/b.cf-a.L/a.cf||ri(a.rid)-ri(b.rid)||a.cn-b.cn});
-  {let n1=V.filter(function(v){return v.tr===1}).length,n=V.length;P=P.filter(function(b){if(n<=0||(far(b)&&n1<=0))return false;if(far(b))n1--;n--;return true})}
-  P.forEach(function(b){b.dur=estRoute(b.rid,b.list)});
-  P.sort(function(a,b){return (far(b)?1:0)-(far(a)?1:0)||b.dur-a.dur||ri(a.rid)-ri(b.rid)||a.cn-b.cn});
-  P.forEach(function(b){const ok=function(v){return !far(b)||v.tr===1};let k=V.findIndex(function(v){return ok(v)&&(vehOf(v.n)!=='호로'||horoChairs(b.list)<=HORO_CHAIR_CAP)});if(k<0)k=V.findIndex(ok);if(k<0)return;const v=V.splice(k,1)[0];
+  P=P.slice(0,V.length);P.forEach(function(b){b.dur=estRoute(b.rid,b.list)});
+  P.sort(function(a,b){return b.dur-a.dur||ri(a.rid)-ri(b.rid)||a.cn-b.cn});
+  P.forEach(function(b){let k=V.findIndex(function(v){return vehOf(v.n)!=='호로'||horoChairs(b.list)<=HORO_CHAIR_CAP});if(k<0)k=0;const v=V.splice(k,1)[0];if(!v)return;
    b.list.forEach(function(o){out.m[o.key]={d:v.n,tr:v.tr,cn:b.cn}})});
  }catch(e){console.warn('2차 배정 셈 실패',D,e)}finally{SEL=keep;CAR=kc;A2OFF=0}
  return out}
@@ -3760,7 +3793,7 @@ function loadPlan(D){
    else if(a.trip===1)(D1[a.d]=D1[a.d]||[]).push({r:a.rid,p:L/cf})});
   /* 기사 빈칸 동선 */
   const bl={};car.forEach(function(o){if(!effDrv(o)){const r=ASSIGN[o.i];(bl[r]=bl[r]||{L:0,n:0,os:[]});bl[r].L+=loadOfFor(o);bl[r].n++;bl[r].os.push(o)}});
-  Object.keys(bl).forEach(function(r){if(bl[r].L<0.005)return;const _cf=capFactor(r)||1,_big=bl[r].os.filter(function(z){return loadOfFor(z)>_cf*(1+TRIP_EPS)});res.blank.push({k:'기사 빈칸'+(_big.length&&_big.length===bl[r].os.length?'\n한 건이 한 차를 넘음':/^(r9|r10|rw)$/.test(r)?'\n먼 동선이라 2차로 안 줌':''),rid:r,os:bl[r].os,L:bl[r].L,txt:nmR(r)+' 기사 빈칸 — '+bl[r].n+'건 '+f(Math.max(0.1,bl[r].L))+'대분'})});
+  Object.keys(bl).forEach(function(r){if(bl[r].L<0.005)return;const _cf=capFactor(r)||1,_big=bl[r].os.filter(function(z){return loadOfFor(z)>_cf*(1+TRIP_EPS)});res.blank.push({k:'기사 빈칸'+(_big.length&&_big.length===bl[r].os.length?'\n한 건이 한 차를 넘음':/^(r9|r10|rw)$/.test(r)&&bl[r].L<0.15*_cf?'\n적은 분량':''),rid:r,os:bl[r].os,L:bl[r].L,txt:nmR(r)+' 기사 빈칸 — '+bl[r].n+'건 '+f(Math.max(0.1,bl[r].L))+'대분'})});
   const used={};rows.forEach(function(a){used[a.d]=1});
   res.free=DRVS.map(function(d){return d[0]}).filter(function(n){return autoOK(n)&&!used[n]});
   res.idle=DRVS.filter(function(d){return d[2]==='3.5톤'&&!used[d[0]]}).map(function(d){return d[0]+'(3.5톤)'});
@@ -4557,9 +4590,9 @@ function addCap(){
  CAPU.push({nm:nm,k:kw.split(',').map(function(x){return x.trim()}).filter(Boolean),c:c});
  document.getElementById('cuNm').value='';document.getElementById('cuKw').value='';document.getElementById('cuC').value='';
  save();render();drawCapU();toast('적재 기준 추가: '+nm)}
-document.getElementById('capB').innerHTML='<tr style="background:#fff6ef"><td><b>우리 차 한 차 (의자)</b></td><td style="color:#8b9aab;font-size:11px">기타 · 그 외 대(大) · 중역의자 (절반수량은 이 두 배) — 11/26 전표부터. 가구 m 도 이 개수로</td><td style="text-align:right"><input type="number" id="capBaseIn" min="20" max="120" value="'+capBase()+'" onchange="capBaseSet(this.value)"></td></tr>'
+document.getElementById('capB').innerHTML='<tr style="background:#fff6ef"><td><b>우리 차 한 차 (의자)</b></td><td style="color:#8b9aab;font-size:11px">1인용 의자는 종류와 상관없이 이 개수 = 한 차 — 11/27 전표부터. 가구 m 도 이 개수로 (0.6m = 12개)</td><td style="text-align:right"><input type="number" id="capBaseIn" min="20" max="120" value="'+capBase()+'" onchange="capBaseSet(this.value)"></td></tr>'
 +CAP_DEF.map(function(c){
- return '<tr><td><b>'+c.l+'</b></td>'
+ return '<tr><td><b>'+c.l+'</b>'+(CHAIR60_IDS[c.id]?'<span style="display:block;color:#b5651d;font-size:11px;font-weight:700">용차 계산에만 씀</span>':'')+'</td>'
  +'<td style="color:#8b9aab;font-size:11px">'+(c.k.join(', ')||'그 외 전부')+'</td>'
  +'<td style="text-align:right"><input type="number" min="1" value="'+CAPS[c.id]+'" '
  +'oninput="CAPS[\''+c.id+'\']=+this.value||1;save();render()"></td></tr>'}).join('');
@@ -7781,7 +7814,7 @@ function tabYc(today){
  let h='<div class="ycwrap">';
  h+='<div class="hd2">💰 용차 계산기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">— 2024~2026 운임비 장부 1,538건 실지급액 기준 · 부가세 별도</span></div>';
  h+='<div class="ycnote"><b>검색 한 줄</b>로 물어보세요 — <b>부산 5톤초장축</b> 은 그 지역 운임, <b>무지개 30개</b> 는 물량·어떤 차, <b>부산 무지개 30개</b> 는 둘 다 나옵니다.<br>'
-  +'용차 계산의 의자 적재 기준은 <b>신부장님 기준 그대로</b>(의자 60개 = 1톤 1대 · 3.5톤 대형은 1톤의 1.2배)입니다. 우리 차 배차는 11/26 전표부터 <b>의자 '+capBase()+'개 = 한 차</b>로 셉니다.<br>'
+  +'용차 계산의 의자 적재 기준은 <b>신부장님 기준 그대로</b>(의자 60개 = 1톤 1대 · 3.5톤 대형은 1톤의 1.2배)입니다. 우리 차 배차는 11/27 전표부터 <b>의자 종류와 상관없이 '+capBase()+'개 = 한 차</b>로 셉니다.<br>'
   +'합바차는 실은 <b>적재길이(m)</b>로 값을 매깁니다 — <b>부산 3m</b> 처럼 물어보세요.</div>';
 
  /* ---- 운임·물량 검색 — 2026-11-13 강현아님: «어떤 차를 불러야 하나» 창(지역·날짜·거래처·개수·직접재기)을 검색 한 줄로 바꿈 ---- */
