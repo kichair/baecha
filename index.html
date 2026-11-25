@@ -912,28 +912,37 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 .rlbtn{margin:0 4px;background:#eef3f9;color:#33475c;border:1px solid #cfdae6;border-radius:8px;
  padding:5px 10px;font-weight:800;font-size:12px;cursor:pointer}
 .rlbtn.on{background:#0f5f37;color:#fff;border-color:#0f5f37}
-/* 가구 m 적기 (2026-11-24) */
-#sjmpan{position:fixed;inset:0;z-index:9990;background:rgba(15,25,40,.5);display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow:auto}
-.sjmbx{background:#fff;border-radius:14px;max-width:1080px;width:100%;padding:16px 18px 20px;box-shadow:0 18px 50px rgba(15,25,40,.3);overflow-x:auto}
-.sjmhd{display:flex;align-items:center;gap:12px;font-size:17px;color:#172433}
-.sjmhd span{flex:1;color:#0f8a5f;font-size:13px;font-weight:800}
-.sjmno{display:inline-block;min-width:20px;margin-right:6px;padding:0 3px;background:#eaf0f6;border-radius:5px;text-align:center;font-size:11.5px;color:#33475c}
-.sjmhd button.pr{background:#2F7FE8!important}
-.sjmhd button{border:0;background:#0f5f37;color:#fff;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer}
-.sjmnt{margin:8px 0 10px;font-size:12.5px;color:#5f7086;line-height:1.5}
-.sjmtb{width:100%;min-width:760px;border-collapse:collapse;font-size:13px;color:#172433}
-.sjmtb th{background:#f1f5f9;color:#5f7086;font-size:12px;font-weight:800;padding:6px 8px;text-align:left}
-.sjmtb td{border-bottom:1px solid #e5ebf2;padding:7px 8px;text-align:left;vertical-align:top;line-height:1.4}
-.sjmtb small{display:block;color:#8b9aab;font-size:11.5px;font-weight:600;margin-top:1px}
-.sjmtb .sjmit{font-size:12px;color:#4f6072}
-.sjmtb tr.has td{background:#fffaf5}
-.sjmtb input{width:62px;font-size:16px;font-weight:800;padding:5px 7px;border:1.5px solid #cfd8e3;border-radius:8px;text-align:right}
-.sjmtb tr.has input{border-color:#c2410c}
-.sjmtb td em{font-style:normal;margin-left:4px;color:#5f7086;font-weight:700}
-@media(max-width:720px){.sjmbx{padding:12px 12px 16px}.sjmhd{flex-wrap:wrap;gap:6px 10px;font-size:15.5px}.sjmtb{min-width:0}.sjmtb tr:first-child{display:none}
- .sjmtb tr{display:grid;grid-template-columns:minmax(0,1fr) 98px;border-bottom:1px solid #e5ebf2;padding:8px 0}.sjmtb td{border:0;padding:1px 3px}
- .sjmtb td:nth-child(1){order:1;grid-column:1/3;font-size:11.5px;color:#5f7086}.sjmtb td:nth-child(1) small{display:inline;margin-left:6px}.sjmtb td:nth-child(2){order:2}.sjmtb td:nth-child(4){order:3;text-align:right}
- .sjmtb td:nth-child(5){order:4;grid-column:1/3}.sjmtb td:nth-child(3){order:5;grid-column:1/3}}
+/* 가구 m 적기 (2026-11-24, 큰 글씨·표 2026-11-25) */
+#sjmpan{position:fixed;inset:0;z-index:9990;background:rgba(15,25,40,.5);display:flex;align-items:flex-start;justify-content:center;padding:14px 12px}
+.sjmbx{background:#fff;border-radius:14px;max-width:1420px;width:100%;max-height:100%;padding:16px 18px;box-shadow:0 18px 50px rgba(15,25,40,.3);display:flex;flex-direction:column;box-sizing:border-box}
+.sjmhd{display:flex;align-items:center;gap:14px;font-size:23px;color:#172433}
+.sjmhd span{flex:1;color:#0f8a5f;font-size:17px;font-weight:800}
+.sjmno{display:inline-block;min-width:24px;margin-right:6px;padding:1px 4px;background:#0f5f37;border-radius:6px;text-align:center;font-size:15px;color:#fff}
+.sjmhd button{border:0;background:#0f5f37;color:#fff;border-radius:9px;padding:11px 24px;font-size:18px;font-weight:800;cursor:pointer}
+.sjmhd button.pr{background:#2F7FE8}
+.sjmnt{margin:9px 0 11px;font-size:16px;color:#33475c;line-height:1.5}
+.sjmsc{overflow:auto;min-height:0;flex:1 1 auto;border:1px solid #9fb0c3}
+.sjmtb{width:100%;min-width:1060px;border-collapse:separate;border-spacing:0;table-layout:fixed;color:#111c28}
+.sjmtb th{position:sticky;top:0;z-index:2;background:#0f5f37;color:#fff;font-size:18px;font-weight:800;padding:10px 8px;text-align:center;border-right:1px solid #3d8560}
+.sjmtb td{border-right:1px solid #c3cfdc;border-bottom:1px solid #d5dee8;padding:8px 10px;font-size:17.5px;text-align:left;vertical-align:middle;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.sjmtb tr.sjmz1 td{background:#f4f8fb}
+.sjmtb tr.sjmtop td{border-top:2px solid #7f93a8}
+.sjmtb small{display:block;font-size:16px;color:#4f6072;font-weight:600;margin-top:2px}
+.sjmtb td.s1{text-align:center;font-size:20px;font-weight:900;color:#0f5f37}
+.sjmtb td.s2{text-align:center}.sjmtb td.s2 b{font-size:19px;font-weight:800}.sjmtb td.s2 i{display:block;font-style:normal;font-size:17px;font-weight:700;color:#1e5bb8;margin-top:2px}
+.sjmtb td.s3 b{font-size:20px;font-weight:800}
+.sjmtb td.s4{padding:4px 10px}
+.sjmtb td.s5{padding:4px 6px;text-align:center;font-size:19px;font-weight:800}
+.sjmtb td.s6{text-align:center;white-space:nowrap}
+.sjmtb td.s7{text-align:center}
+.sjmpc{display:block;font-size:25px;font-weight:900;color:#4f6072}.sjmpc.ty{color:#c2410c}.sjmpc.ov{color:#d92d20}
+.sjmwn{color:#d92d20!important;font-weight:800!important}.sjmty{color:#c2410c!important;font-weight:800!important}
+input.sjmin{width:88px;font-size:27px;font-weight:900;padding:6px 8px;border:2px solid #c2410c;border-radius:9px;text-align:right;color:#c2410c;background:#fff6ef;box-sizing:border-box}
+input.sjmin.est{border-color:#b8c5d3;color:#33475c;background:#fff}
+.sjmtb td em,.sjmc3 em{font-style:normal;margin-left:5px;font-size:18px;color:#33475c;font-weight:800}
+.sjmcd{border-bottom:2px solid #9fb0c3;padding:11px 12px}.sjmc1{font-size:15px;color:#33475c;font-weight:700}.sjmc2{display:flex;align-items:center;gap:10px;margin-top:5px}.sjmc2>div:first-child{flex:1;min-width:0}.sjmc2 b{font-size:18px}.sjmc2 small{display:block;font-size:14.5px;color:#4f6072}
+.sjmc3{white-space:nowrap}.sjmc4 .sjmpc{display:inline;font-size:18px;margin-right:8px}.sjmc4 small{display:inline;font-size:14.5px;color:#4f6072;margin-right:8px}.sjmc5{margin-top:5px;font-size:15px;color:#33475c;line-height:1.45}
+@media(max-width:720px){#sjmpan{padding:8px 6px}.sjmbx{padding:12px}.sjmhd{flex-wrap:wrap;gap:6px 10px;font-size:18px}.sjmhd span{font-size:14.5px;flex-basis:100%;order:3}.sjmhd button{padding:8px 16px;font-size:15px}.sjmnt{font-size:14px}}
 /* 반드시 .rthd 를 앞에 붙일 것 — .dcard span{font-size:11px;color:#8b9aab;display:block}
    규칙이 머리띠 글자를 전부 작은 회색으로 눌러버린다 (2026-09-03에 잡음) */
 .rthd{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:12px 14px;background:#0f5f37;color:#fff;
@@ -1390,53 +1399,69 @@ function sjmList(d){const ix=function(o){const k=ROUTES.findIndex(function(r){re
 function sjmBtn(d){const L=sjmList(d);if(!L.length)return '';const n=L.filter(function(o){return o.sjm}).length;
  return '<button class="btn g rlbtn'+(n===L.length?' on':'')+'" onclick="sjmOpen(\''+d+'\')" title="삼정 종이 맨 밑에 손으로 적힌 가구 길이(m)를 적으면 적재량이 그 m 으로 바뀝니다">📏 가구 m 적기 '+n+'/'+L.length+'</button>'}
 function sjmBtnUp(d){const e=document.getElementById('msbsjm');if(e)e.innerHTML=sjmBtn(d)}
-function sjmRes(o,m,w){const est='어림 '+sjmFmt(Math.round((o.sjE||0)*sjmFull()*10)/10)+'m · '+Math.round((o.sjE||0)*100)+'%';
- return m?'<b>'+sjmTxt(m)+'</b>'+(w?'<small style="color:#c0392b;font-weight:800">⚠ 적은 뒤 삼정 품목이 바뀜 — '+sjmFmt(m)+'m 로 맞춤, 다시 적어 주세요</small>':'')+'<small>'+est+'</small>':'<small>'+est+'</small>'}
+/* 어림 m — 칸에 미리 적어 두는 값(0.1 단위). 저장은 안 한다: 손으로 고친 칸만 저장 */
+function sjmEst(o){const m=(o.sjE||0)*sjmFull();return m<0.05?0.1:Math.round(m*10)/10}
+function sjmRes(o,m,w){const ty=m>0,mm=ty?m:(o.sjE||0)*sjmFull(),p=Math.round(ty?m/sjmFull()*100:(o.sjE||0)*100),r=mm/SJM_ROW;
+ return '<b class="sjmpc'+(p>100?' ov':'')+(ty?' ty':'')+'">'+p+'%</b><small>'+(Math.round(r*10)/10)+'줄 · 의자 '+Math.round(r*SJM_RQ)+'개분</small>'
+  +(w?'<small class="sjmwn">⚠ 적은 뒤 품목이 바뀜 — 다시 적어 주세요</small>':ty?'<small class="sjmty">적은 값 (어림 '+sjmFmt(sjmEst(o))+'m)</small>':'')}
 function sjmCnt(){const e=document.getElementById('sjmcnt'),a=[].slice.call(document.querySelectorAll('#sjmpan input.sjmin'));
- if(e)e.textContent=a.filter(function(x){return sjmParse(x.value)||x.dataset.w}).length+' / '+a.length+'곳 적음'}
-/* 그날 삼정 나가는 곳을 한 판에 — 종이를 넘기며 이어서 적게 */
-function sjmOpen(d){const L=sjmList(d);let el=document.getElementById('sjmpan');
+ if(e)e.textContent='고쳐 적은 곳 '+a.filter(function(x){return !x.classList.contains('est')}).length+' / '+a.length+' · 나머지는 어림'}
+function sjmIts(o){return (o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)}).map(function(it){return {p:String(it.p||'').trim(),q:+it.q||0}})}
+function sjmInp(o,k){const ty=o.sjm>0;return '<input class="sjmin'+(ty?'':' est')+'" inputmode="decimal" autocomplete="off" data-k="'+esc(o.key)+'" data-n="'+k+'" data-est="'+sjmEst(o)+'" value="'+(ty?sjmFmt(o.sjm):sjmFmt(sjmEst(o)))+'" onfocus="this.select()" onkeydown="sjmKey(event,this)" onchange="sjmIn(this)"><em>m</em>'}
+/* 그날 삼정 나가는 곳을 한 판에 — 어림 m 이 미리 적혀 있고 다른 곳만 고친다 */
+function sjmOpen(d){const L=sjmList(d),nar=window.innerWidth<=720;let el=document.getElementById('sjmpan');
  if(!el){el=document.createElement('div');el.id='sjmpan';document.body.appendChild(el)}
  el.onclick=function(ev){if(ev.target===el)sjmClose()};
- el.innerHTML='<div class="sjmbx"><div class="sjmhd"><b>📏 가구 m 적기 — '+(+d.slice(5,7))+'/'+(+d.slice(8))+' 삼정 '+L.length+'곳</b><span id="sjmcnt"></span><button class="pr" onclick="sjmPrint(\''+d+'\')" title="이 목록을 A4 로 뽑아 삼정에 주고 m 을 적어 받습니다 — 종이 번호와 이 판 번호가 같습니다">🖨 인쇄</button><button onclick="sjmClose()">닫기</button></div>'
-  +'<div class="sjmnt">삼정 종이 맨 밑에 손으로 적힌 m 을 그대로 적으세요 (예 <b>1.8</b>). <b>0.6m = 1줄 = 의자 12개</b>, 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대. 비워 두면 지금처럼 품목 크기로 어림합니다. Enter 를 누르면 다음 칸으로 갑니다. <b>🖨 인쇄</b>한 종이의 번호와 이 판의 번호가 같습니다.</div>'
-  +'<table class="sjmtb"><tr><th style="width:128px">동선</th><th style="width:27%">거래처 · 배송지</th><th>삼정 품목</th><th style="width:96px">가구 m</th><th style="width:186px">적재</th></tr>'
-  +L.map(function(o,k){const r=ASSIGN[o.i],rl=RID[r]?msbRL(r)+rgNm(r):'미배차',A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'';
-   const its=(o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)}).map(function(it){return esc(String(it.p||'').trim())+' <b>×'+(+it.q||0)+'</b>'}).join(', ');
-   const v=SJM[o.key],val=o.sjm&&!o.sjmw?sjmFmt(o.sjm):'';
-   return '<tr class="'+(o.sjm?'has':'')+'" id="sjmt'+k+'"><td><b class="sjmno">'+(k+1)+'</b>'+esc(rl)+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td><td class="sjmit">'+its+'</td>'
-    +'<td><input class="sjmin" inputmode="decimal" autocomplete="off" data-k="'+esc(o.key)+'" data-n="'+k+'"'+(o.sjmw?' data-w="1"':'')+' value="'+val+'" placeholder="'+(o.sjmw&&v?'전 '+sjmFmt(v.m):'')+'" onkeydown="sjmKey(event,this)" onchange="sjmIn(this)"><em>m</em></td>'
-    +'<td id="sjmr'+k+'">'+sjmRes(o,o.sjm,o.sjmw)+'</td></tr>'}).join('')+'</table></div>';
+ const X=L.map(function(o){const r=ASSIGN[o.i],A=rowAddr(o)||{};return {o:o,rl:RID[r]?msbRL(r):'미배차',rg:RID[r]?rgNm(r).replace(/[()]/g,''):'',dv:RID[r]?effDrv(o):'',ad:A.t||'',its:sjmIts(o)}});
+ el.innerHTML='<div class="sjmbx"><div class="sjmhd"><b>📏 가구 m 적기 — '+(+d.slice(5,7))+'/'+(+d.slice(8))+' 삼정 '+L.length+'곳</b><span id="sjmcnt"></span><button class="pr" onclick="sjmPrint(\''+d+'\')" title="이 목록을 A4 로 뽑습니다 — 종이 번호와 이 판 번호가 같습니다">🖨 인쇄</button><button onclick="sjmClose()">닫기</button></div>'
+  +'<div class="sjmnt">가구 m 칸에는 품목 크기로 <b>어림한 m</b> 이 미리 적혀 있습니다. 삼정이 적어 준 m 과 다르면 <b>그 칸만 고치세요</b>(주황색). 지우면 다시 어림으로 돌아갑니다. 0.6m = 1줄 = 의자 12개, 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대.</div>'
+  +'<div class="sjmsc">'
+  +(nar?X.map(function(x,k){const o=x.o;return '<div class="sjmcd'+(o.sjm?' has':'')+'" id="sjmt'+k+'"><div class="sjmc1"><b class="sjmno">'+(k+1)+'</b>'+esc(x.rl)+(x.rg?' ('+esc(x.rg)+')':'')+(x.dv?' · '+esc(x.dv):'')+'</div>'
+    +'<div class="sjmc2"><div><b>'+esc(o.n)+'</b>'+(x.ad?'<small>'+esc(x.ad)+'</small>':'')+'</div><div class="sjmc3">'+sjmInp(o,k)+'</div></div><div class="sjmc4" id="sjmr'+k+'">'+sjmRes(o,o.sjm,o.sjmw)+'</div>'
+    +'<div class="sjmc5">'+x.its.map(function(t){return '<div>'+esc(t.p)+' <b>×'+t.q+'</b></div>'}).join('')+'</div></div>'}).join('')
+   :'<table class="sjmtb"><colgroup><col style="width:56px"><col style="width:150px"><col style="width:290px"><col><col style="width:68px"><col style="width:150px"><col style="width:170px"></colgroup>'
+    +'<thead><tr><th>번호</th><th>동선 · 기사</th><th>거래처 · 배송지</th><th>삼정 품목</th><th>수량</th><th>가구 m</th><th>적재</th></tr></thead><tbody>'
+    +X.map(function(x,k){const o=x.o,T=x.its.length?x.its:[{p:'(품목 없음)',q:0}],n=T.length,z='sjmz'+(k%2);
+     return T.map(function(t,i){const rs=n>1?' rowspan="'+n+'"':'';
+      return '<tr class="'+z+(i?'':' sjmtop'+(o.sjm?' has':''))+'"'+(i?'':' id="sjmt'+k+'"')+'>'
+       +(i?'':'<td class="s1"'+rs+'>'+(k+1)+'</td><td class="s2"'+rs+'><b>'+esc(x.rl)+'</b>'+(x.rg?'<small>'+esc(x.rg)+'</small>':'')+(x.dv?'<i>'+esc(x.dv)+'</i>':'')+'</td><td class="s3"'+rs+'><b>'+esc(o.n)+'</b>'+(x.ad?'<small>'+esc(x.ad)+'</small>':'')+'</td>')
+       +'<td class="s4">'+esc(t.p)+'</td><td class="s5">'+(t.q||'')+'</td>'
+       +(i?'':'<td class="s6"'+rs+'>'+sjmInp(o,k)+'</td><td class="s7"'+rs+' id="sjmr'+k+'">'+sjmRes(o,o.sjm,o.sjmw)+'</td>')+'</tr>'}).join('')}).join('')+'</tbody></table>')
+  +'</div></div>';
  document.addEventListener('keydown',sjmEsc);sjmCnt();
- const f=el.querySelector('input.sjmin[value=""]')||el.querySelector('input.sjmin');if(f)f.focus()}
-/* A4 세로 — 품목 전부, 오른쪽에 손으로 적는 칸 */
-function sjmPrint(d){const f=document.activeElement;if(f&&f.classList&&f.classList.contains('sjmin')&&sjmParse(f.value))sjmIn(f);   /* 적던 값부터 저장 */
+ if(!nar){const f=el.querySelector('input.sjmin');if(f)f.focus()}}
+/* A4 세로 — 품목 한 줄씩, 어림 m 을 적어 두고 «고칠 m» 칸은 비워 둔다 */
+function sjmPrint(d){const f=document.activeElement;if(f&&f.classList&&f.classList.contains('sjmin'))sjmIn(f);   /* 적던 값부터 저장 */
  build();const L=sjmList(d);if(!L.length)return;
  const t=new Date(d+'T00:00:00'),dt=(t.getMonth()+1)+'/'+t.getDate()+'('+'일월화수목금토'[t.getDay()]+')',nw=new Date();
  const P=function(n){return ('0'+n).slice(-2)};
  let el=document.getElementById('ycbprt');if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
- el.innerHTML='<style>.sjmp{color:#000;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sjmp .sp-h{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid #000;padding-bottom:5px}'
-  +'.sjmp .sp-h b{font-size:20px}.sjmp .sp-h span{font-size:12px;margin-left:auto}.sjmp .sp-n{font-size:12px;margin:6px 0 7px;line-height:1.45}'
-  +'.sjmp table{width:99.4%;border-collapse:collapse;table-layout:fixed}.sjmp th,.sjmp td{border:1px solid #000;padding:4px 5px;vertical-align:middle;text-align:left;word-break:keep-all;overflow-wrap:anywhere;line-height:1.35}'
-  +'.sjmp th{background:#eee;font-weight:800;text-align:center;font-size:11.5px}.sjmp td small{display:block;font-size:10px;color:#333;margin-top:1px}.sjmp td.sp-c{text-align:center}.sjmp td.sp-no{text-align:center;font-weight:800;font-size:12.5px}'
-  +'.sjmp td.sp-nm b{font-size:12px}.sjmp td.sp-it{font-size:10px;color:#111}.sjmp td.sp-w{border:2px solid #000;height:36px;text-align:right;font-size:13px;vertical-align:bottom}.sjmp td.sp-w b{font-size:17px;margin-right:4px}'
-  +'.sjmp td.sp-e{text-align:center;font-size:10.5px;color:#444}.sjmp tr{break-inside:avoid;page-break-inside:avoid}.sjmp thead{display:table-header-group}.sjmp .sp-f{margin-top:12px;text-align:right;font-size:13px;break-inside:avoid}</style>'
-  +'<div class="sjmp"><div class="sp-h"><b>삼정 가구 m 적기 — '+dt+' 배송</b><span>'+L.length+'곳 · 출력 '+(nw.getMonth()+1)+'/'+nw.getDate()+' '+P(nw.getHours())+':'+P(nw.getMinutes())+'</span></div>'
-  +'<div class="sp-n">1톤 차에 실었을 때 <b>짐칸 길이로 몇 m</b> 차지하는지 굵은 칸에 적어 주세요 (예 1.8). &nbsp;0.6m = 1줄 = 의자 12개 · 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대</div>'
-  +'<table><colgroup>'+[5,17,25,31,12,9].map(function(w){return '<col style="width:'+w+'%">'}).join('')+'</colgroup><thead><tr><th>번호</th><th>동선 · 기사</th><th>거래처 · 배송지</th><th>삼정 품목</th><th>가구 m</th><th>어림</th></tr></thead><tbody>'
-  +L.map(function(o,k){const r=ASSIGN[o.i],rl=RID[r]?msbRL(r)+rgNm(r):'미배차',A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'';
-   const its=(o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)}).map(function(it){return esc(String(it.p||'').trim())+' <b>×'+(+it.q||0)+'</b>'}).join(', ');
-   return '<tr><td class="sp-no">'+(k+1)+'</td><td class="sp-c">'+esc(rl)+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td class="sp-nm"><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td><td class="sp-it">'+its+'</td>'
-    +'<td class="sp-w">'+(o.sjm&&!o.sjmw?'<b>'+sjmFmt(o.sjm)+'</b>':'')+'m</td><td class="sp-e">'+sjmFmt(Math.round((o.sjE||0)*sjmFull()*10)/10)+'m</td></tr>'}).join('')
-  +'</tbody></table><div class="sp-f">적은 사람 ____________________</div></div>';
+ el.innerHTML='<style>.sjmp{color:#000;font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sjmp .sp-h{display:flex;align-items:baseline;gap:12px;border-bottom:2.5px solid #000;padding-bottom:5px}'
+  +'.sjmp .sp-h b{font-size:23px}.sjmp .sp-h span{font-size:13px;margin-left:auto}.sjmp .sp-n{font-size:13px;margin:6px 0 8px;line-height:1.5}'
+  +'.sjmp table{width:99.4%;border-collapse:collapse;table-layout:fixed;border:2px solid #000}.sjmp th,.sjmp td{border:1px solid #444;padding:3.5px 6px;vertical-align:middle;text-align:left;word-break:keep-all;overflow-wrap:anywhere;line-height:1.35}'
+  +'.sjmp th{background:#e6e6e6;font-weight:800;text-align:center;font-size:13.5px;border-bottom:2px solid #000;white-space:nowrap;padding:5px 2px}.sjmp td small{display:block;font-size:11.5px;color:#222;margin-top:1px}.sjmp td.sp-no{text-align:center;font-weight:800;font-size:15px}'
+  +'.sjmp td.sp-c{text-align:center}.sjmp td.sp-c b{font-size:14px}.sjmp td.sp-nm b{font-size:14.5px}.sjmp td.sp-it{font-size:12.5px}.sjmp td.sp-q{text-align:center;font-weight:800;font-size:14px}'
+  +'.sjmp td.sp-w{text-align:center;font-size:13px;white-space:nowrap;padding:3px 2px}.sjmp td.sp-w b{font-size:20px;margin-right:2px}.sjmp td.sp-x{border:2px solid #000;text-align:right;vertical-align:bottom;font-size:13px}'
+  +'.sjmp tbody{break-inside:avoid;page-break-inside:avoid;border-top:2px solid #000}.sjmp thead{display:table-header-group}.sjmp .sp-f{margin-top:12px;text-align:right;font-size:14px;break-inside:avoid}</style>'
+  +'<div class="sjmp"><div class="sp-h"><b>삼정 가구 m — '+dt+' 배송</b><span>'+L.length+'곳 · 출력 '+(nw.getMonth()+1)+'/'+nw.getDate()+' '+P(nw.getHours())+':'+P(nw.getMinutes())+'</span></div>'
+  +'<div class="sp-n">가구 m 은 품목 크기로 <b>어림한 값</b>입니다. 1톤 짐칸에 실었을 때 길이가 다르면 <b>«고칠 m»</b> 칸에 적어 주세요. &nbsp;(0.6m = 1줄 = 의자 12개 · 의자 '+capBase()+'개 약 '+sjmFmt(sjmFull())+'m = 1톤 한 대)</div>'
+  +'<table><colgroup>'+[5.8,14.8,23.6,30,6.4,9.2,9.2].map(function(w){return '<col style="width:'+w+'%">'}).join('')+'</colgroup><thead><tr><th>번호</th><th>동선 · 기사</th><th>거래처 · 배송지</th><th>삼정 품목</th><th>수량</th><th>가구 m</th><th>고칠 m</th></tr></thead>'
+  +L.map(function(o,k){const r=ASSIGN[o.i],A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'',T0=sjmIts(o),T=T0.length?T0:[{p:'(품목 없음)',q:0}],rs=T.length>1?' rowspan="'+T.length+'"':'';
+   return '<tbody>'+T.map(function(x,i){return '<tr>'+(i?'':'<td class="sp-no"'+rs+'>'+(k+1)+'</td><td class="sp-c"'+rs+'><b>'+esc(RID[r]?msbRL(r):'미배차')+'</b>'+(RID[r]&&rgNm(r)?'<small>'+esc(rgNm(r).replace(/[()]/g,''))+'</small>':'')+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td class="sp-nm"'+rs+'><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td>')
+    +'<td class="sp-it">'+esc(x.p)+'</td><td class="sp-q">'+(x.q||'')+'</td>'
+    +(i?'':'<td class="sp-w"'+rs+'><b>'+sjmFmt(o.sjm&&!o.sjmw?o.sjm:sjmEst(o))+'</b>m</td><td class="sp-x"'+rs+'>m</td>')+'</tr>'}).join('')+'</tbody>'}).join('')
+  +'</table><div class="sp-f">적은 사람 ________________</div></div>';
  const pst=document.createElement('style');pst.textContent='@media print{@page{size:A4 portrait;margin:10mm}}';document.head.appendChild(pst);
  document.body.classList.add('ycbprint');
  const off=function(){document.body.classList.remove('ycbprint');if(pst.parentNode)pst.parentNode.removeChild(pst);window.removeEventListener('afterprint',off)};
  window.addEventListener('afterprint',off);
  setTimeout(function(){window.print();setTimeout(off,400)},80)}
-function sjmIn(t){const o=ORDERS.filter(function(x){return x.key===t.dataset.k})[0];if(!o)return;const m=sjmSet(t.dataset.k,t.value);
- t.value=m?sjmFmt(m):'';delete t.dataset.w;t.placeholder='';
- const c=document.getElementById('sjmr'+t.dataset.n),r=document.getElementById('sjmt'+t.dataset.n);if(c)c.innerHTML=sjmRes(o,m,0);if(r)r.className=m?'has':'';sjmCnt()}
+function sjmIn(t){const k=t.dataset.k,o=ORDERS.filter(function(x){return x.key===k})[0];if(!o)return;
+ const e=+t.dataset.est,v=sjmParse(t.value),had=SJM[k]?+SJM[k].m>0:o.sjm>0;let m=0;
+ if(v&&(had||v!==e)){m=SJM[k]&&+SJM[k].m===v&&!o.sjmw?v:sjmSet(k,t.value)}   /* 어림과 같은 값 그대로면 저장하지 않는다 */
+ else if(!v&&had)sjmSet(k,'');
+ t.value=sjmFmt(m||e);t.classList.toggle('est',!m);
+ const c=document.getElementById('sjmr'+t.dataset.n),r=document.getElementById('sjmt'+t.dataset.n);if(c)c.innerHTML=sjmRes(o,m,0);if(r)r.classList.toggle('has',!!m);sjmCnt()}
 function sjmKey(ev,t){const c=ev.keyCode;if(c!==13&&c!==40&&c!==38)return;ev.preventDefault();
  const a=[].slice.call(document.querySelectorAll('#sjmpan input.sjmin')),i=a.indexOf(t)+(c===38?-1:1);if(a[i]){a[i].focus();a[i].select()}else t.blur()}
 function sjmEsc(ev){if(ev.keyCode===27)sjmClose()}
@@ -1810,7 +1835,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261125a';
+const APPVER='20261125b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
