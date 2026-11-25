@@ -917,6 +917,8 @@ table.jpt tr.tot td{font-weight:800;border-top:.35mm solid #555;border-bottom:no
 .sjmbx{background:#fff;border-radius:14px;max-width:1080px;width:100%;padding:16px 18px 20px;box-shadow:0 18px 50px rgba(15,25,40,.3);overflow-x:auto}
 .sjmhd{display:flex;align-items:center;gap:12px;font-size:17px;color:#172433}
 .sjmhd span{flex:1;color:#0f8a5f;font-size:13px;font-weight:800}
+.sjmno{display:inline-block;min-width:20px;margin-right:6px;padding:0 3px;background:#eaf0f6;border-radius:5px;text-align:center;font-size:11.5px;color:#33475c}
+.sjmhd button.pr{background:#2F7FE8!important}
 .sjmhd button{border:0;background:#0f5f37;color:#fff;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:800;cursor:pointer}
 .sjmnt{margin:8px 0 10px;font-size:12.5px;color:#5f7086;line-height:1.5}
 .sjmtb{width:100%;min-width:760px;border-collapse:collapse;font-size:13px;color:#172433}
@@ -1396,17 +1398,42 @@ function sjmCnt(){const e=document.getElementById('sjmcnt'),a=[].slice.call(docu
 function sjmOpen(d){const L=sjmList(d);let el=document.getElementById('sjmpan');
  if(!el){el=document.createElement('div');el.id='sjmpan';document.body.appendChild(el)}
  el.onclick=function(ev){if(ev.target===el)sjmClose()};
- el.innerHTML='<div class="sjmbx"><div class="sjmhd"><b>📏 가구 m 적기 — '+(+d.slice(5,7))+'/'+(+d.slice(8))+' 삼정 '+L.length+'곳</b><span id="sjmcnt"></span><button onclick="sjmClose()">닫기</button></div>'
-  +'<div class="sjmnt">삼정 종이 맨 밑에 손으로 적힌 m 을 그대로 적으세요 (예 <b>1.8</b>). <b>0.6m = 1줄 = 의자 12개</b>, 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대. 비워 두면 지금처럼 품목 크기로 어림합니다. Enter 를 누르면 다음 칸으로 갑니다.</div>'
-  +'<table class="sjmtb"><tr><th style="width:118px">동선</th><th style="width:27%">거래처 · 배송지</th><th>삼정 품목</th><th style="width:96px">가구 m</th><th style="width:186px">적재</th></tr>'
+ el.innerHTML='<div class="sjmbx"><div class="sjmhd"><b>📏 가구 m 적기 — '+(+d.slice(5,7))+'/'+(+d.slice(8))+' 삼정 '+L.length+'곳</b><span id="sjmcnt"></span><button class="pr" onclick="sjmPrint(\''+d+'\')" title="이 목록을 A4 로 뽑아 삼정에 주고 m 을 적어 받습니다 — 종이 번호와 이 판 번호가 같습니다">🖨 인쇄</button><button onclick="sjmClose()">닫기</button></div>'
+  +'<div class="sjmnt">삼정 종이 맨 밑에 손으로 적힌 m 을 그대로 적으세요 (예 <b>1.8</b>). <b>0.6m = 1줄 = 의자 12개</b>, 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대. 비워 두면 지금처럼 품목 크기로 어림합니다. Enter 를 누르면 다음 칸으로 갑니다. <b>🖨 인쇄</b>한 종이의 번호와 이 판의 번호가 같습니다.</div>'
+  +'<table class="sjmtb"><tr><th style="width:128px">동선</th><th style="width:27%">거래처 · 배송지</th><th>삼정 품목</th><th style="width:96px">가구 m</th><th style="width:186px">적재</th></tr>'
   +L.map(function(o,k){const r=ASSIGN[o.i],rl=RID[r]?msbRL(r)+rgNm(r):'미배차',A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'';
    const its=(o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)}).map(function(it){return esc(String(it.p||'').trim())+' <b>×'+(+it.q||0)+'</b>'}).join(', ');
    const v=SJM[o.key],val=o.sjm&&!o.sjmw?sjmFmt(o.sjm):'';
-   return '<tr class="'+(o.sjm?'has':'')+'" id="sjmt'+k+'"><td>'+esc(rl)+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td><td class="sjmit">'+its+'</td>'
+   return '<tr class="'+(o.sjm?'has':'')+'" id="sjmt'+k+'"><td><b class="sjmno">'+(k+1)+'</b>'+esc(rl)+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td><td class="sjmit">'+its+'</td>'
     +'<td><input class="sjmin" inputmode="decimal" autocomplete="off" data-k="'+esc(o.key)+'" data-n="'+k+'"'+(o.sjmw?' data-w="1"':'')+' value="'+val+'" placeholder="'+(o.sjmw&&v?'전 '+sjmFmt(v.m):'')+'" onkeydown="sjmKey(event,this)" onchange="sjmIn(this)"><em>m</em></td>'
     +'<td id="sjmr'+k+'">'+sjmRes(o,o.sjm,o.sjmw)+'</td></tr>'}).join('')+'</table></div>';
  document.addEventListener('keydown',sjmEsc);sjmCnt();
  const f=el.querySelector('input.sjmin[value=""]')||el.querySelector('input.sjmin');if(f)f.focus()}
+/* A4 세로 — 품목 전부, 오른쪽에 손으로 적는 칸 */
+function sjmPrint(d){const f=document.activeElement;if(f&&f.classList&&f.classList.contains('sjmin')&&sjmParse(f.value))sjmIn(f);   /* 적던 값부터 저장 */
+ build();const L=sjmList(d);if(!L.length)return;
+ const t=new Date(d+'T00:00:00'),dt=(t.getMonth()+1)+'/'+t.getDate()+'('+'일월화수목금토'[t.getDay()]+')',nw=new Date();
+ const P=function(n){return ('0'+n).slice(-2)};
+ let el=document.getElementById('ycbprt');if(!el){el=document.createElement('div');el.id='ycbprt';document.body.appendChild(el)}
+ el.innerHTML='<style>.sjmp{color:#000;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sjmp .sp-h{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid #000;padding-bottom:5px}'
+  +'.sjmp .sp-h b{font-size:20px}.sjmp .sp-h span{font-size:12px;margin-left:auto}.sjmp .sp-n{font-size:12px;margin:6px 0 7px;line-height:1.45}'
+  +'.sjmp table{width:99.4%;border-collapse:collapse;table-layout:fixed}.sjmp th,.sjmp td{border:1px solid #000;padding:4px 5px;vertical-align:middle;text-align:left;word-break:keep-all;overflow-wrap:anywhere;line-height:1.35}'
+  +'.sjmp th{background:#eee;font-weight:800;text-align:center;font-size:11.5px}.sjmp td small{display:block;font-size:10px;color:#333;margin-top:1px}.sjmp td.sp-c{text-align:center}.sjmp td.sp-no{text-align:center;font-weight:800;font-size:12.5px}'
+  +'.sjmp td.sp-nm b{font-size:12px}.sjmp td.sp-it{font-size:10px;color:#111}.sjmp td.sp-w{border:2px solid #000;height:36px;text-align:right;font-size:13px;vertical-align:bottom}.sjmp td.sp-w b{font-size:17px;margin-right:4px}'
+  +'.sjmp td.sp-e{text-align:center;font-size:10.5px;color:#444}.sjmp tr{break-inside:avoid;page-break-inside:avoid}.sjmp thead{display:table-header-group}.sjmp .sp-f{margin-top:12px;text-align:right;font-size:13px;break-inside:avoid}</style>'
+  +'<div class="sjmp"><div class="sp-h"><b>삼정 가구 m 적기 — '+dt+' 배송</b><span>'+L.length+'곳 · 출력 '+(nw.getMonth()+1)+'/'+nw.getDate()+' '+P(nw.getHours())+':'+P(nw.getMinutes())+'</span></div>'
+  +'<div class="sp-n">1톤 차에 실었을 때 <b>짐칸 길이로 몇 m</b> 차지하는지 굵은 칸에 적어 주세요 (예 1.8). &nbsp;0.6m = 1줄 = 의자 12개 · 의자 '+capBase()+'개(약 '+sjmFmt(sjmFull())+'m) = 1톤 한 대</div>'
+  +'<table><colgroup>'+[5,17,25,31,12,9].map(function(w){return '<col style="width:'+w+'%">'}).join('')+'</colgroup><thead><tr><th>번호</th><th>동선 · 기사</th><th>거래처 · 배송지</th><th>삼정 품목</th><th>가구 m</th><th>어림</th></tr></thead><tbody>'
+  +L.map(function(o,k){const r=ASSIGN[o.i],rl=RID[r]?msbRL(r)+rgNm(r):'미배차',A=rowAddr(o)||{},dv=RID[r]?effDrv(o):'';
+   const its=(o.items||[]).filter(function(it){return it&&!it.x&&sjItem(it)}).map(function(it){return esc(String(it.p||'').trim())+' <b>×'+(+it.q||0)+'</b>'}).join(', ');
+   return '<tr><td class="sp-no">'+(k+1)+'</td><td class="sp-c">'+esc(rl)+(dv?'<small>'+esc(dv)+'</small>':'')+'</td><td class="sp-nm"><b>'+esc(o.n)+'</b>'+(A.t?'<small>'+esc(A.t)+'</small>':'')+'</td><td class="sp-it">'+its+'</td>'
+    +'<td class="sp-w">'+(o.sjm&&!o.sjmw?'<b>'+sjmFmt(o.sjm)+'</b>':'')+'m</td><td class="sp-e">'+sjmFmt(Math.round((o.sjE||0)*sjmFull()*10)/10)+'m</td></tr>'}).join('')
+  +'</tbody></table><div class="sp-f">적은 사람 ____________________</div></div>';
+ const pst=document.createElement('style');pst.textContent='@media print{@page{size:A4 portrait;margin:10mm}}';document.head.appendChild(pst);
+ document.body.classList.add('ycbprint');
+ const off=function(){document.body.classList.remove('ycbprint');if(pst.parentNode)pst.parentNode.removeChild(pst);window.removeEventListener('afterprint',off)};
+ window.addEventListener('afterprint',off);
+ setTimeout(function(){window.print();setTimeout(off,400)},80)}
 function sjmIn(t){const o=ORDERS.filter(function(x){return x.key===t.dataset.k})[0];if(!o)return;const m=sjmSet(t.dataset.k,t.value);
  t.value=m?sjmFmt(m):'';delete t.dataset.w;t.placeholder='';
  const c=document.getElementById('sjmr'+t.dataset.n),r=document.getElementById('sjmt'+t.dataset.n);if(c)c.innerHTML=sjmRes(o,m,0);if(r)r.className=m?'has':'';sjmCnt()}
@@ -1783,7 +1810,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261124j';
+const APPVER='20261125a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
