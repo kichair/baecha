@@ -1510,6 +1510,7 @@ try{Object.keys(TRIP).forEach(function(k){if(TRIP[k]>2)TRIP[k]=2})}catch(e){}
    · 그래도 안 되면(단일 건이 한 차를 넘는 등) 용차.
    · 배진성·정석윤은 1회전만. */
 const NEWTRIP_D='2026-11-24';
+const OUT_D0='2026-11-25';   /* «N일출고» 적요로 날짜를 옮기는 것은 이 날 출고분부터 (지난 배차·월별현황은 그대로) */
 /* 실을 짐이 아닌 줄 — 적재(대분)에서 뺀다. «설계시추가 [5단>>6단으로수정] 24» 가 0.4대분으로 잡히던 것 (2026-11-23) */
 const NOLOAD_RE=/설계시추가|수출박스비용|반품비|출장비|설치비|운임|운반비|택배비|배송비|퀵비|박스비|용차비|스티커|샘플칩|카다로그|카달로그/;
 const TRIP_MAX=2;
@@ -1835,7 +1836,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261125b';
+const APPVER='20261125c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2463,7 +2464,8 @@ function drvHL(raw){const t=String(raw||''),re=new RegExp(DRV_INFO_RE.source+'|'
  while((m=re.exec(t))){if(!m[0]){re.lastIndex++;continue}out+=esc(t.slice(i,m.index))+'<span class="drvc">'+esc(m[0])+'</span>';i=m.index+m[0].length}
  return out+esc(t.slice(i))}   /* 실제 명세서 값은 'ERP수시' · 'ERP수시(운임비별도)' — '집'이 없다 */
 const ERP_FROM='2026-08-25';
-function erpTag(o){
+function erpTag(o){return outTag(o)+erpTag0(o)}
+function erpTag0(o){
  if(!o||!o.erp)return '';
  if((o.od||'')<ERP_FROM)return '';
  return '<em class="erpdot" title="ERP수시 — 거래명세서 지참 / 대금 수령 주의">\u25CF</em>';
@@ -2693,9 +2695,12 @@ function build(fresh){
   }
  });
  Object.keys(g).forEach(k=>{const c=g[k];
-  const ms=[];c.items.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
-  const erp=c.items.some(function(x){return ERP_RE.test(x.g||'')})?1:0;
-  ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:k,d:DOVR[k]||c.od,items:c.items,memo:ms.join(' / '),dst:c.dst||''})});
+  const bySd={};c.items.forEach(function(x){const z=outDate(x.m,c.od);(bySd[z]=bySd[z]||[]).push(x)});
+  const sds=Object.keys(bySd);
+  sds.forEach(function(sd){const it=bySd[sd],kk=sds.length>1&&sd?k+'§출고'+sd:k;
+   const ms=[];it.forEach(x=>{if(x.m&&ms.indexOf(x.m)<0)ms.push(x.m)});
+   const erp=it.some(function(x){return ERP_RE.test(x.g||'')})?1:0;
+   ORDERS.push({n:c.n,jd:c.jd||0,erp:erp,ex:c.ex,od:c.od,key:kk,d:DOVR[kk]||sd||c.od,sd:sd,items:it,memo:ms.join(' / '),dst:c.dst||''})})});
  CUSTOM.forEach((c,j)=>{const k='cu'+j;
   ORDERS.push({n:c.n,ex:null,od:c.d||SEL,key:k,d:DOVR[k]||c.d||SEL,items:c.items,memo:c.memo||'',cu:1})});
  sjmIdx();
@@ -4890,6 +4895,21 @@ function ycbSun(mon){const t=new Date(mon+'T00:00:00');t.setDate(t.getDate()+6);
 function ycbPay(mon){const t=new Date(mon+'T00:00:00');t.setDate(t.getDate()+7);
  return (t.getMonth()+1)+'/'+t.getDate()}
 function md(d){return d?(+d.slice(5,7))+'/'+(+d.slice(8,10)):''}
+/* ===== 적요 «25일출고»·«11/27출고»·«12월 12일 출고 예정» — 세금계산서를 먼저 끊고 나중에 나가는 건 (2026-11-25 강현아님) =====
+   전표일자보다 뒤(21일 안)면 그 출고일을 돌려준다, 아니면 ''. 출고건·출고분·출고된·출고참조·출고동일… 은 지난 출고 이야기라 아니다 */
+function outDate(memo,base){const t=String(memo||'').replace(/\s+/g,'');if(!t||!/^\d{4}-\d\d-\d\d$/.test(String(base||''))||t.indexOf('출고')<0)return '';
+ let m,mm=0,dd=0;
+ if((m=t.match(/(?:^|[^0-9.])([0-9]{1,2})(?:\/|월)([0-9]{1,2})일?에?출고(?:예정)?(?!건|분|된|한|했|참조|동일|동$|완료|품|때|후|당시|취소|안|미)/))){mm=+m[1];dd=+m[2]}
+ else if((m=t.match(/(?:^|[^0-9\/월.]|[^0-9]\/)([0-9]{1,2})일에?출고(?:예정)?(?!건|분|된|한|했|참조|동일|동$|완료|품|때|후|당시|취소|안|미)/)))dd=+m[1];
+ else if((m=t.match(/출고(?:일)?(?:은|는|:)?([0-9]{1,2})일(?!도착|하차|배송|상차)/)))dd=+m[1];
+ if(!dd||dd>31||mm>12)return '';
+ const y=+base.slice(0,4),M=+base.slice(5,7),b0=new Date(base+'T00:00:00');let best=null;
+ (mm?[[y-1,mm],[y,mm],[y+1,mm]]:[-1,0,1].map(function(k){let yy=y,MM=M+k;if(MM<1){MM=12;yy--}if(MM>12){MM=1;yy++}return [yy,MM]})).forEach(function(c){
+  const z=new Date(c[0],c[1]-1,dd);if(z.getDate()!==dd)return;const df=Math.abs(z-b0);if(!best||df<best.df)best={z:z,df:df}});
+ if(!best)return '';
+ const gap=Math.round((best.z-b0)/864e5),r=best.z.getFullYear()+'-'+('0'+(best.z.getMonth()+1)).slice(-2)+'-'+('0'+best.z.getDate()).slice(-2);
+ return gap>0&&gap<=21&&r>=OUT_D0?r:''}
+function outTag(o){return o&&o.sd&&o.od&&o.od!==o.d?'<em class="jdtag" style="background:#e8f0ff;color:#1e5bb8;border-color:#9dbdf0" title="전표일자 '+md(o.od)+' — 적요에 «'+(+o.sd.slice(8))+'일출고» 라 출고일 배차로">전표 '+md(o.od)+'</em>':''}
 /* ===== 적요에 적힌 실제 출고일 (2026-09-02) =====
    판매명세서 거래일자와 실제 나가는 날이 다른 경우가 많다.
    그때는 적요에 '출고는3일' '8일출고' '8/11배송' 처럼 적어 둔다.
@@ -6397,6 +6417,8 @@ function msbSummary(){
   +'동선 묶음 <b>'+S.routed.length+'</b>건 '+S.qtyR+'개(직납 '+S.jik.length+(S.trip2.length?' · 2차분 '+S.trip2.length:'')+') · 찾으러옴·차량입고 <b>'+S.pick.length+'</b> · 미배차 <b>'+S.un.length+'</b> · 뺀 것 <b>'+S.x.length+'</b>건'+(xt?'('+xt+')':'')
   +' — 장수 대조 '+S.outPages+'/'+S.inPages+' '+(S.good?'✅ 다 들어갔습니다':'⚠ <b style="color:#c0392b">'+(S.inPages-S.outPages)+'장이 어디에도 안 들어갔습니다</b>'+(S.badOk?' · 건수도 '+S.badOk+'건 차이':''))
   +(S.moved.length?'<div style="color:#c0392b;font-weight:800;margin-top:4px">⚠ 다른 날 묶음에 이미 찍은 전표 '+S.moved.length+'건 (날짜 바뀜) — '+S.moved.map(function(u){return esc(u.n)+' ('+md(u.moved)+' 묶음, 의자 '+(u.qty||0)+'개)'}).join(' · ')+'</div>':'')
+  +((MSB.miss||[]).length?'<div style="color:#c0392b;font-weight:800;margin-top:4px">⚠ 이날 출고인데 전표가 없는 건 '+MSB.miss.length+'건 — '+MSB.miss.map(function(o){return esc(msbMissTxt(o))}).join(' · ')+' → sERP 에서 그 전표일자로 이 전표만 PDF 로 뽑아 «📄 이 파일 도장찍기» 로 올려 주세요 (출고일 동선으로 찍힙니다)</div>':'')
+  +(MSB.pullN?'<div style="color:#1e5bb8;font-weight:800;margin-top:4px">전표일자가 다른 출고일 전표 '+MSB.pullN+'건을 그 날짜 명세표에서 찾아 넣었습니다</div>':'')
   +' · 같은 내용이 묶음 PDF 맨 앞 장(보고)에도 찍힙니다</div>';
 }
 function msbRL(id){if(id==='ov')return '용차 권장';if(id==='fo')return '전표만(배차 없음)';if(/^r\d+$/.test(id))return id.slice(1)+'동선';if(id==='pick')return '찾으러옴·차량입고';if(id==='un')return '미배차';const r=RID[id];return r?r.nm.split(/\.\s/)[0].trim():id}   /* «3.5톤 대형» 이 «3» 으로 잘리던 것 — 점 뒤 띄어쓰기에서만 자른다 (2026-11-02) */
@@ -6413,6 +6435,8 @@ function msbClass(units){
    u.prm=msbPrMark(u.memo);u.fw='';
    if(u.prm==='x'){u.g='x';u.why='적요 「전표x」';return}
    const force=u.prm==='o';   /* 전표o — 아래 빼기 규칙을 전부 건너뛴다 */
+   /* 다른 날 출고 — 그날 묶음에서 찍는다 (2026-11-25) */
+   if(u.outx&&!force){u.g='x';u.why='적요 「'+(+u.sd.slice(8))+'일출고」 '+md(u.sd)+' 묶음에서 찍음';return}
    /* 수량 합이 마이너스(반품·차감 전표) — 장을 안 찍고 뺀 전표 목록에만 (2026-11-18 강현아님) */
    if((u.qty||0)<0){if(force)u.fw='마이너스';else{u.g='x';u.why='수량 마이너스(차감 전표)';return}}
    /* 주소란에 «명세표주지마세요» — 왼쪽 위 빨간 도장 맨 앞에 (2026-10-30) */
@@ -6431,7 +6455,9 @@ function msbClass(units){
       못 찾고 미배차로 빠졌다 → 띄어쓰기를 빼고 비교, 잘린 이름은 앞부분(6자 이상)이 같으면 같은 거래처 */
    const nz=function(s){return String(s||'').replace(/\s+/g,'')},un=nz(u.n);
    const same=function(n){const a=nz(n);return a===un||(un.length>=6&&a.indexOf(un)===0)||(a.length>=6&&un.indexOf(a)===0)};
-   const os=ORDERS.filter(function(o){return (o.d===D||o.od===D)&&ST[o.i]!=='del'&&(same(o.n)||(o.items||[]).some(function(it){return same(it.n)}))});
+   let os=ORDERS.filter(function(o){return (o.d===D||o.od===D)&&ST[o.i]!=='del'&&(same(o.n)||(o.items||[]).some(function(it){return same(it.n)}))});
+   /* 출고일로 옮긴 주문(o.sd)은 출고일 전표끼리만 잇는다 */
+   {const z=os.filter(function(o){return u.sd&&u.sd===D?o.sd===D:!o.sd});if(z.length)os=z}
    /* 같은 거래처가 배송지별로 나뉘어 있으면 전표 적요가 들어 있는 쪽으로 (2026-11-05 오피스랩: 거래처 주소 / 아산병원) */
    const um=nz(u.memo);const os2=um?os.filter(function(o){return nz(o.memo).indexOf(um)>=0}):[];
    const pickO=function(L){return L.filter(function(o){const r=ASSIGN[o.i];return r&&r!=='_'&&!offRoute(r)})[0]||L[0]||null};
@@ -6586,6 +6612,12 @@ async function msbBuild(bytes,groups,coversOnly){
    ('이미 다른 날 묶음에 찍은 전표 '+S.moved.length+'건 (날짜 바뀜) — '+S.moved.map(function(u){return u.n+' ('+md(u.moved)+' 묶음, 의자 '+(u.qty||0)+'개, 지금 '+msbRL(u.g)+rgNm(u.g)+')'}).join(', ')).split(/(?<= )/).forEach(function(wd){
     if(tw(cu+wd,sz)<=w){cu+=wd;return}if(cu.trim())wl.push(cu);const ps=wr(wd,sz,w);ps.slice(0,-1).forEach(function(z){wl.push(z)});cu=ps[ps.length-1]||''});if(cu.trim())wl.push(cu);
    const bh=wl.length*lh+12;need(bh+6);cv.drawRectangle({x:LM,y:y-bh+14,width:RM-LM,height:bh,color:rgb(1,.97,.88),borderColor:RED,borderWidth:1.2});
+   wl.forEach(function(l){cv.drawText(l,{x:LM+8,y:y,size:sz,font:font,color:RED});y-=lh});y-=18}
+  /* 오늘 출고인데 전표일자가 달라 PDF 에 없는 건 (2026-11-25) */
+  if((MSB.miss||[]).length){const sz=10,lh=14,w=RM-LM-20,wl=[];let cu='';
+   ('!! '+md(d0)+' 출고인데 전표가 없는 건 '+MSB.miss.length+'건 — '+MSB.miss.map(msbMissTxt).join(', ')+' — sERP 에서 그 전표일자로 이 전표만 PDF 로 뽑아 «이 파일 도장찍기» 로 올려 주세요').split(/(?<= )/).forEach(function(wd){
+    if(tw(cu+wd,sz)<=w){cu+=wd;return}if(cu.trim())wl.push(cu);const ps=wr(wd,sz,w);ps.slice(0,-1).forEach(function(z){wl.push(z)});cu=ps[ps.length-1]||''});if(cu.trim())wl.push(cu);
+   const bh=wl.length*lh+12;need(bh+6);cv.drawRectangle({x:LM,y:y-bh+14,width:RM-LM,height:bh,color:rgb(1,.95,.94),borderColor:RED,borderWidth:1.6});
    wl.forEach(function(l){cv.drawText(l,{x:LM+8,y:y,size:sz,font:font,color:RED});y-=lh});y-=18}
   /* ===== 맨 앞 «용차 권장» (2026-11-23 강현아님 «기사들 다 배치하고도 모자라면 용차 권장이라고 보고서 앞에 써야지») ===== */
   {let LP=null;try{LP=loadPlan(d0)}catch(e){console.warn('용차 권장 셈 실패',e)}
@@ -6835,6 +6867,9 @@ async function msbBuild(bytes,groups,coversOnly){
     if(u.moved&&!pi){const t=md(u.moved)+' 이미 찍음 (날짜 바뀜)',w=tw(t,11)+14;
      pg.drawRectangle({x:396,y:818,width:w,height:18,color:RED});
      pg.drawText(t,{x:403,y:823,size:11,font:font,color:WHT})}
+    if(u.sd&&u.sd===u.date&&u.od&&u.od!==u.date&&!pi){const t=md(u.sd)+' 출고 (전표일자 '+md(u.od)+')',w=tw(t,11)+14,x0=u.moved?390-w:396;
+     pg.drawRectangle({x:x0,y:818,width:w,height:18,color:BLU});
+     pg.drawText(t,{x:x0+7,y:823,size:11,font:font,color:WHT})}
     u.flags.forEach(function(f){const w=tw(f,11)+12;
      pg.drawRectangle({x:fx,y:792+SUP,width:w,height:23,borderColor:RED,borderWidth:1.5});
      pg.drawText(f,{x:fx+6,y:799+SUP,size:11,font:font,color:RED});fx+=w+6});
@@ -6949,6 +6984,36 @@ async function msbMarkMoved(units){
    if(in1&&in0)continue;                                                         /* 두 날짜에 다 있으면 따로 주문 */
    if(!in1&&!(pre0&&u.pre!=null&&pre0===u.pre))continue;                         /* 사이트 명세서로 못 가리는 것(부속만·아직 못 받은 것)은 전미수잔액까지 같을 때만 */
    u.moved=d0;break}})}
+/* 이 묶음의 날짜를 정하고, 적요가 «그날 출고» 인 전표는 그 날짜로 본다. 다른 날 출고인 전표는 u.outx (그날 묶음에서 찍음) */
+function msbOutPrep(units){const ok=units.filter(function(u){return u.ok&&u.date});
+ ok.forEach(function(u){u.od=u.date;u.sd=outDate(u.memo,u.date)});
+ const f=ok.find(function(u){return !u.sd}),D=f?f.date:(ok[0]?ok[0].sd:'');
+ ok.forEach(function(u){if(!u.sd)return;if(u.sd===D)u.date=D;else u.outx=1});
+ return {D:D,only:ok.length>0&&!f}}
+/* 그날 출고인데 전표일자가 달라 이 PDF 에 없는 전표 — 그 전표일자에 뽑아 둔 PDF(보관함)에서 찾아 붙이고, 없으면 알린다 */
+async function msbOutPull(bytes,D,units){
+ const nz=function(x){return String(x||'').replace(/\s+/g,'')},same=function(a0,b0){const a=nz(a0),b=nz(b0);return a===b||(a.length>=6&&b.indexOf(a)===0)||(b.length>=6&&a.indexOf(b)===0)};
+ const need=ORDERS.filter(function(o){if(!o.sd||o.sd!==D||o.d!==D||o.od===D||ST[o.i]==='del')return false;
+  if(!(o.items||[]).some(function(it){return it&&!it.x&&!sjItem(it)}))return false;
+  const pr=msbPrMark(o.memo);if(pr==='x')return false;
+  return pr==='o'||/매장\s*배송|차량\s*입고/.test(o.memo||'')||!MSB_EXCL.test(o.memo||'')});
+ const miss=[],by={},got=[];
+ need.forEach(function(o){if(!units.some(function(u){return u.ok&&u.date===D&&same(u.n,o.n)&&(u.sd===D||u.od===o.od)}))(by[o.od]=by[o.od]||[]).push(o)});
+ const np0=MSB_NP;
+ for(const od of Object.keys(by)){let b=null,U=[];
+  try{msbSt(md(od)+' 명세표에서 '+md(D)+' 출고 전표 찾는 중…');b=await msbFile(od);if(b)U=await msbParse(b)}catch(e){console.warn('출고일 전표 찾기 실패',od,e)}
+  by[od].forEach(function(o){const c=U.filter(function(u){return u.ok&&same(u.n,o.n)}),kw=(o.items||[]).reduce(function(s2,it){return s2+(it&&!it.x&&!sjItem(it)?(+it.q||0):0)},0);
+   let h=c.filter(function(u){return outDate(u.memo,u.date)===D});if(!h.length)h=c.filter(function(u){return kw>0&&(u.qty||0)===kw});
+   if(!h.length){miss.push(o);return}
+   h.forEach(function(u){if(!got.some(function(g){return g.u===u}))got.push({u:u,b:b})})})}
+ MSB_NP=np0;
+ if(got.length){const PD=PDFLib.PDFDocument,a=await PD.load(bytes,{ignoreEncryption:true});let np=a.getPageCount();const srcs=new Map();
+  for(const g of got){if(!srcs.has(g.b))srcs.set(g.b,await PD.load(g.b,{ignoreEncryption:true}));
+   const cp=await a.copyPages(srcs.get(g.b),g.u.pages.map(function(p){return p-1}));
+   g.u.pages=cp.map(function(p){a.addPage(p);np++;return np});g.u.od=g.u.date;g.u.sd=D;g.u.date=D;g.u.pull=1;units.push(g.u)}
+  bytes=await a.save();MSB_NP=np}
+ return {bytes:bytes,miss:miss,n:got.length}}
+function msbMissTxt(o){return o.n+' (전표일자 '+md(o.od)+', '+(o.qty||0)+'개'+(o.memo?', 적요 «'+String(o.memo).slice(0,40)+'»':'')+')'}
 async function msbRun(bytes,name,onlyNew,coversOnly){
  const base=(document.getElementById('msbbase')||{}).value||'';   /* 어느 묶기까지를 «이미 묶은 것» 으로 볼지 */
  try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew,base:base};
@@ -6956,7 +7021,9 @@ async function msbRun(bytes,name,onlyNew,coversOnly){
   await sjnLoad();
   let units=await msbParse(bytes);
   if(!units.some(function(u){return u.ok}))throw new Error('거래명세표 PDF 가 아닌 것 같습니다 (거래처를 못 읽음)');
-  const d=(units.find(function(u){return u.date})||{}).date||SEL;
+  /* 적요 «25일출고» — 전표일자가 아니라 출고일 묶음에 (2026-11-25) */
+  const op=msbOutPrep(units),d=op.D||SEL;
+  if(!op.only)try{const pl=await msbOutPull(bytes,d,units);bytes=pl.bytes;MSB.miss=pl.miss;MSB.pullN=pl.n}catch(e){console.warn('출고일 전표 붙이기 실패',e)}
   const all=units.filter(function(u){return u.ok}).length;
   /* 주소 끝 번호표를 외운다 → 배차를 다시 짜서(자동으로 잡힌 것만 바뀜) 그 동선으로 찍는다 (2026-11-04 사장님 «번호표 써») */
   {let nt=0;units.forEach(function(u){if(!u.ok||!u.rtag)return;const r='r'+u.rtag;if(!RID[r])return;const k=String(u.n||'').replace(/\s+/g,'');if(TAGRT[k]!==r){TAGRT[k]=r;nt++}});
@@ -6982,7 +7049,7 @@ async function msbRun(bytes,name,onlyNew,coversOnly){
   MSB.out=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
   msbSt('');render();msbDown();
   /* 내려받은 뒤 지문을 적어 둔다 — 전체 묶기는 새로 쓰고, 추가분은 보탠다. 보고서만 뽑은 것은 기록 안 함 */
-  if(!coversOnly)try{const oks=units.filter(function(u){return u.ok});await msbDoneSet(d,oks.map(function(u){return u.sig}),!onlyNew,oks.map(function(u){return String(u.n||'').replace(/\s+/g,'')}),oks.reduce(function(m,u){if(u.g!=='x'&&u.core)m[u.core]=u.pre==null?null:u.pre;return m},{}))}catch(e){console.warn('묶은 기록 저장 실패',e)}
+  if(!coversOnly)try{const oks=units.filter(function(u){return u.ok});await msbDoneSet(d,oks.map(function(u){return u.sig}),!onlyNew&&!op.only,oks.map(function(u){return String(u.n||'').replace(/\s+/g,'')}),oks.reduce(function(m,u){if(u.g!=='x'&&u.core)m[u.core]=u.pre==null?null:u.pre;return m},{}))}catch(e){console.warn('묶은 기록 저장 실패',e)}
  }catch(e){console.error(e);msbSt('⚠ '+(e&&e.message||e))}
 }
 function msbPickOpen(only,covers){MSB.pickOnly=!!only;MSB.pickCovers=!!covers;const f=document.getElementById('msbf');if(!f)return;f.value='';f.click()}
@@ -7029,6 +7096,7 @@ function tabMsb(){
  let h='<div class="hd2">📄 명세서 묶기 <span style="font-weight:600;color:#8b9aab;font-size:11.5px">sERP 거래명세표 PDF → 동선·기사 찍고 동선별로 다시 묶기</span></div>';
  h+='<div class="ycnote"><b>날짜를 고르고 「📥 자동실행컴에서 묶기」·「💻 이 PC에서 묶기」</b>를 누르면 그 컴의 sERP 일별영업현황에 들어가 그날 거래명세표를 <b>그 자리에서 새로 뽑아</b>(2~5분) 가져와 묶습니다. 평일 <b>14:35</b> 에 다음 영업일 것이 저절로 뽑힙니다(일별영업현황 → 거래명세표 → 미발행·개별발행·통합발행을 모아 PDF, 수집이 돌고 있으면 끝난 뒤) — 원본은 공유폴더 <b>\\\\Kic-server2\\새공유문서\\거래명세표PDF\\&lt;날짜&gt;.pdf</b>. <b>16:20</b> 에는 14:35 뒤 들어온 전표만 다시 뽑아 같은 곳 <b>&lt;날짜&gt;_추가.pdf</b> (새 장 목록·빼야 할 옛 장은 <b>&lt;날짜&gt;_추가.txt</b>) — «➕ 이 파일 추가분만 도장찍기» 로 올리세요. 직납 전표는 맨 앞에 <b>직납 묶음</b>으로 따로 모입니다(도장은 원래 동선). sERP 에서 직접 받은 PDF 는 <b>「📄 이 파일 도장찍기」</b>(전부) · <b>「➕ 이 파일 추가분만 도장찍기」</b>. 장마다 그날 배차와 맞춰 <b>공급자 보관용 오른쪽 위에 동선(동선 색)·기사 이름</b>을 찍고 <b>1동선부터 차례로</b> 다시 묶어 내려줍니다(동선마다 표지 한 장). '
   +'적요에 <b>택배·용차·상차·화물·퀵·맞교환·회수</b> 가 있는 장은 빼고(맨 뒤에 목록), <b>찾으러옴·차량입고</b>는 따로 모읍니다. 적요에 <b>전표o</b>(전표ㅇ·전표0)가 있으면 무조건 찍고, <b>전표x</b> 면 안 찍습니다. 왼쪽 위 도장: <b>선입금</b> = 전미수잔액이 마이너스 · <b>ERP수시</b> = ERP수시 거래처(주소 끝 # 표시) · 적요에 <b>기사님 바로 전화·도착 전 연락·기사님 정보</b> 같은 부탁이 있으면 빨간 동그라미 <b>«기사님 전화»·«기사님 정보»</b>(공급자용에만). 공급받는자 보관용에는 적요와 동선 색 칸만 찍힙니다(동선·기사 글자와 선입금·ERP수시 도장은 공급자용에만). '
+  +'적요에 <b>25일출고</b>·<b>11/27출고</b> 처럼 전표일자보다 뒤 날짜를 적으면 배차도 묶음도 <b>그 출고일</b> 것으로 갑니다(세금계산서를 먼저 끊은 건). '
   +'거래처 주소 칸에 <b>배송…</b> 이 적혀 있으면 그 글을 왼쪽 위에 노란 칠로 찍습니다(직납·찾으러옴이거나 적요에 갈 곳이 적혀 있으면 안 찍음). '
   +'<b>배차를 다 마친 뒤</b> 올려야 동선·기사가 다 채워집니다.</div>';
  const md0=MSBD||mnNextBiz();
