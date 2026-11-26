@@ -1841,7 +1841,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261126b';
+const APPVER='20261126c';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -3801,8 +3801,8 @@ function loadPlan(D){
    if(a.big){res.over.push({k:'한 건이 한 차를 넘음',rid:a.rid,os:[o],L:L,txt:nmR(a.rid)+' '+o.n+' '+(L/cf<1.15?'적재 '+pc(L,cf):f(L)+'대분')+' — 한 건이 한 차를 넘음 (동선 기사 '+a.d+'): '+ordItems(o).join(', ')+(o.sjm?' · 가구'+sjmChip(o).replace(' · ',' '):'')});return}
    if(a.trip===3){res.over.push({k:'1차·2차에 싣고 남음',rid:a.rid,os:a.list,L:L,txt:nmR(a.rid)+' '+a.d+' '+(can2nd(a.d)?'1차·2차에 싣고 남은 ':'1차만 도는 기사라 남은 ')+a.list.length+'건 '+f(L)+'대분: '+a.list.map(function(z){return z.n}).join(', ')});return}
    if(L>cf*(1+TRIP_EPS)+0.0001)res.over.push({k:'손으로 정한 '+a.trip+'차 초과',rid:a.rid,who:a.d+' '+a.trip+'차',it:'적재 '+pc(L,cf),L:L-cf,txt:nmR(a.rid)+' '+a.d+' '+a.trip+'차 — 손으로 정한 분량이 '+pc(L,cf)+' (100% 넘는 '+f(L-cf)+'대분)'});
-   if(a.trip===2){res.two.push(nmR(a.rid)+' '+a.d+' '+a.list.length+'건 '+pc(L,cf)+(/^(r9|r10|rw)$/.test(a.rid)?' [먼 동선 — 같은 날 두 번 어려움]':''));D2[a.d]=1}
-   else if(a.trip===1&&!a.jdi)(D1[a.d]=D1[a.d]||[]).push({r:a.rid,p:L/cf})});   /* 조달 설치하는 기사는 «2차 없는 기사» 에 안 넣음 (2026-11-26) */
+   if(a.trip===2){res.two.push(nmR(a.rid)+' '+a.d+' '+a.list.length+'건 '+pc(L,cf)+(/^(r9|r10|rw)$/.test(a.rid)?' [먼 동선 — 같은 날 두 번 어려움]':''));D2[a.d]=D2[a.d]||{p:0,rt:[]};D2[a.d].p+=L/cf;D2[a.d].rt.push({r:a.rid,p:L/cf})}
+   else if(a.trip===1&&!a.jdi)(D1[a.d]=D1[a.d]||[]).push({r:a.rid,p:L/cf,m:estRoute(a.rid,a.list),q:a.q||0})});   /* 조달 설치하는 기사는 «2차 없는 기사» 에 안 넣음 (2026-11-26) */
   /* 기사 빈칸 동선 */
   const bl={};car.forEach(function(o){if(!effDrv(o)){const r=ASSIGN[o.i];(bl[r]=bl[r]||{L:0,n:0,os:[]});bl[r].L+=loadOfFor(o);bl[r].n++;bl[r].os.push(o)}});
   Object.keys(bl).forEach(function(r){if(bl[r].L<0.005)return;const _cf=capFactor(r)||1,_big=bl[r].os.filter(function(z){return loadOfFor(z)>_cf*(1+TRIP_EPS)});res.blank.push({k:'기사 빈칸'+(_big.length&&_big.length===bl[r].os.length?'\n한 건이 한 차를 넘음':/^(r9|r10|rw)$/.test(r)&&bl[r].L<0.15*_cf?'\n적은 분량':''),rid:r,os:bl[r].os,L:bl[r].L,txt:nmR(r)+' 기사 빈칸 — '+bl[r].n+'건 '+f(Math.max(0.1,bl[r].L))+'대분'})});
@@ -3810,6 +3810,15 @@ function loadPlan(D){
   res.free=DRVS.map(function(d){return d[0]}).filter(function(n){return autoOK(n)&&!used[n]});
   res.idle=DRVS.filter(function(d){return d[2]==='3.5톤'&&!used[d[0]]}).map(function(d){return d[0]+'(3.5톤)'});
   res.one=Object.keys(D1).filter(function(n){return !D2[n]&&can2nd(n)&&autoOK(n)}).map(function(n){const t=D1[n].reduce(function(x,z){return x+z.p},0);return {n:n,p:t,t:n+'('+D1[n].map(function(z){return msbRL(z.r)}).join('·')+' '+Math.round(t*100)+'%)'}}).sort(function(a,b){return a.p-b.p}).map(function(z){return z.t});
+  /* 추가분 갈 수 있는 기사 — 짐 없는 기사 먼저, 그다음 1차가 일찍 끝나는 차례 */
+  /* 추가분 갈 수 있는 기사 — 짐 없는 기사, 그다음 2차가 빈 기사(1차가 일찍 끝나는 차례), 그다음 2차가 덜 찬 기사(남는 자리 많은 차례) */
+  const jd={};rows.forEach(function(a){if(a.jdi)jd[a.d]=1});
+  const one=function(n){const L=D1[n]||[],T=D2[n]||{p:0,rt:[]};return {n:n,v:vehOf(n)||'카고',rt:L,p:L.reduce(function(x,z){return x+z.p},0),m:L.reduce(function(x,z){return x+z.m},0),p2:T.p,rt2:T.rt}};
+  res.oneL=res.free.filter(function(n){return can2nd(n)||vehOf(n)==='3.5톤'}).map(function(n){const z=one(n);z.free=1;return z})
+   .concat(Object.keys(D1).filter(function(n){return can2nd(n)&&autoOK(n)&&!jd[n]&&(!D2[n]||D2[n].p<0.9)}).map(one)
+   .sort(function(a,b){return (a.p2>0)-(b.p2>0)||(a.p2>0?a.p2-b.p2:a.m-b.m)}));
+  res.no2=Object.keys(D1).filter(function(n){return !D2[n]&&!can2nd(n)});
+  res.jdi=rows.filter(function(a){return a.jdi}).map(function(a){return a.d}).filter(function(n,i,A){return A.indexOf(n)===i});
   res.sum=res.over.concat(res.blank).reduce(function(x,z){return x+z.L},0);
  }finally{SEL=keep;CAR=kc}
  return res}
@@ -6771,6 +6780,17 @@ async function msbBuild(bytes,groups,coversOnly){
      const t1=a2&&us[0].trip===2?Object.values(a2From(D,us[0].drv)).join('·'):'';
      rows.push({g:g.id,c:[{t:nm,sz:10.5,al:'l',color:WHT,fill:col},{t:!r?'':t===99?'초과분':h2?msbRL(g.id).replace('동선','')+'-'+msbTkL(t):'1',al:'c',sz:10,color:t===99?RED:BLK},{t:t===99?'용차 필요':(tDrv(us)||(g.id==='un'||g.id==='pick'||g.id==='fo'?'':'기사 빈칸')),al:'c',sz:10.5,color:t===99||(!tDrv(us)&&r)?RED:BLK},{t:us.length+'건',al:'c',sz:10},{t:S.nq(us)+'개',al:'c',sz:10},{t:p==null?'':p+'%',al:'c',sz:10.5,color:p>100?RED:BLK},{t:t===99?'1차·2차에 못 싣는 분량':a2?(us[0].trip===2?t1+' 다녀와서 2차':'짐 없던 기사'):(us[0]&&us[0].trip===2&&r?'2차':''),sz:8.6,color:GRY}]})})});
    if(rows.length){ttl('동선별 한눈에');tGrid(C,LM,[150,44,88,44,50,48,TWD-424],['동선','차','기사','전표','의자','적재','비고'],rows,{sz:9.5})}}
+  {let LP2=null;try{LP2=loadPlan(d0)}catch(e){}
+   if(LP2){const B=capBase(d0),hr=function(m){m=Math.round(m/10)*10;const h=Math.floor(m/60),mm=m%60;return m?(h?h+'시간':'')+(mm?' '+mm+'분':''):''};
+    const rt=function(L){return L.map(function(r){return msbRL(r.r)+rgNm(r.r)+' '+Math.round(r.p*100)+'%'}).join('\n')};
+    const rows2=(LP2.oneL||[]).map(function(z,i){const room=z.free?1:Math.max(0,1-z.p2),ch=Math.round(room*(z.v==='호로'?HORO_CHAIR_CAP:B)/5)*5;
+     return {c:[{t:String(i+1),al:'c'},{t:z.n,al:'c',sz:11},{t:z.v,al:'c'},{t:z.rt.length?rt(z.rt)+(z.m?'\n(어림 '+hr(z.m)+')':''):'1차 없음 (짐 없음)',sz:9,color:z.rt.length?BLK:rgb(.05,.5,.25)},{t:z.rt2.length?rt(z.rt2):'없음',sz:9,al:z.rt2.length?'l':'c',color:z.rt2.length?BLK:rgb(.05,.5,.25)},{t:(z.free?'한 차 다':Math.round(room*100)+'%')+'\n(의자 약 '+ch+'개'+(z.v==='호로'?' · 가구 위주':'')+')',al:'c',sz:9.4,color:rgb(.1,.35,.75)}]}});
+    ttl('추가분 갈 수 있는 기사 — 2차 자리',rgb(.1,.35,.75));
+    if(rows2.length)tGrid(C,LM,[26,62,40,140,120,TWD-388],['차례','기사','차','1차 (동선 · 적재)','2차 (동선 · 적재)','2차에 남는 자리'],rows2,{hc:rgb(.1,.35,.75),sz:9.6,gap:4});
+    else box('2차 자리가 남은 기사가 없습니다 — 추가분은 용차로',rgb(1,.95,.94),RED);
+    const nt=['차례 = 2차가 빈 기사(1차가 먼저 끝나는 차례) → 2차가 덜 찬 기사(남는 자리 많은 차례). 추가분이 들어오면 위에서부터 주세요.'];
+    if(LP2.no2.length)nt.push('2차 안 도는 기사: '+LP2.no2.join('·'));if(LP2.jdi.length)nt.push('조달 설치하는 기사: '+LP2.jdi.join('·'));
+    brk(nt.join('   ·   '),8.5,TWD).forEach(function(l){C.cv.drawText(l,{x:LM,y:C.y-8,size:8.5,font:font,color:GRY});C.y-=11});C.y-=9}}
   /* 초과분·기사 빈칸 */
   {let LP=null;try{LP=loadPlan(d0)}catch(e){console.warn('용차 권장 셈 실패',e)}
    if(LP){const rows=[];LP.over.slice().sort(function(a,b){return b.L-a.L}).concat(LP.blank).forEach(function(z,zi){
@@ -6778,7 +6798,7 @@ async function msbBuild(bytes,groups,coversOnly){
      ((z.os&&z.os.length)?z.os.map(function(o){return [o.n,ordItems(o).join(',  ')+(o.sjm?'  ·  가구 '+sjmChip(o).replace(' · ',''):'')]}):[[z.who||'',z.it||z.txt]]).forEach(function(r){rows.push({g:'z'+zi,c:[{t:T,al:'c',color:RED,sz:9.8},{t:r[0],sz:9.6},{t:r[1],sz:8.8}]})})});
     if(rows.length&&LP.sum>=0.15){ttl('우리 차로 못 싣는 짐 약 '+(Math.round(LP.sum*10)/10).toFixed(1)+'대분 — 용차 필요',RED);tGrid(C,LM,[128,128,TWD-256],['동선 · 까닭 · 분량','거래처','품목'],rows,{hc:rgb(.72,.12,.1)})}
     const ex=[];if(LP.free.length)ex.push('짐 없는 기사 '+LP.free.join('·'));if(LP.one.length)ex.push('2차 없는 기사 '+LP.one.join(' · '));if(LP.idle.length)ex.push('실린 것이 없는 차 '+LP.idle.join(' · '));
-    if(ex.length)box(ex.join('   /   '),rgb(.95,.97,1),rgb(.1,.35,.75))}}
+    }}
   /* 동선마다 표 — 거래처 · 의자이름 · 개수 · 총계 */
   groups.forEach(function(g){const r=RID[g.id]&&g.id!=='jn',D=(g.units[0]||{}).date||d0,col=hex(msbCL(g.id)),tks=r?tTks(g):[0],h2=r&&(tks.length>1||tks[0]!==1),rows=[];let no=0;
    tks.forEach(function(t){const us=r?g.units.filter(function(u){return msbTk(u)===t}):g.units,p=r?tPct(g,us,t,D):null;
