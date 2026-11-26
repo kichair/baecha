@@ -1252,7 +1252,9 @@ const EXCL=[['택배','택배'],['차량입고','차량입고'],['상차','상�
 /* «아침입고요망»·«9시 입고 부탁» 은 거래처에 갖다 달라는 말 — 빼지 않는다 (2026-11-10 에스앤케이(가구뱅크) 11/10 «입고» 로 빠져 안 나감) */
 const EX_IN_OK=/(아침|오전|오후|일찍|새벽|당일|내일|빨리|급히|\d+\s*시(\s*\d+\s*분|반)?(까지|전)?)\s*입고|입고\s*(요망|부탁|바람|원함|해\s*주세요|해\s*주시|해\s*달라)/;
 const TON_GO_RE=/\d+(?:\.\d+)?\s*톤\s*[-–—](?=[^/]{0,24}[가-힣][시군구읍면동리로길])/;   /* «1톤-전북남원시…» 꼴 용차 지시 (2026-11-17 강현아님, 코아테크) */
-function exLine(m,n){const s=m||'';
+const HWA_LOC_D='2026-11-26',HWA_LOC_RE=/화물\s*(?:앞|엘리베이터|엘레베이터|엘베|승강기|용\s*엘|입구|출입구|주차|하차장|하역장|도크|E\/?V|EV)/gi;
+function exTxt(t,d){t=String(t||'');return d&&String(d)<HWA_LOC_D?t:t.replace(HWA_LOC_RE,function(x){return x.replace('화물','')})}
+function exLine(m,n,d){const s=exTxt(m||'',d);
  /* «…매장배송으로 변경» — 방문수령·용차 글이 같이 있어도 가게로 갖다 주는 것, 빼지 않는다 (2026-11-13 강현아님, 유진가구(을지) 11/17) */
  if(/매장\s*배송/.test(s))return null;
  if(TON_GO_RE.test(s))return '용차(톤·주소)';   /* 2026-11-17 강현아님 «1톤-주소는 자동 용차» */
@@ -1839,7 +1841,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261125e';
+const APPVER='20261126a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2697,7 +2699,7 @@ function build(fresh){
   DUPN+=drop.size;
   return drop.size?RAW.filter(function(l){return !drop.has(l)}):RAW;
  })();
- LINES.forEach(l=>{const ex=exLine(l.m,l.n)||'';
+ LINES.forEach(l=>{const ex=exLine(l.m,l.n,l.d)||'';
   const jd=ILSI_RE.test(l.n);
   const sub=jd?ilsiLabel(l.m):dsub(l.m,l.n);   /* 일시성=기관명, 그 외=적요의 배송주소 */
   const k=dkey(l.n,ex,l.d)+(sub?'§'+sub:'');
@@ -5818,9 +5820,9 @@ function ycbSignPrint(){
    채워서 A4 세로 한 장으로 뽑는다. 금액은 결재 올리기 표와 같은 방식 — 묶은 줄(↳)·착불은 뺀다.
    계좌는 업체별로 화면에서 눌러 고칠 수 있고 YCB._acct 에 저장돼 다른 PC 에도 넘어간다. */
 let YCJD='';
-const YC_ACCT_DEF={'나눔물류':'국민 163201-04-439199','대현물류':'국민 163201-04-439199','명진로지텍':''};
+const YC_ACCT_DEF={'나눔물류':'','대현물류':'국민 163201-04-439199','명진로지텍':''};
 function ycbAcct(co){const A=(YCB&&YCB._acct)||{};return (A[co]!==undefined)?A[co]:(YC_ACCT_DEF[co]||'')}
-function ycbSetAcct(co,v){v=String(v||'').replace(/\s+/g,' ').trim();
+function ycbSetAcct(co,v){v=String(v||'').replace(/\s+/g,' ').trim();if(v==='계좌 적기')v='';
  if(!YCB._acct||typeof YCB._acct!=='object'||Array.isArray(YCB._acct))YCB._acct={};
  if(ycbAcct(co)===v)return;YCB._acct[co]=v;ASGV['yb:_acct']=Date.now();save()}
 function ycbJcSetDate(v){YCJD=v||'';render()}
@@ -5851,7 +5853,7 @@ function ycbJcHtml(mon,edit){
   const lab=r.co+'('+rng+')'+(r.co==='대현물류'?'-광일':'');
   const ac=ycbAcct(r.co);
   const acc=edit
-   ?'<span class="jcac" contenteditable="true" spellcheck="false" onblur="ycbSetAcct(\''+r.co+'\',this.innerText)" title="눌러서 계좌를 고치세요">'+esc(ac||'계좌 적기')+'</span>'
+   ?'<span class="jcac" contenteditable="true" spellcheck="false" onblur="ycbSetAcct(\''+r.co+'\',this.innerText)" title="눌러서 계좌를 고치세요">'+esc(ac||'계좌 적기')+'</span>'+(ac&&YC_CO.some(function(c){return c!==r.co&&ycbAcct(c).replace(/\D/g,'')===ac.replace(/\D/g,'')})?' <b style="color:#c0392b;font-size:11px">⚠ 다른 업체와 같은 계좌</b>':'')
    :esc(ac);
   h+='<tr class="jcco'+(i%2?'':' g')+'"><td class="jcnm">'+esc(lab)+'</td><td class="r">'+w(S.sup)+'</td><td class="r">'+w(S.tax)+'</td><td class="r b">'+w(S.tot)+'</td></tr>'
    +'<tr class="jcacr'+(i%2?'':' g')+'"><td class="jcnm">'+acc+'</td><td></td><td></td><td></td></tr>';
@@ -6523,7 +6525,7 @@ function msbClass(units){
    if((u.qty||0)<0){if(force)u.fw='마이너스';else{u.g='x';u.why='수량 마이너스(차감 전표)';return}}
    /* 주소란에 «명세표주지마세요» — 왼쪽 위 빨간 도장 맨 앞에 (2026-10-30) */
    if(/명세[표서]\s*(를|는|은)?\s*(주지|드리지|넣지)\s*마/.test(String(u.adw||u.ad||'')))u.noms=1;
-   const mx=(/매장\s*배송/.test(String(u.memo||''))||/차량\s*입고/.test(String(u.memo||'')))?null:(String(u.memo||'').match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) · 차량입고가 적혀 있으면 «18일상차» 같은 낱말이 있어도 묶음에 넣는다 (2026-11-17 대신(사당)) */
+   const mx=(/매장\s*배송/.test(String(u.memo||''))||/차량\s*입고/.test(String(u.memo||'')))?null:(exTxt(u.memo,u.date).match(MSB_EXCL)||(TON_GO_RE.test(String(u.memo||''))?['용차(톤·주소)']:null));   /* «매장배송으로 변경» 은 안 뺀다 (2026-11-13) · «1톤-주소» 는 용차 (2026-11-17) · 차량입고가 적혀 있으면 «18일상차» 같은 낱말이 있어도 묶음에 넣는다 (2026-11-17 대신(사당)) */
    if(mx){if(force)u.fw=String(mx[0]).replace(/\s+/g,'').replace(/\(.*$/,'');else{u.g='x';u.why='적요 「'+mx[0]+'」';return}}
    /* 거래처 «소비자» 는 묶음에서 뺀다 (2026-11-02 사장님) — 맨 뒤 «뺀 전표» 목록에만 */
    if(/^소비자/.test(String(u.n||'').replace(/\s+/g,''))){
@@ -7079,7 +7081,7 @@ async function msbOutPull(bytes,D,units){
  const need=ORDERS.filter(function(o){if(!o.sd||o.sd!==D||o.d!==D||o.od===D||ST[o.i]==='del')return false;
   if(!(o.items||[]).some(function(it){return it&&!it.x&&!sjItem(it)}))return false;
   const pr=msbPrMark(o.memo);if(pr==='x')return false;
-  return pr==='o'||/매장\s*배송|차량\s*입고/.test(o.memo||'')||!MSB_EXCL.test(o.memo||'')});
+  return pr==='o'||/매장\s*배송|차량\s*입고/.test(o.memo||'')||!MSB_EXCL.test(exTxt(o.memo,o.d))});
  const miss=[],by={},got=[];
  need.forEach(function(o){if(!units.some(function(u){return u.ok&&u.date===D&&same(u.n,o.n)&&(u.sd===D||u.od===o.od)}))(by[o.od]=by[o.od]||[]).push(o)});
  const np0=MSB_NP;
@@ -7526,7 +7528,7 @@ function jnCand(all){
  const D=ycbDate();
  const L=ORDERS.filter(function(o){if(ST[o.i]==='del'||ASSIGN[o.i]==='nb')return false;if(o.d===D)return true;
   if(Math.abs(new Date(o.d+'T00:00:00')-new Date(D+'T00:00:00'))>40*864e5)return false;return shipDate(o)===D});
- const hit=L.filter(function(o){return jnIs(o)&&!/용차|상차|화물|택배|퀵/.test(String(o.memo||''))});
+ const hit=L.filter(function(o){return jnIs(o)&&!/용차|상차|화물|택배|퀵/.test(exTxt(o.memo,o.d))});
  const use=all?L:hit;
  const done={};(YCB[JN_CO]||[]).forEach(function(x){if(x&&x.d===D&&x.n)done[x.n]=1});
  const seen={};const out=use.filter(function(o){if(done[o.n])return false;const k=o.n+'|'+o.qty;if(seen[k])return false;seen[k]=1;return true});
@@ -7617,7 +7619,7 @@ function jnRowsOf(D){
  const moved={};YC_CO.forEach(function(c){(YCB[c]||[]).forEach(function(y,k){if(y&&y.d===D&&y.jk)moved[y.jk]={c:c,k:k,y:y}})});
  const out=[];L.forEach(function(o){
   const mv=moved[o.key];
-  if(!mv&&(!jnIs(o)||/용차|상차|화물|택배|퀵/.test(String(o.memo||''))||ASSIGN[o.i]==='x'))return;
+  if(!mv&&(!jnIs(o)||/용차|상차|화물|택배|퀵/.test(exTxt(o.memo,o.d))||ASSIGN[o.i]==='x'))return;
   const DD=destOf(o)||{},addr=o.dst||(DD.src==='적요'?DD.t:'');
   /* 적요 손값(JNM) — 명세서 적요가 손값 내용을 품고 들어오면 저절로 풀린다 (2026-11-13) */
   const h0=JNM[o.key];let hman='';
