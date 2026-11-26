@@ -1841,7 +1841,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261126a';
+const APPVER='20261126b';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -2361,7 +2361,7 @@ function guess0(o){
 /* 2026-11-03 사장님 «미배차는 왜 미배차야, 다 동선 잡아야지» — 낱말 목록에 없는 동네라도 시·군·구로 가까운 동선에 넣는다 (맨 마지막 수단).
    원거리(부산·대구·전라·경상·제주)는 용차로 나가야 하니 그대로 미배차로 두고, 주소가 아예 없는 거래처도 못 잡는다. */
 const AREA_FB=[
- [/인천/,'r1'],
+ [/인천|옹진|영흥/,'r1'],
  [/대전|세종|충주|음성|진천|청주|오창|청원|충북|공주|논산|계룡|금산|제천|옥천|보은|증평|괴산|영동|단양/,'r9'],   /* 9 를 10 보다 먼저 — «충청북도 청주» 가 아래 «충청» 에 잡히지 않게 (2026-11-11 청주=9동선) */
  [/평택|안성|천안|아산|당진|서산|홍성|예산|보령|태안|서천|청양|부여|충남|충청/,'r10'],
  [/(구로|금천|강서|양천|영등포)구/,'r2'],
@@ -2622,7 +2622,7 @@ function dstlKey(n,w){w=String(w||'').replace(/\s/g,'').replace(/으$/,'');retur
 const DST_FIX={'명성해운':'인천 중구 항동7가 36-3','아산병원':'서울 송파구 올림픽로43길 88','광주창고':'경기도 광주시 곤지암읍 경충대로 522'};   /* 광주창고 = 경기 광주 곤지암 → 7동선 (2026-11-05 대성퍼니처) */
 const DST_FIX_NOT=/(강릉|보령|보성|영덕|정읍|홍천|금강)아산병원/g;
 function build(fresh){
- A2C={};
+ A2C={};JDI=null;
  ORDERS=[];const g={};DUPN=0;
  /* 동기화로 내려온 옛 '화·목 충청(rc)' 배차값은 그때그때 9/10동선으로 (2026-11-03) */
  try{if(typeof ASGK!=='undefined'&&ASGK)Object.keys(ASGK).forEach(function(k){if(ASGK[k]==='rc')ASGK[k]=rcOf(String(k).split('§')[0])})}catch(e){}
@@ -3101,6 +3101,7 @@ function setupHTML(){const a=Object.keys(ADDR).length;
  +'<button class="btn" onclick="f2.click()">📇 거래처정보 불러오기</button>'
  +'<button class="btn" onclick="f1.value=\'\';f1.click()">📁 명세서 불러오기</button></div></div>'}
 function capFactor(id){return id==='t35'?1.2:1}
+function capOfDrv(id,drv){const c=capFactor(id)||1;return drv&&vehOf(drv)==='3.5톤'?Math.max(1.2,c):c}   /* 2026-11-26 11/27 배진성 4동선 */
 /* 7/29 GPS 실측 보정: 회차당 왕복 주행시간(분) */
 const DRIVE_MIN={r1:87,r2:213,r3:290,r4:233,r5:233,r6:213,r7:327,rw:285,r9:411,r10:380,t35:300,etc:233};
 function fmtDur(m){m=Math.round(m/5)*5;const h=Math.floor(m/60),mm=m%60;return h?(h+'시간'+(mm?' '+mm+'분':'')):(mm+'분')}
@@ -3153,7 +3154,16 @@ function tripMins(rows){
   return Math.round(share+n*per[r.rid]+20*((r.loads||1)-1))})}
 function estRoute(id,list){if(!list.length)return 0;const d=driveFor(id,list);return d[0]+list.length*d[1]}
 function estDriver(rids,stops){if(!stops)return 0;let mx=0;rids.forEach(r=>{if((DRIVE_MIN[r]||234)>mx)mx=DRIVE_MIN[r]||234});return mx+stops*22}
-function effDrv(o){if(DRVOV[o.key])return DRVOV[o.key];const a=a2Of(o);return a?a.d:(CAR[ASSIGN[o.i]]||'')}
+/* 걸리는 말은 «우리설치» 하나 (2026-11-26 시험: «포천대진 설치대행»·«X…에서 설치» 는 남이 설치) */
+const JDI_D='2026-11-27',JDI_DRV='장세훈',JDI_NO=/설치비|설치\s*(?:x|X|안|없|불필요|제외|무)|미\s*설치|자체\s*설치|설치\s*는\s*(?:업체|거래처|그쪽|고객)/;
+let JDI=null;
+function jdInst(o){if(!o||String(o.d||'')<JDI_D)return '';
+ if(!JDI){JDI={};const g={};
+  ORDERS.forEach(function(x){if(String(x.d||'')<JDI_D||!/^\s*\(?\s*조달/.test(String(x.n||'')))return;const k=x.d+'\u0001'+String(x.n).replace(/\s+/g,'');(g[k]=g[k]||[]).push(x)});
+  const ok=DRVS.some(function(d){return d[0]===JDI_DRV})&&NOT_DRIVER.indexOf(JDI_DRV)<0;
+  if(ok)Object.keys(g).forEach(function(k){const L=g[k];if(L.some(function(x){const m=String(x.memo||'');return /우리\s*설치/.test(m)}))L.forEach(function(x){JDI[x.key]=JDI_DRV})})}
+ return JDI[o.key]||''}
+function effDrv(o){if(DRVOV[o.key])return DRVOV[o.key];{const j=jdInst(o);if(j)return j}const a=a2Of(o);return a?a.d:(CAR[ASSIGN[o.i]]||'')}
 /* ===== 1차만 배정된 기사에게 2차 (2026-11-25 강현아님 «1차만 배정된 기사에게 2차를 배정해야지», 11/26 전표부터) =====
    기사 없는 짐만 준다 — ① 기사 빈칸 동선 ② 1차·2차에 싣고도 남은 초과분. 이미 기사가 있는 1차·2차는 절대 안 건드린다(11/23 «끄고 고쳐»).
    · 100% 한 차씩 잘라 큰 것부터, 남는 기사(1차) → 1차만 있는 기사(2차) 한 사람에 한 차. 1차에서 먼저 돌아오는 기사에게 오래 걸리는 것을
@@ -3171,10 +3181,10 @@ function a2Calc(D){const out={m:{},cn:{}};if(A2OFF)return out;A2OFF=1;const keep
   const car=ORDERS.filter(function(o){const r=ASSIGN[o.i];return o.d===D&&ST[o.i]!=='del'&&r&&RID[r]&&!offRoute(r)&&r!=='jn'&&r!=='as'&&r!=='etc'&&r!=='t35'});
   const all=ORDERS.filter(function(o){const r=ASSIGN[o.i];return o.d===D&&ST[o.i]!=='del'&&r&&RID[r]&&!offRoute(r)&&r!=='jn'&&r!=='as'});
   const rows=drvRows(all).rows.filter(function(a){return a.d&&String(a.d).indexOf('용차')!==0});
-  const t1={},t2={},used={};rows.forEach(function(a){used[a.d]=1;if(a.trip===1)(t1[a.d]=t1[a.d]||[]).push(a);if(a.trip===2)t2[a.d]=1});
+  const t1={},t2={},used={},jd={};rows.forEach(function(a){used[a.d]=1;if(a.jdi)jd[a.d]=1;if(a.trip===1)(t1[a.d]=t1[a.d]||[]).push(a);if(a.trip===2)t2[a.d]=1});
   /* 받을 기사 — 짐 없는 기사(1차) 먼저, 그다음 1차만 있는 기사(2차, 먼저 돌아오는 차례) */
   const V=DRVS.map(function(d){return d[0]}).filter(function(n){return autoOK(n)&&!used[n]}).map(function(n){return {n:n,tr:1,dur:0}})
-   .concat(Object.keys(t1).filter(function(n){return !t2[n]&&can2nd(n)&&autoOK(n)}).map(function(n){return {n:n,tr:2,dur:t1[n].reduce(function(x,a){return x+estRoute(a.rid,a.list)},0)}}));
+   .concat(Object.keys(t1).filter(function(n){return !t2[n]&&!jd[n]&&can2nd(n)&&autoOK(n)}).map(function(n){return {n:n,tr:2,dur:t1[n].reduce(function(x,a){return x+estRoute(a.rid,a.list)},0)}}));
   V.sort(function(a,b){return a.tr-b.tr||a.dur-b.dur||(a.n<b.n?-1:1)});
   /* 기사 없는 짐을 한 차씩 */
   const C=[];
@@ -3393,7 +3403,7 @@ const TRIP_EPS=0.02;
 function flatOnly(o){const L=(o.items||[]).filter(function(it){return it&&!it.x&&(+it.q||0)>0});
  return L.length>0&&L.every(function(it){return isPanelIt(it)||/상판|도어만|유리/.test(String(it.p||''))})}
 function tripSplit(rid,drv,list){
- const cf=capFactor(rid)||1,LIM=cf*(1+TRIP_EPS),pos=new Map();list.forEach(function(o,i){pos.set(o,i)});
+ const cf=capOfDrv(rid,drv),LIM=cf*(1+TRIP_EPS),pos=new Map();list.forEach(function(o,i){pos.set(o,i)});
  const hand=function(o){return Math.min(TRIP_MAX,+TRIP[o.key]||(a2Of(o)||{}).tr||0)},qOf=function(o){return DRV2[o.key]?Math.round(o.qty/2):o.qty};
  const mk=function(){return {list:[],L:0,q:0,sq:0}},b=[mk(),mk()],ovr=mk(),big=[];
  const put=function(t,o){t.list.push(o);t.L+=loadOfFor(o);t.q+=qOf(o)};
@@ -3759,10 +3769,10 @@ function drvRows(car){
  if(!NEWTRIP)for(let i=rows.length-1;i>0;i--){if(rows[i].d===rows[i-1].d&&rows[i].rid===rows[i-1].rid&&!rows[i].tp&&!rows[i-1].tp&&rows[i].L<=0.15*(capFactor(rows[i].rid)||1)){rows[i-1].list=rows[i-1].list.concat(rows[i].list);rows[i-1].L+=rows[i].L;rows[i-1].q+=rows[i].q;rows.splice(i,1)}}
  rows.forEach(a=>{
   a.tot=a.list.length;a.dn=a.list.filter(o=>ST[o.i]==='done').length;
-  a.cap=capFactor(a.rid)||1;
+  a.cap=capOfDrv(a.rid,a.d);
   a.rnm=(RID[a.rid]||{nm:a.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
   a.ri=ROUTES.map(r=>r.id).indexOf(a.rid);
-  {const z=a.list[0]&&a2Of(a.list[0]);if(z&&z.d===a.d){a.a2=1;a.cn=z.cn}}});   /* 2차로 받은 짐 (2026-11-25) */
+  {const z=a.list[0]&&a2Of(a.list[0]);if(z&&z.d===a.d){a.a2=1;a.cn=z.cn}else if(a.list[0]&&!DRVOV[a.list[0].key]&&jdInst(a.list[0])===a.d)a.jdi=1}});   /* 2차로 받은 짐 (2026-11-25) */
  const dord=[];rows.forEach(a=>{if(a.d!=='용차'&&dord.indexOf(a.d)<0)dord.push(a.d)});
  rows.sort((x,y)=>dord.indexOf(x.d)-dord.indexOf(y.d)||x.ri-y.ri);
  const byd={};rows.forEach(r=>{(byd[r.d]=byd[r.d]||[]).push(r)});
@@ -3792,7 +3802,7 @@ function loadPlan(D){
    if(a.trip===3){res.over.push({k:'1차·2차에 싣고 남음',rid:a.rid,os:a.list,L:L,txt:nmR(a.rid)+' '+a.d+' '+(can2nd(a.d)?'1차·2차에 싣고 남은 ':'1차만 도는 기사라 남은 ')+a.list.length+'건 '+f(L)+'대분: '+a.list.map(function(z){return z.n}).join(', ')});return}
    if(L>cf*(1+TRIP_EPS)+0.0001)res.over.push({k:'손으로 정한 '+a.trip+'차 초과',rid:a.rid,who:a.d+' '+a.trip+'차',it:'적재 '+pc(L,cf),L:L-cf,txt:nmR(a.rid)+' '+a.d+' '+a.trip+'차 — 손으로 정한 분량이 '+pc(L,cf)+' (100% 넘는 '+f(L-cf)+'대분)'});
    if(a.trip===2){res.two.push(nmR(a.rid)+' '+a.d+' '+a.list.length+'건 '+pc(L,cf)+(/^(r9|r10|rw)$/.test(a.rid)?' [먼 동선 — 같은 날 두 번 어려움]':''));D2[a.d]=1}
-   else if(a.trip===1)(D1[a.d]=D1[a.d]||[]).push({r:a.rid,p:L/cf})});
+   else if(a.trip===1&&!a.jdi)(D1[a.d]=D1[a.d]||[]).push({r:a.rid,p:L/cf})});   /* 조달 설치하는 기사는 «2차 없는 기사» 에 안 넣음 (2026-11-26) */
   /* 기사 빈칸 동선 */
   const bl={};car.forEach(function(o){if(!effDrv(o)){const r=ASSIGN[o.i];(bl[r]=bl[r]||{L:0,n:0,os:[]});bl[r].L+=loadOfFor(o);bl[r].n++;bl[r].os.push(o)}});
   Object.keys(bl).forEach(function(r){if(bl[r].L<0.005)return;const _cf=capFactor(r)||1,_big=bl[r].os.filter(function(z){return loadOfFor(z)>_cf*(1+TRIP_EPS)});res.blank.push({k:'기사 빈칸'+(_big.length&&_big.length===bl[r].os.length?'\n한 건이 한 차를 넘음':/^(r9|r10|rw)$/.test(r)&&bl[r].L<0.15*_cf?'\n적은 분량':''),rid:r,os:bl[r].os,L:bl[r].L,txt:nmR(r)+' 기사 빈칸 — '+bl[r].n+'건 '+f(Math.max(0.1,bl[r].L))+'대분'})});
@@ -3911,7 +3921,7 @@ function tabMine(today){
   if(tr.length>1){
    tr.forEach(function(r,k){
     const rn=(RID[r.rid]||{nm:r.rid}).nm.replace(/^[0-9]+\. |^수요일\. |^화·목\. /,'');
-    h+='<div class="hd2">🚚 '+ME+(r.over?' 초과(용차 권장 — 사무실 확인)':trLab(r,k))+' — '+rn+' <span class="n">'+(r.list.length+r.cont.length)+'</span> <span style="font-weight:700;color:#5f7086;font-size:12px">적재 '+Math.round(r.L/(capFactor(r.rid)||1)*100)+'%'+(r.over?'':' · ⏱ '+fmtDur(trMins(tr)[k]))+'</span></div>';
+    h+='<div class="hd2">🚚 '+ME+(r.over?' 초과(용차 권장 — 사무실 확인)':trLab(r,k))+' — '+rn+' <span class="n">'+(r.list.length+r.cont.length)+'</span> <span style="font-weight:700;color:#5f7086;font-size:12px">적재 '+Math.round(r.L/capOfDrv(r.rid,ME)*100)+'%'+(r.over?'':' · ⏱ '+fmtDur(trMins(tr)[k]))+'</span></div>';
     if(r.cont.length)h+='<div class="lifo">⤷ 앞 차에서 이어싣기: <b>'+r.cont.join(', ')+'</b></div>';
     h+=r.list.map(o=>card(o,1)).join('');
    });
@@ -6507,7 +6517,8 @@ function msbRL(id){if(id==='ov')return '용차 권장';if(id==='fo')return '전�
 function msbCL(id){if(id==='ov')return '#E04B45';if(id==='fo')return '#7C3AED';if(id==='pick')return '#475569';if(id==='un')return '#9CA3AF';return (RID[id]||{}).cl||'#94A3B8'}
 /* 전표마다 그날 배차와 맞춰 동선·기사·도장을 정하고, 동선별(배차 방문순서)로 묶는다 */
 /* 동선 안 차례 — 1번째 차, 2번째 차 … 맨 뒤 초과분 */
-function msbTk(u){return (u.trip||1)===3?99:(u.cn||u.trip||1)}
+function msbTk(u){return u.jdi?50:(u.trip||1)===3?99:(u.cn||u.trip||1)}
+function msbTkL(t){return t===50?'설치':String(t)}
 function msbClass(units){
  const keepSEL=SEL,keepCAR=CAR;
  const by={};
@@ -6625,7 +6636,7 @@ function msbClass(units){
    const cnt={};
    rr.rows.forEach(function(a){if(a.d==='용차')return;const k=a.d+'§'+a.rid;
     const n2=a.trip||(a.tp?Math.min(2,a.tp):(cnt[k]=Math.min(2,(cnt[k]||0)+1)));
-    {const lk=D2+'§'+a.rid+'§'+(a.a2?'c'+a.cn:n2);lm[lk]=lm[lk]||{};lm[lk][a.d]=(lm[lk][a.d]||0)+(a.L||0)/(a.cap||1)}
+    {const lk=D2+'§'+a.rid+'§'+(a.a2?'c'+a.cn:a.jdi?'j':n2);lm[lk]=lm[lk]||{};lm[lk][a.d]=(lm[lk][a.d]||0)+(a.L||0)/(a.cap||1)}
     a.list.forEach(function(o){const kk=D2+'§'+o.i;if(tm[kk]===undefined){tm[kk]=n2;dm[kk]=a.d}})});
    /* 기사 빈칸 동선도 100% 씩 1차·2차 (2026-11-23) */
    if(D2>=NEWTRIP_D){const bk={};ORDERS.forEach(function(o){const r=ASSIGN[o.i];if(o.d!==D2||ST[o.i]==='del'||!r||!RID[r]||offRoute(r)||r==='jn'||r==='as'||effDrv(o))return;(bk[r]=bk[r]||[]).push(o)});
@@ -6640,7 +6651,8 @@ function msbClass(units){
     const kk=(u.date||'')+'§'+o.i;
     if(!u.tripMan)u.trip=tm[kk]||1;   /* 손 지정 회차는 그대로 */
     if(dm[kk]&&!DRVOV[o.key]&&u.g===ASSIGN[o.i])u.drv=dm[kk];
-    {const z=u.g===ASSIGN[o.i]?a2Of(o):null;if(z){u.a2=1;u.drv=z.d;u.cn=z.cn;u.trip=z.tr}else{const c=a2Cn(o);if(c&&!u.drv)u.cn=c}}   /* 2차로 받은 짐·기사 빈칸 동선의 몇 번째 차 (2026-11-25) */
+    {const z=u.g===ASSIGN[o.i]?a2Of(o):null;if(z){u.a2=1;u.drv=z.d;u.cn=z.cn;u.trip=z.tr}else{const c=a2Cn(o);if(c&&!u.drv)u.cn=c}
+     if(!z&&u.g===ASSIGN[o.i]&&!DRVOV[o.key]&&jdInst(o)){u.jdi=1;u.drv=jdInst(o);u.trip=1}}   /* 2차로 받은 짐·기사 빈칸 동선의 몇 번째 차 (2026-11-25) */
     if((u.trip||1)===3)u.drv=''});   /* 2차까지 못 싣는 분량 — 기사 이름 없이 (2026-11-23) */
    g.units.sort(function(a,b){return msbTk(a)-msbTk(b)});
   });
@@ -6727,7 +6739,7 @@ async function msbBuild(bytes,groups,coversOnly){
  /* 동선의 한 차(1번째·2번째…·초과분) 이름·기사·적재 */
  const tTks=function(g){const a=[];g.units.forEach(function(u){const t=msbTk(u);if(a.indexOf(t)<0)a.push(t)});return a.sort(function(p,q){return p-q})};
  const tDrv=function(us){const dd=[];us.forEach(function(z){if(!z.drv)return;const n=z.drv+(z.a2&&z.trip===2?'(2차)':'');if(dd.indexOf(n)<0)dd.push(n)});return dd.join('·')};
- const tPct=function(g,us,t,D){const key=us[0]&&us[0].a2?'c'+us[0].cn:t===99?3:(us[0]&&us[0].cn&&!us[0].drv?(us[0].trip||1):t),m=(groups.tripLoad||{})[D+'§'+g.id+'§'+key];
+ const tPct=function(g,us,t,D){const key=us[0]&&us[0].a2?'c'+us[0].cn:t===50?'j':t===99?3:(us[0]&&us[0].cn&&!us[0].drv?(us[0].trip||1):t),m=(groups.tripLoad||{})[D+'§'+g.id+'§'+key];
   if(!m)return null;const ks=Object.keys(m).filter(function(k){return k.indexOf('용차')!==0});return ks.length?Math.round(ks.reduce(function(a,k){return a+m[k]},0)*100):null};
  const idx=[];if(!coversOnly)groups.forEach(function(g){g.units.forEach(function(u){u.pages.forEach(function(p){idx.push(p-1)})})});
  msbSt('쪽 옮기는 중…');
@@ -6757,7 +6769,7 @@ async function msbBuild(bytes,groups,coversOnly){
     const tks=r?tTks(g):[0],h2=r&&(tks.length>1||tks[0]!==1);
     tks.forEach(function(t){const us=r?g.units.filter(function(u){return msbTk(u)===t}):g.units,p=r?tPct(g,us,t,D):null,a2=us[0]&&us[0].a2;
      const t1=a2&&us[0].trip===2?Object.values(a2From(D,us[0].drv)).join('·'):'';
-     rows.push({g:g.id,c:[{t:nm,sz:10.5,al:'l',color:WHT,fill:col},{t:!r?'':t===99?'초과분':h2?msbRL(g.id).replace('동선','')+'-'+t:'1',al:'c',sz:10,color:t===99?RED:BLK},{t:t===99?'용차 필요':(tDrv(us)||(g.id==='un'||g.id==='pick'||g.id==='fo'?'':'기사 빈칸')),al:'c',sz:10.5,color:t===99||(!tDrv(us)&&r)?RED:BLK},{t:us.length+'건',al:'c',sz:10},{t:S.nq(us)+'개',al:'c',sz:10},{t:p==null?'':p+'%',al:'c',sz:10.5,color:p>100?RED:BLK},{t:t===99?'1차·2차에 못 싣는 분량':a2?(us[0].trip===2?t1+' 다녀와서 2차':'짐 없던 기사'):(us[0]&&us[0].trip===2&&r?'2차':''),sz:8.6,color:GRY}]})})});
+     rows.push({g:g.id,c:[{t:nm,sz:10.5,al:'l',color:WHT,fill:col},{t:!r?'':t===99?'초과분':h2?msbRL(g.id).replace('동선','')+'-'+msbTkL(t):'1',al:'c',sz:10,color:t===99?RED:BLK},{t:t===99?'용차 필요':(tDrv(us)||(g.id==='un'||g.id==='pick'||g.id==='fo'?'':'기사 빈칸')),al:'c',sz:10.5,color:t===99||(!tDrv(us)&&r)?RED:BLK},{t:us.length+'건',al:'c',sz:10},{t:S.nq(us)+'개',al:'c',sz:10},{t:p==null?'':p+'%',al:'c',sz:10.5,color:p>100?RED:BLK},{t:t===99?'1차·2차에 못 싣는 분량':a2?(us[0].trip===2?t1+' 다녀와서 2차':'짐 없던 기사'):(us[0]&&us[0].trip===2&&r?'2차':''),sz:8.6,color:GRY}]})})});
    if(rows.length){ttl('동선별 한눈에');tGrid(C,LM,[150,44,88,44,50,48,TWD-424],['동선','차','기사','전표','의자','적재','비고'],rows,{sz:9.5})}}
   /* 초과분·기사 빈칸 */
   {let LP=null;try{LP=loadPlan(d0)}catch(e){console.warn('용차 권장 셈 실패',e)}
@@ -6770,7 +6782,7 @@ async function msbBuild(bytes,groups,coversOnly){
   /* 동선마다 표 — 거래처 · 의자이름 · 개수 · 총계 */
   groups.forEach(function(g){const r=RID[g.id]&&g.id!=='jn',D=(g.units[0]||{}).date||d0,col=hex(msbCL(g.id)),tks=r?tTks(g):[0],h2=r&&(tks.length>1||tks[0]!==1),rows=[];let no=0;
    tks.forEach(function(t){const us=r?g.units.filter(function(u){return msbTk(u)===t}):g.units,p=r?tPct(g,us,t,D):null;
-    if(r)rows.push({bar:(t===99?'초과분 (용차 필요)':(h2?msbRL(g.id)+'-'+t:msbRL(g.id))+'   '+(tDrv(us)||'기사 빈칸'))+'   ·   '+us.length+'건   ·   의자 '+S.nq(us)+'개'+(p==null?'':'   ·   적재 '+p+'%'),fill:t===99?rgb(1,.92,.91):BGH,color:t===99?RED:BLK});
+    if(r)rows.push({bar:(t===99?'초과분 (용차 필요)':(h2?msbRL(g.id)+'-'+msbTkL(t):msbRL(g.id))+'   '+(tDrv(us)||'기사 빈칸'))+'   ·   '+us.length+'건   ·   의자 '+S.nq(us)+'개'+(p==null?'':'   ·   적재 '+p+'%'),fill:t===99?rgb(1,.92,.91):BGH,color:t===99?RED:BLK});
     const m={},od=[];us.forEach(function(u){const k=u.n+(u.jik?' [직납]':'')+(g.id==='un'&&u.why?' ('+u.why+')':'');if(!m[k]){m[k]=[];od.push(k)}m[k].push(u)});
     od.forEach(function(k){const L=m[k];no++;rows.push({no:no,name:k+(L.length>1?'  ('+L.length+'장)':''),items:tItems(L),tot:S.nq(L)})})});
    if(C.y-90<C.BOT)C.np();
@@ -6787,8 +6799,8 @@ async function msbBuild(bytes,groups,coversOnly){
  groups.forEach(function(g,gi){
   const col=hex(msbCL(g.id)),lab=msbRL(g.id),r=RID[g.id];
   /* 1차·2차 — 그 동선에 2차분이 있는 날만 «1동선-1 / 1동선-2» 로 찍는다 */
-  const has2=g.id!=='ov'&&g.units.some(function(u){return (u.trip||1)>=2||u.a2||(u.cn||0)>1});
-  const labOf=function(u){const k=msbTk(u);return has2&&k<99?lab+'-'+k:lab};
+  const has2=g.id!=='ov'&&g.units.some(function(u){return (u.trip||1)>=2||u.a2||u.jdi||(u.cn||0)>1});
+  const labOf=function(u){const k=msbTk(u);return has2&&k<99?lab+'-'+msbTkL(k):lab};
   const BLU=rgb(.1,.35,.85);
   const drvs=[];g.units.forEach(function(u){if(u.drv&&drvs.indexOf(u.drv)<0)drvs.push(u.drv)});
   const np=g.units.reduce(function(s,u){return s+u.pages.length},0);
@@ -6809,7 +6821,7 @@ async function msbBuild(bytes,groups,coversOnly){
    const o=u.o||null;
    /* 1차·2차 소제목 — «한 차 분량» 장 대신 표지 한 장 안에 (2026-11-20 강현아님) */
    if(has2&&r&&g.id!=='jn'&&msbTk(u)!==_ct){_ct=msbTk(u);const uu=g.units.filter(function(z){return msbTk(z)===_ct}),q3=uu.reduce(function(s2,z){return s2+(z.qty||0)},0),p=tPct(g,uu,_ct,u.date||d0),L3=uu.reduce(function(s2,z){return s2+((z.o&&z.o.load)||0.08)},0);
-    rows.push({bar:(_ct===99?'초과분 — 1차·2차에 못 싣는 분량':lab+'-'+_ct+'   '+(tDrv(uu)||'기사 빈칸'))+'   ·   '+uu.length+'건   ·   의자 '+q3+'개   ·   적재 약 '+(p==null?Math.round(L3*100):p)+'%',fill:_ct===99?rgb(1,.92,.91):BGH,color:_ct===99?RED:BLK})}
+    rows.push({bar:(_ct===99?'초과분 — 1차·2차에 못 싣는 분량':lab+'-'+msbTkL(_ct)+(_ct===50?' (조달 설치)':'')+'   '+(tDrv(uu)||'기사 빈칸'))+'   ·   '+uu.length+'건   ·   의자 '+q3+'개   ·   적재 약 '+(p==null?Math.round(L3*100):p)+'%',fill:_ct===99?rgb(1,.92,.91):BGH,color:_ct===99?RED:BLK})}
    /* 도착지 — 적요 배송지(직납) > 거래처 등록 주소 > 전표 주소 줄 */
    let addr='';try{const DD=o?(destOf(o)||{}):{};addr=(o&&o.dst)||(DD.src==='적요'?DD.t:'')||ADDR[(o&&o.n)||u.n]||msbAdClean(u.ad)||ADDR[resolveCust(String(u.n||'').replace(/\s+/g,''))||'']||String(u.ad||'').replace(/\s*\[.*?\]\s*$/,'')}catch(e){addr=String(u.ad||'')}
    {const mt=memoSp(String((o&&o.memo)||u.memo||'')),mi=addr?mt.indexOf(addr):-1;if(mi>=0&&addr.length>=20){const tl=(mt.slice(mi+addr.length).match(/^[^,\/]*/)||[''])[0];if(tl.trim())addr=(addr+tl).trim()}}
@@ -6823,7 +6835,7 @@ async function msbBuild(bytes,groups,coversOnly){
   if(r&&g.id!=='jn'){const Lg=g.units.reduce(function(s2,u){return s2+((u.o&&u.o.load)||0.08)},0),tks=tTks(g).filter(function(t){return t<99}),n=Math.max(1,tks.length);
    if(C.y-n*20<C.BOT-14)C.np();
    if(!has2){const p=tPct(g,g.units,1,D9);C.cv.drawText('기사 인수 확인:  ______________________  (서명)   ·  적재 약 '+(p==null?Math.round(Lg*100):p)+'%',{x:40,y:C.y-8,size:11,font:font,color:BLK});C.y-=20}
-   else tks.forEach(function(t){const dn=tDrv(g.units.filter(function(z){return msbTk(z)===t}));C.cv.drawText(lab+'-'+t+(dn?'  '+dn:'')+'   인수 확인:  ______________________  (서명)',{x:40,y:C.y-8,size:11,font:font,color:BLK});C.y-=20})}
+   else tks.forEach(function(t){const dn=tDrv(g.units.filter(function(z){return msbTk(z)===t}));C.cv.drawText(lab+'-'+msbTkL(t)+(dn?'  '+dn:'')+'   인수 확인:  ______________________  (서명)',{x:40,y:C.y-8,size:11,font:font,color:BLK});C.y-=20})}
   const cv=C.cv,y=C.y;
   if(g.id==='ov')cv.drawText('기사님이 1차·2차로 실어도 못 싣는 분량입니다 — 용차를 부르거나 다른 기사를 넣어 주세요.',{x:40,y:Math.max(44,y-6),size:11,font:font,color:RED});
   if(g.id==='fo')cv.drawText('적요에 «전표o» 가 적혀 찍은 전표입니다 — 택배·상차처럼 동선이 없는 건입니다.',{x:40,y:Math.max(44,y-6),size:11,font:font,color:hex(msbCL('fo'))});
