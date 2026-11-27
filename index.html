@@ -1300,7 +1300,7 @@ const RIDB={db:null,
   const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=function(){res()};t.onerror=function(){rej(t.error)}})})}};
 let rawT=null;
 function rawStore(){
- if(RAWV<=BUILD_TS)return;   /* 아직 진짜 자료를 못 받았으면 빈 것으로 덮어쓰지 않는다 */
+ if(RAWV<=BUILD_TS||window.MSB_TMP)return;   /* 아직 진짜 자료를 못 받았으면 빈 것으로 덮어쓰지 않는다 */
  clearTimeout(rawT);rawT=setTimeout(function(){
   RIDB.put('raw',{v:RAWV,raw:RAW}).then(function(){try{localStorage.removeItem(KEY+'_raw')}catch(e){}})
    .catch(function(e){console.warn('명세서 IndexedDB 저장 실패',e)})},800)}
@@ -1841,7 +1841,7 @@ function save(){const S=(k,v)=>{try{localStorage.setItem(KEY+k,JSON.stringify(v)
 /* ===== 새 버전 알림 =====
    프로그램을 새로 올리면 브라우저가 옛날 파일을 캐시로 물고 있어
    손으로 잡아둔 배차가 안 보이는 일이 생긴다. 그래서 스스로 확인하고 알려준다. */
-const APPVER='20261126c';
+const APPVER='20261127a';
 function verBar(v){
  if(document.getElementById('verbar'))return;
  const d=document.createElement('div');d.id='verbar';
@@ -1866,7 +1866,7 @@ let SB=null,SB_ON=false,pushT=null,applying=false,NEEDPUSH=0;
 const SHARE=['','_s','_card','_dov','_l','_do','_cu','_dv','_c','_raw','_fe','_ad','_gp','_tel','_wxd','_rno','_rwm','_as','_note','_asg','_stk','_asgv','_inbs','_ycb','_seqf','_itx','_cts','_sja','_tagrt','_padr','_jnt','_jnm','_sjm'];
 function snap(){const o={};
  o['']=ASSIGN;o['_s']=ST;o['_card']=CARD;o['_dov']=DRVOV;o['_l']=LEARN;o['_do']=DOVR;
- o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_sja']=SJA;o['_itx']=ITX;o['_tagrt']=TAGRT;o['_padr']=PADR;o['_sjm']=SJM;o['_jnt']=JNT;o['_jnm']=JNM;
+ o['_jbn']=JBN;o['_drvh']=DRVH;o['_trph']=TRPH;o['_rt2']=RT2;o['_cu']=CUSTOM;o['_dv']=DRVS;o['_c']=CAPS;o['_raw']=window.MSB_TMP?RAW.filter(function(l){return !l._tmp}):RAW;o['_fe']=FEE;o['_dv2']=DRV2;o['_sq']=SEQ;o['_seqf']=SEQF;o['_sql']=SEQL;o['_capu']=CAPU;o['_trip']=TRIP;o['_wxd']=WXD;o['_wxr']=WXR;o['_rno']=RNO;o['_rwm']=RWMK;o['_as']=ASV;o['_note']=NOTE;o['_seen']=SEEN;o['_asg']=ASGK;o['_stk']=STK;o['_asgv']=ASGV;o['_inbs']=INBS;o['_ycb']=YCB;o['_cts']=CTS;o['_sja']=SJA;o['_itx']=ITX;o['_tagrt']=TAGRT;o['_padr']=PADR;o['_sjm']=SJM;o['_jnt']=JNT;o['_jnm']=JNM;
  const diff=(cur,base)=>{const d={};for(const k in cur)if(cur[k]!==base[k])d[k]=cur[k];return d};
  o['_ad']=diff(ADDR,BUILTIN.A);o['_gp']=diff(GRP,BUILTIN.G);o['_tel']=diff(TEL,BUILTIN.T);o['_rawv']=RAWV;
  return o}
@@ -2086,7 +2086,7 @@ function namesSnap(){
   const list=today.filter(o=>hasDrv(o,n)).slice().sort(bySeq);
   if(list.length)m[n]=list.map((o,i)=>(i+1)+o.n).join('·')});
  return {d:SEL,m:m}}
-function syncPush(){if(!SB_ON||applying)return;clearTimeout(pushT);
+function syncPush(){if(!SB_ON||applying)return;if(window.MSB_TMP){window.MSB_TMPQ=1;return}clearTimeout(pushT);
  pushT=setTimeout(async()=>{try{
   const now=new Date().toISOString();
   await SB.from('board').upsert([{id:1,data:snap(),updated_at:now},{id:2,data:namesSnap(),updated_at:now}]);
@@ -6771,6 +6771,7 @@ async function msbBuild(bytes,groups,coversOnly){
   {const cells=[['전표',S.total+'건'],['장수',S.inPages+'장'],['의자',S.qty+'개'],['동선 묶음',S.routed.length+'건'],['찾으러옴',S.pick.length+'건'],['미배차',S.un.length+'건'],['뺀 것',S.x.length+'건'],['장수 대조',S.good?'맞음':'!! '+(S.inPages-S.outPages)+'장 빠짐']],w=TWD/cells.length;
    cells.forEach(function(c,i){tBox(C.cv,LM+w*i,C.y,w,17,BGH,LND,.7);tTxt(C.cv,[c[0]],9.5,LM+w*i,C.y,w,17,'c');
     tBox(C.cv,LM+w*i,C.y-17,w,27,i===7?(S.good?rgb(.92,.98,.94):rgb(1,.93,.92)):WHT,LND,.7);let z=14;while(z>7&&tw(c[1],z)>w-6)z-=.5;tTxt(C.cv,[c[1]],z,LM+w*i,C.y-17,w,27,'c',i===7?(S.good?rgb(.05,.5,.25):RED):(i===5&&S.un.length?RED:BLK))});C.y-=44+9}
+  if(MSB.tmpN)C.cv.drawText('배차 자료에 아직 없던 전표 품목 '+MSB.tmpN+'줄도 적재에 넣어 나눴습니다 (묶을 때 PDF 기준).',{x:LM,y:C.y-4,size:8.5,font:font,color:GRY}),C.y-=12;
   if((MSB.miss||[]).length)box('!! '+md(d0)+' 출고인데 전표가 없는 건 '+MSB.miss.length+'건 — '+MSB.miss.map(msbMissTxt).join(', ')+' — sERP 에서 그 전표일자로 이 전표만 PDF 로 뽑아 «이 파일 도장찍기» 로 올려 주세요',rgb(1,.95,.94),RED);
   if(S.moved.length)box('이미 다른 날 묶음에 찍은 전표 '+S.moved.length+'건 (날짜 바뀜) — '+S.moved.map(function(u){return u.n+' ['+md(u.moved)+' 묶음 · 의자 '+(u.qty||0)+'개 · 지금 '+msbRL(u.g)+rgNm(u.g)+']'}).join(', '),rgb(1,.97,.88),RED);
   /* 동선별 한눈에 */
@@ -7131,6 +7132,19 @@ async function msbOutPull(bytes,D,units){
   bytes=await a.save();MSB_NP=np}
  return {bytes:bytes,miss:miss,n:got.length}}
 function msbMissTxt(o){return o.n+' (전표일자 '+md(o.od)+', '+(o.qty||0)+'개'+(o.memo?', 적요 «'+String(o.memo).slice(0,40)+'»':'')+')'}
+/* PDF 전표의 품목 줄 중 배차 명세서(광일 줄)에 없는 것 — 거래처·날짜·품목·수량으로 맞추고 남는 줄 */
+function msbMissLines(units){
+ const z=function(t){return String(t||'').replace(/\s+/g,'')},used=new Set(),out=[];
+ const byD={};RAW.forEach(function(l){if(l&&!l.sj&&!l._tmp)(byD[l.d]=byD[l.d]||[]).push(l)});
+ units.forEach(function(u){if(!u.ok||!u.n||!(u.its||[]).length)return;const D=u.date;if(!D)return;
+  const un=z(u.n),same=function(n){const a=z(n);return a===un||(un.length>=6&&a.indexOf(un)===0)||(a.length>=6&&un.indexOf(a)===0)};
+  const L=(byD[D]||[]).filter(function(l){return same(l.n)});
+  const nm=L.length?L[0].n:(resolveCust(un)||u.n);
+  u.its.forEach(function(it){const p=z(it.p),q=+it.q||0;if(!p||!(q>0))return;
+   const hit=L.find(function(l){if(used.has(l)||(+l.q||0)!==q)return false;const lp=z(l.p);return lp===p||(p.length>=4&&(lp.indexOf(p)===0||p.indexOf(lp)===0))});
+   if(hit){used.add(hit);return}
+   out.push({d:D,n:nm,p:String(it.p||'').trim(),s:String(it.s||'').trim(),q:q,m:String(u.memo||'').slice(0,80),_tmp:1,cp:90+out.length})})});
+ return out}
 async function msbRun(bytes,name,onlyNew,coversOnly){
  const base=(document.getElementById('msbbase')||{}).value||'';   /* 어느 묶기까지를 «이미 묶은 것» 으로 볼지 */
  try{MSB={name:name||'',units:null,groups:null,st:'',out:null,outName:'',newN:0,only:!!onlyNew,base:base};
@@ -7157,11 +7171,15 @@ async function msbRun(bytes,name,onlyNew,coversOnly){
    MSB.modN=units.filter(function(u){return u.mod}).length;
    if(!units.length){msbSt('➕ '+d+' — 지난 묶기 뒤 새로 들어오거나 바뀐 전표가 없습니다 (전체 '+all+'건)');return}
   }
+  let tmpN=0;try{const ml=msbMissLines(units);if(ml.length){window.MSB_TMP=1;RAW=RAW.concat(ml);build();tmpN=ml.length}}catch(e){console.warn('배차에 없는 전표 줄 넣기 실패',e)}
+  MSB.tmpN=tmpN;
+  try{
   const groups=msbClass(units);
   try{await msbDlvRead(bytes,units)}catch(e){console.warn('배송지 읽기 실패',e)}
   try{await msbMarkMoved(units)}catch(e){console.warn('이미 찍은 전표 찾기 실패',e)}
-  const pdf=await msbBuild(bytes,groups,coversOnly);
-  MSB.units=units;MSB.groups=groups;MSB.coversOnly=!!coversOnly;MSB.outName=(coversOnly?'거래명세표_보고_':'거래명세표_동선별_')+d+(onlyNew?'_추가':'')+'.pdf';
+  var pdf=await msbBuild(bytes,groups,coversOnly);
+  MSB.units=units;MSB.groups=groups;
+  }finally{if(window.MSB_TMP){RAW=RAW.filter(function(l){return !l._tmp});window.MSB_TMP=0;build();if(window.MSB_TMPQ){window.MSB_TMPQ=0;if(!window.NOPUSH)syncPush()}}}MSB.coversOnly=!!coversOnly;MSB.outName=(coversOnly?'거래명세표_보고_':'거래명세표_동선별_')+d+(onlyNew?'_추가':'')+'.pdf';
   if(MSB.out)URL.revokeObjectURL(MSB.out);
   MSB.out=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));
   msbSt('');render();msbDown();
